@@ -1,0 +1,21 @@
+$ node /workspace/oscraft/scenarios/moba/tools/gen-abilities-688g-missing.mjs
+wrote 10 abilities: 0 with mapped effects, 238 unverified
+label rows: 1750 cast (NONE), 0 bound to an effect, 1053 not mapped
+
+$ node /workspace/oscraft/scenarios/moba/tools/gen-abilities-688g-missing.mjs --check
+gen-abilities-688g-missing --check: ok
+
+$ node --input-type=module -e '<focused count check>'
+nonzeroDamageRows=139 byPerlevelTarget=[["null",139]]
+generatedWithEffects=0 unverifiedRows=238
+b01DamageEffectSample=ability("abaddon_death_coil", 72, 75, "unit", [effect("damage", p0=100, p1=0, p2=38, p3=0)])
+BLOCKER: no perlevel row has both a nonzero damage label and a known DataB unit target; the in-repo generator emits 10 abilities with 0 mapped effects, and the 8 nonzero-damage abilities with unit targets in batch OSD are already defined outside this generator.
+
+$ git show -s --format=%B 5590fd499
+gen-abilities-688g-missing: 6.88g perlevel labels bind to effect kinds by role
+...
+Witness: wrote 10 abilities: 0 with mapped effects, 238 unverified
+Witness: label rows: 1750 cast (NONE), 0 bound to an effect, 1053 not mapped
+Status: open - the in-repo generator covers 10 ids and none has a nonzero bound label; 6.88g perlevel damage values are 0 for most damage rows, point-target areas and some target codes are absent, and the 145 empty batch-file rows are written outside this repo. The acceptance witness (a damage ability encoded through the generator, then the mod-host cargo test) is not met.
+
+Acceptance not met: 0 generated abilities have effects, 238 unverified rows remain, and no perlevel row has both a nonzero damage label and a known DataB unit target. The mod-host cargo test was not run because there is no encoded effect to witness. No source files were changed and no commit or push was made.
