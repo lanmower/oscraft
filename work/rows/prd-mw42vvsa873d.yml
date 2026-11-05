@@ -1,0 +1,6 @@
+id: "prd-mw42vvsa873d"
+kind: "prd"
+title: "classify generator drift before regeneration"
+body: "Three generator --check variants report drift at HEAD. A temp mirror shows the differences are gameplay data loaded through manifest.json, so classify and record the source-of-truth decision instead of overwriting committed outputs."
+status: "open"
+createdAt: "2026-11-05T21:49:16.330Z"

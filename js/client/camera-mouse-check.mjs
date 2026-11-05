@@ -1,4 +1,4 @@
-import { cameraDragAction, MIDDLE_BUTTON, RIGHT_BUTTON } from "./camera_mouse.js";
+import { cameraDragAction, MIDDLE_BUTTON, RIGHT_BUTTON, pointerReleaseKinds } from "./camera_mouse.js";
 import { orbitCamera, panCamera } from "./render3d.js";
 
 const LEFT_BUTTON = 0;
@@ -21,6 +21,10 @@ const cases = [
   ["forward button drag is unbound", cameraDragAction(FORWARD_BUTTON, true), null],
   ["rotate changes yaw and pitch, target fixed", rotated.yaw !== 0.5 && rotated.pitch !== 0.9 && same(rotated.target, [100, 0, 200]), true],
   ["pan moves the target, yaw and pitch fixed", !same(panned.target, [100, 0, 200]) && panned.yaw === 0.5 && panned.pitch === 0.9, true],
+  ["right camera drag forwards no pointer kinds", JSON.stringify(pointerReleaseKinds(RIGHT_BUTTON, true)), "[]"],
+  ["middle camera drag forwards no pointer kinds", JSON.stringify(pointerReleaseKinds(MIDDLE_BUTTON, true)), "[]"],
+  ["right click forwards down and up", JSON.stringify(pointerReleaseKinds(RIGHT_BUTTON, false)), '["down","up"]'],
+  ["left release forwards up", JSON.stringify(pointerReleaseKinds(LEFT_BUTTON, true)), '["up"]'],
 ];
 
 let failed = 0;

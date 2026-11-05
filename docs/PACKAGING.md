@@ -1,21 +1,19 @@
 # Packaging
 
-One archive holds everything a fresh install needs: the server, the mod language server, the data
-directory, the browser page with its committed wasm and map. `scripts/package/build.sh` builds it and `scripts/package/install-check.sh`
-proves it installs. CI runs both in the `package-install` job of `.github/workflows/ci.yml`.
+One archive holds everything a fresh install needs: the mod language server, the browser page, the mods and both scenario packs with their rebuilt map images. `scripts/package/build.sh` builds it and `release.yml` runs it for tagged releases. The install check and the `ci.yml` job that ran it were retired in `9a17155e`.
 
 ## Layout
 
-The archive has these members at its root. Paths are relative and every file is listed in the manifest.
+The archive has these members at its root. Paths are relative and every file is listed in `MANIFEST.sha256`.
 
 | Member | Contents |
 | --- | --- |
-| `bin/oscraftd` | the server binary (crate `server`, release build) |
 | `bin/oscraft-lsp` | the mod language server over stdio (crate `mod-lsp`, package `oscraft-lsp`) |
-| `data/*.osd` | the data directory; `oscraftd --data` builds the catalog image from it |
-| `site/` | the browser page: `index.html`, `main.js`, `assets/`, `map.bin` (from `mapexport`), `pkg/` (wasm-pack output) |
-| `js/client/play.html`, `play.js`, `rooms.js`, `ice.js`, `delta.js`, `wire/frame.js` | the browser host page and its ES modules, loaded directly through the import map in `play.html` (no bundle) |
-| `js/client/pkg/`, `js/client/map.bin` | the browser wasm package (`wasm-pack`; wasm-opt is off in `crates/web/Cargo.toml`) that the page loads through `data-pkg`, and the map image it loads through `data-map` |
+| `js/client/` | the browser page and its ES modules, loaded directly (no bundle) |
+| `js/client/pkg/` | the wasm-bindgen output (`web.js`, `web_bg.wasm`), built by `wasm-pack` and never committed |
+| `mods/` | the example mod packs |
+| `scenarios/moba/`, `scenarios/duel-routes/` | both scenario packs; `mapexport` rebuilds each `.osdt` image into the archive |
+| `scenarios/moba/assets/models/` | the unit GLB models |
 | `VERSION` | the crate version the archive was built from |
 | `MANIFEST.sha256` | one `sha256  path` line per member, in `sha256sum` format; lists every file except itself |
 
@@ -25,34 +23,20 @@ The archive is `oscraft-<version>.tar.gz`, built as a gzip tar of the staging di
 
     bash scripts/package/build.sh <out-dir>
 
-Needs a Rust toolchain with the `wasm32-unknown-unknown` target, `wasm-pack`, and `sha256sum` or `shasum`. No node or npm is needed.
-The script finishes by printing `package built archive=<path> version=<v> members=<n>`.
+Needs a Rust toolchain with the `wasm32-unknown-unknown` target, `wasm-pack`, and `sha256sum` or `shasum`. No node or npm is needed. The script finishes by printing `package built archive=<path> version=<v> members=<n>`.
 
-## Install check
+## Verify an archive
 
-    bash scripts/package/install-check.sh <archive> <empty-dir>
-
-The destination must be an existing empty directory. The check:
-
-1. unpacks the archive into it;
-2. re-hashes every member and fails on any sha256 that differs from `MANIFEST.sha256`, or on a file the manifest does not list;
-3. starts `bin/oscraftd --room ci --data data --site site` from the unpacked directory and requires `GET /state` to return JSON with `units` and `GET /site/` to return 200;
-4. runs `bin/oscraft-lsp` over stdio with `initialize` and `shutdown`, and requires a reply that contains `capabilities`.
-5. requires the page modules `play.html`, `play.js`, `rooms.js`, `ice.js`, `delta.js` and `wire/frame.js`, the wasm package `js/client/pkg/web.js` and `web_bg.wasm`, and `js/client/map.bin` to be non-empty; every relative import of `play.js` and `delta.js` and each `data-pkg` and `data-map` reference in `play.html` must resolve from the unpacked directory. It prints `client imports ok=<n>`.
-
-On success it prints `package install ok members=<n> sha256_checked=<n>` and then `package install ok members=<n> sha256_checked=<n> client=ok pkg=ok map=ok`, where `members` counts the manifest lines
-and `sha256_checked` counts the members whose hash matched. Any failure prints `FAIL: <reason>` and exits 1.
+`scripts/package/install-check.sh` and the CI job that ran it were retired in `9a17155e`. To check an unpacked archive by hand, recompute the hashes against `MANIFEST.sha256` and confirm `js/client/pkg/web.js`, `web_bg.wasm` and both `.osdt` images are non-empty.
 
 ## Running an installed copy
 
     tar -xzf oscraft-<version>.tar.gz -C /opt/oscraft
-    /opt/oscraft/bin/oscraftd --addr 127.0.0.1:8080 --room main --data /opt/oscraft/data --site /opt/oscraft/site
+    node scripts/dev/serve.mjs /opt/oscraft
     /opt/oscraft/bin/oscraft-lsp
 
-`--room` is required. `--site` is optional; without it `/site/` returns 404 and the API still works.
+The browser page is the host: there is no server process. From the repository, `scripts/dev/serve.mjs` serves an unpacked archive on 127.0.0.1 only with no-store headers; any static file server works for a deployed copy.
 
 ## Scope
 
-The packager ships data and binaries without reading their content: it knows no genre, unit or map. Adding a
-member means adding one line to `build.sh` and one to the table above. The script is bash, so it runs on
-Linux and macOS; the CI job runs on Linux. Windows `.exe` members are not produced here.
+The packager ships data and binaries without reading their content: it knows no genre, unit or map. Adding a member means adding one line to `build.sh` and one to the table above. The script is bash, so it runs on Linux, macOS and Windows under a bash shell; `release.yml` builds all three, and the Windows runner produces the `.exe` members.

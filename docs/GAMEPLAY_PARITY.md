@@ -1,6 +1,6 @@
 # Gameplay parity list
 
-Parity with the gameplay list means every GP row is covered by a CAP row whose gate check passes when `oscraft-gate` runs. The `oscraft-gate` job of `.github/workflows/tests.yml` (workflow_dispatch) runs it. A row marked MISSING has no covering CAP row in docs/CAPABILITIES.md (read from remote main). Coverage here is a mapping check; CAP rows marked `claimed` are not yet verified by a passing gate, and CAP rows whose gate reads `none (gate removed)` have no gate at all.
+Parity with the gameplay list means every GP row is covered by a CAP row in docs/CAPABILITIES.md. The `oscraft-gate` checks and the `tests.yml` job that ran them are not part of this workspace, so coverage is a mapping check only. A row marked MISSING has no covering CAP row in docs/CAPABILITIES.md (read from remote main). Coverage here is a mapping check; CAP rows marked `claimed` are not yet verified by a passing gate, and CAP rows whose gate reads `none (gate removed)` have no gate at all.
 
 Sources (read through the fetch port; mechanics restated in our own words, no page text or tables copied, no reference numbers used):
 - broodwar.live mechanics wiki, https://broodwar.live/wiki/mechanics/ (worker-management, attack-mechanics, damage-types, armor-types, economy, resources, supply, splash-damage, cloaking-detection, fog-of-war, terrain, transport, game-speed, building-placement, control-groups)

@@ -27,7 +27,13 @@ Copies `js/client` and `scenarios/moba` into the target directory as they change
 - JS, HTML or CSS only: edit, then reload. `hot-sync.mjs` copies the change, or copy `js/client` into `.dev-site/js/client` by hand. No cargo run is needed.
 - Rust, mods or scenario data: run `scripts/dev/stage.sh` (it reruns mapexport; wasm-pack runs only when the pkg is missing or `WASM=1`), then reload.
 - One Rust test: `cargo test -p <package> <filter>` inside `rust/`, with `<package>` the package name in `rust/crates/*/Cargo.toml` (for example `sim`, `mod-host` or `osdt-data`).
-- CI runs on every push to `main` and on demand, with two jobs: `rust` (`cargo test --workspace` in `rust/`) and `wire` (`node test.js` in `js/wire`). `.github/workflows/pages.yml` builds and deploys the site on each push to `main`. See [HOST.md](HOST.md#loading-and-deployment).
+- `.github/workflows/pages.yml` builds and deploys the site on each push to `main`; there is no test CI since `9a17155e`. Run `node scripts/check-all.mjs` from the repo root for the Node checks, generator `--check` gates and `git diff --check`, and `cargo test -p <package>` in `rust/` for Rust. See [HOST.md](HOST.md#loading-and-deployment).
+
+## Validate
+
+    node scripts/check-all.mjs
+
+Runs the self-contained Node checks, the reproducible generator `--check` gates and `git diff --check` in one pass. Generators that need outside data are reported as `SKIP` with a reason, and committed outputs that diverge from their generators are reported as `DRIFT` with the output name. `--strict` also fails on drift, `--list` prints the inventory without running it, and `--json` emits the rows for tooling.
 
 ## Live debugging
 

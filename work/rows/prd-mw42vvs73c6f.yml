@@ -1,0 +1,6 @@
+id: "prd-mw42vvs73c6f"
+kind: "prd"
+title: "improvement survey and ranked plan"
+body: "One ranked list of all further improvements with evidence, risk, validation and verification status; docs/ARCHITECTURE.md points at it instead of keeping a second queue."
+status: "open"
+createdAt: "2026-11-05T21:49:16.327Z"

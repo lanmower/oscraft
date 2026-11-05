@@ -6,7 +6,7 @@ A deterministic, generic game engine: a pack of data and Lua defines the game, p
 
 - A fixed-point simulation (`rust/crates/sim`) with combat, pathfinding, attributed units, ability ranks, items, shops, camps and status effects.
 - A pack model: each scenario directory holds `.osd` data, Lua mods and a `manifest.json`; the engine has no built-in game types. `scenarios/moba` is one example pack (a 5v5 match of units, items and rules) and `scenarios/duel-routes` is a routes test.
-- A static browser client in `js/client` (GitHub Pages target), buildless: committed ES modules and wasm, peers joined over WebRTC and Nostr.
+- A static browser client in `js/client` (GitHub Pages target): local ES modules load directly, Pages builds wasm, maps and bundles from source; peers join over WebRTC and Nostr.
 
 ## Run
 
@@ -18,7 +18,7 @@ cargo test --workspace
 cargo run -p mapexport -- ../scenarios/moba ../scenarios/moba/moba.osdt
 ```
 
-The browser game is the static page in `js/client/`. Build its wasm into `js/client/pkg` with `wasm-pack build crates/web --target web --out-dir ../js/client/pkg`, serve the repository root (for example `python3 -m http.server`), and open `js/client/play.html#moba`. For mods and map editing see [docs/QUICKSTART.md](docs/QUICKSTART.md).
+The browser game is the static page in `js/client/`. Stage it the way Pages does with `scripts/dev/stage.sh`, then serve it with `node scripts/dev/serve.mjs` and open `http://localhost:8790/js/client/play.html?package=scenarios/moba`. `.github/workflows/pages.yml` builds the wasm package with `wasm-pack`, the map images with `mapexport`, bundles the client JS and Lua, and deploys; nothing it builds is committed. For mods and map editing see [docs/QUICKSTART.md](docs/QUICKSTART.md) and [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ## Docs
 
@@ -29,7 +29,7 @@ The browser game is the static page in `js/client/`. Build its wasm into `js/cli
 
 ## Browser client
 
-The playable build is a static page in `js/client/`, the GitHub Pages target. It loads committed ES modules through an import map and committed wasm, with no bundler or install step. See [docs/HOST.md](docs/HOST.md).
+The playable build is a static page in `js/client/`, the GitHub Pages target. Local ES modules load directly through an import map; Pages bundles them and builds the wasm package and map images from source. See [docs/HOST.md](docs/HOST.md).
 
 ## Crates
 
@@ -45,7 +45,7 @@ All crates live in the `rust/` workspace (`rust/Cargo.toml`). The engine crates 
 | `web` | `rust/crates/web` | The wasm build the browser page loads (`js/client/pkg`). |
 | `replay` | `rust/crates/replay` | Recording and playback of a sim's order log. |
 | `mpq` | `rust/crates/mpq` | MPQ archive reader. |
-| `oscraft-relay` | `rust/crates/relay` | Native test relay (NIP-01 over WebSocket) for the browser CI jobs. |
+| `oscraft-relay` | `rust/crates/relay` | Native test relay (NIP-01 over WebSocket) for local browser tests. |
 | `oscraft-gate` | `rust/gate` | The check suite that runs against the sim and the packs. |
 | `wasip3-guest` | `rust/crates/wasip3` | Excluded from the workspace: the WASI guest that runs the mod host under wasmtime. |
 

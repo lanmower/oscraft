@@ -3,8 +3,8 @@
 Measure: a capability is at parity when its row is `implemented` and its gate check passes with placed units. Presentation rows count as parity when they are `unsupported-headless` with a named refusal.
 
 Status values: `implemented`, `partial`, `stub` (no code), `unsupported-headless`.
-`claimed` means the code is on main and the gate check has not yet passed; `implemented` means the row's gate check is registered in `rust/gate`. The `oscraft-gate` job of `.github/workflows/tests.yml` (workflow_dispatch) runs the gate, so a status is backed only by a run of that job that passed the row's check.
-Paths are relative to `rust/crates/` unless shown otherwise. Gate names are checks in `rust/gate/src/` (`checks.rs`, run from `main.rs`); the checks for rules now in Lua were removed from `rust/gate`, and their rows read `none (gate removed)`.
+`claimed` means the code is on main without a passing gate run; `implemented` means the row names a check that once lived in the retired `rust/gate` suite. The `oscraft-gate` checks and the `tests.yml` job that ran them are not part of this workspace, so the `gate` column names historical checks and each status is a code claim, not a passing run.
+Paths are relative to `rust/crates/` unless shown otherwise. The `gate` column names checks from the retired `rust/gate` suite (`checks.rs`, run from `main.rs`); checks for rules now in Lua read `none (gate removed)`. No runner is present in this workspace.
 
 ## Map and terrain
 

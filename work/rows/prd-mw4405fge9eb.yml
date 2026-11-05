@@ -1,0 +1,6 @@
+id: "prd-mw4405fge9eb"
+kind: "prd"
+title: "camera drag keeps the hero selected"
+body: "Dragging to move the camera must not clear the current selection. Reproduce with a native pointer probe (select the hero, then a camera-drag down/up sequence, then read the selection feedback), fix the path that emits a selection change, and add a regression check."
+status: "open"
+createdAt: "2026-11-05T22:20:35.068Z"

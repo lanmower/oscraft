@@ -15,7 +15,7 @@ The browser page is the host. There is no server process. `js/client/play.html` 
 
 ## Crates
 
-The workspace is `rust/Cargo.toml`: every directory under `rust/crates/` plus `rust/gate`. `rust/crates/wasip3` is excluded.
+The workspace is `rust/Cargo.toml`: members are `crates/*`, with `crates/wasip3` excluded.
 
 | Package | Path | Role |
 |---|---|---|
@@ -29,7 +29,6 @@ The workspace is `rust/Cargo.toml`: every directory under `rust/crates/` plus `r
 | `oscraft-relay` | `rust/crates/relay` | A small Nostr relay for local tests (NIP-01 `EVENT`, `REQ`, `CLOSE`). No CI job starts it. |
 | `mpq` | `rust/crates/mpq` | An MPQ archive reader, used by the gate's round-trip checks. |
 | `wasip3-guest` | `rust/crates/wasip3` | A WASI component guest for the mod host (WIT in `wit/`). Outside the workspace; no CI job builds it. |
-| `oscraft-gate` | `rust/gate` | The check suite run against the sim and the packs. Run it with `cargo run -p oscraft-gate`. |
 
 ## The sim
 
@@ -54,7 +53,7 @@ Build-time only: the image is written by `mapexport` and `osdt-data`, and the pa
 
 ## Mod host and hooks
 
-A pack's modules are Lua files. Each module runs in its own environment with the `game` table and the host's hooks. The hooks the host dispatches are the `HOOK_KEYS` list in `rust/crates/mod-host/src/piccolo_host.rs`: `on_spawned`, `on_attacked`, `on_died`, `on_enter`, `on_leave`, `on_player_joined`, `on_tick`, `on_behaviour`, `run_systems`, `fire_timers`, `on_unit_died`, `on_cast`, `on_cast_request`, `on_proc`, `on_hit`, `on_march`, `on_check_win`, `on_request`, `on_skill_up`, `on_action` and `on_pointer`. Each mod call runs under a step budget (`MAX_STEPS`, 2,500 steps), and a Lua memory cap (256 MiB) applies to all modules together.
+A pack's modules are Lua files. Each module runs in its own environment with the `game` table and the host's hooks. The hooks the host dispatches are the 25 `HOOK_KEYS` entries in `rust/crates/mod-host/src/piccolo_host.rs`. The list is code, not prose, so it cannot drift from the dispatcher. Each mod call runs under a step budget (`MAX_STEPS`, 2,500 steps), and a Lua memory cap (256 MiB) applies to all modules together.
 
 A hook that fails is switched off for its module only. A module that fails to load keeps its last good version. The full natives and hook arguments are in [SCRIPTING.md](SCRIPTING.md) and [MODDING.md](MODDING.md).
 
@@ -79,14 +78,14 @@ Peers talk over wireweave data channels (WebRTC). The frame codec in `js/wire/fr
 
 ## Build, test and deploy
 
-- `.github/workflows/ci.yml` has two jobs. `rust` runs `cargo test --workspace` in `rust/`. `wire` runs `node test.js` in `js/wire`.
-- `.github/workflows/pages.yml` builds the wasm package and the pack images from `main`, lays out the static site, deploys it to GitHub Pages, and checks the live page against the build. Nothing it builds is committed.
-- `.github/workflows/release.yml` packages the release archive for each target and attaches it to the GitHub release.
+- `.github/workflows/pages.yml` builds the wasm package, pack images and asset packs from `main`, bundles the client JS and moba Lua, lays out the static site and deploys it to GitHub Pages. Nothing it builds is committed.
+- `.github/workflows/release.yml` packages the release archive for each target on tags and attaches it to the GitHub release.
+- There is no test CI: `ci.yml`, `tests.yml` and `first-draw.yml` were retired in `9a17155e`. Rust tests run with `cargo test -p <package>` in `rust/`, and the Node and generator checks with `node scripts/check-all.mjs` from the repo root.
 - `scripts/dev/stage.sh` and `scripts/dev/serve.mjs` stage and serve the same layout locally ([DEVELOPMENT.md](DEVELOPMENT.md)).
 
 ## Determinism
 
-The sim is integer-only: no floats, no maps, no wall clock, and no heap allocation inside `Sim::tick`. Every buffer is sized in `Sim::new` or `load`. The fixed tick and the hash make a match replayable and comparable across native and wasm builds.
+The sim is integer-only: no floats in hashed state, no maps, no heap allocation inside `Sim::tick`, and no wall clock that affects state. Native diagnostics in `sim/src/tick.rs` use `Instant::now`, cfg'd out on wasm. Every buffer is sized in `Sim::new` or `load`. The fixed tick and the hash make a match replayable and comparable across native and wasm builds.
 
 ## Current constraints
 
@@ -99,8 +98,4 @@ The sim is integer-only: no floats, no maps, no wall clock, and no heap allocati
 
 ## Improvement queue
 
-1. Add --check gates for every deterministic generator and fail CI when a committed output drifts from its generator.
-2. Extract a module from js/client/play.js only when a test names the seam; avoid moving code without a measured failure.
-3. Keep a single site layout path for Pages, CI smoke and local staging; compare served hashes instead of trusting a fresh deploy by time.
-4. Re-scope browser-only witnesses to a fresh dev-origin row when their acceptance depends on /__hmr, a finished match or a two-tab dispatch.
-5. Keep local witness receipts, task briefs, commit-message files and lane-private cargo targets out of git status without deleting evidence from disk.
+The ranked list, with evidence, risk, verification status and what this run landed, is [IMPROVEMENTS.md](IMPROVEMENTS.md). One list, one place.

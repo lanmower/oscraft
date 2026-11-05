@@ -6,7 +6,7 @@ Trigger key: `timer` = driven by a clock or sleep, `event` = driven by a game ev
 
 Our implementation is written fresh in `mods/bot_lib.lua` and uses only the mod API. Nothing from the script is copied into the repo.
 
-Units: the script's ranges are in its own units, 64 to a map cell (`cells(units) = units * 15.625 / 1000`, the same conversion the blink distance check in `rust/gate/src/spell_checks.rs` uses). The sim runs 16 ticks to the second.
+Units: the script's ranges are in its own units, 64 to a map cell (`cells(units) = units * 15.625 / 1000`). The sim runs 16 ticks to the second.
 
 ## 1. Hero AI loop (`N9F`, 87046-90408)
 
@@ -39,12 +39,12 @@ Units: the script's ranges are in its own units, 64 to a map cell (`cells(units)
 
 | Rule | Source | Trigger | Our status |
 | --- | --- | --- | --- |
-| Consumable state (heal, mana, base) swaps the consumable in the inventory: heal if HP below 30%, mana if mana below 120, a hysteresis back when mana is above 140 / max mana x 100. | 86997-87041 `NSF` | state | Not done: the API has no mana query and no inventory move (only buy and sell). |
+| Consumable state (heal, mana, base) swaps the consumable in the inventory: heal if HP below 30%, mana if mana below 120, a hysteresis back when mana is above 140 / max mana x 100. | 86997-87041 `NSF` | state | Not done in the bot: `game.mana` and `game.max_mana` exist, but there is no inventory move (only buy and sell). |
 | Use a heal consumable when HP is below 50% with a target or the AI flag set. | 90338 | state | Done: `Bot.heal` drinks `flask` (`item_flask`, which heals an ally) on the hero below 50%. The AI flag is set on every bot, so the target test always passes. |
 | Use a target item on a hero target at HP below 40% (not on mechanical or hero targets as a default). | 90303, 90315 | state | Not done: the target-item identities in the `ZU` table are not read. |
 | Use a target item at HP below 30% when flagged. | 90318 | state | Not done: same cause as above. |
 | Use an item when more than 2 units matching one filter, and more than 1 matching a second filter, are within 900. | 90324 | state | Not done: the two filters are not read. |
-| Use an item when missing more than 150 mana and the clock passes the item's time. | 90332 | timer + state | Not done: the API has no mana query, and the item's time is not read. |
+| Use an item when missing more than 150 mana and the clock passes the item's time. | 90332 | timer + state | Not done in the bot: `game.mana` and `game.max_mana` exist; the item's time is not read. |
 
 ## 4. Shop
 
@@ -68,4 +68,4 @@ These are already matched by `scenarios/moba/waves.osd`. The AI does not own the
 ## 7. Mod API used
 
 - The level is not a game call: `game.unit_level` was removed. The level is `xp.level_of` (and `xp.character_level`, the level plus one) in `scenarios/moba/shared/xp.lua`, which counts the `xp_curve` thresholds the unit's xp has reached. `unit_level` in `mods/bot_lib.lua` carries a copy of that rule, because the bot chunk cannot require `shared/xp.lua`. It reads `game.xp(unit)` and `game.xp_curve()`, both read-only.
-- Blink uses the existing `game.cmd_use_item(unit, slot, -1, x, y)`, the same path as the item blink in `rust/gate/src/item_checks.rs`. No new cast or sim mechanic was added.
+- Blink uses the existing `game.cmd_use_item(unit, slot, -1, x, y)`, the same path the item rules use. No new cast or sim mechanic was added.

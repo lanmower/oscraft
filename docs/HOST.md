@@ -13,7 +13,7 @@ The game is a static page. `js/client/play.html` loads committed ES modules thro
 | `js/client/delta.js` | The state encoder (STATE or DELTA per tick) and the decoder for the client. |
 | `js/client/pack_load.js` | Loads the pack (`?pack=`) from a directory or a `.tar.gz` or `.zip` archive. |
 | `js/client/pack_sync.js` | Live pack propagation: PACK_FILE and PACK_WANT frames. |
-| `js/client/swap_protocol.js` | The data swap rules (announce, ready, cancel), shared with `js/wire/test.js`. |
+| `js/client/swap_protocol.js` | The data swap rules (announce, ready, cancel), shared with the wire codec ([WIRE.md](WIRE.md)). |
 | `js/client/wire/frame.js` | The wire codec, a copy of `js/wire/frame.js` ([WIRE.md](WIRE.md)). |
 | `js/client/pkg/` | The wasm-bindgen output of `rust/crates/web` (`web.js`, `web_bg.wasm`). Built, never committed (see below). |
 
@@ -52,11 +52,11 @@ The page sets these on `<body>`, for the browser tests and for debugging:
 ## Loading and deployment
 
 - The page is buildless: `play.html` loads `play.js` directly as a module. There is no `dist/` bundle.
-- The wasm package and the map images are not in git. `.github/workflows/pages.yml` builds them from source on each push to `main` (`wasm-pack build crates/web --target web --out-dir site/pkg` and `mapexport` for each pack), lays out the site, and deploys it to GitHub Pages.
+- The wasm package is not in git; the committed `.osdt` images are stale snapshots that Pages rebuilds with `mapexport`. `.github/workflows/pages.yml` builds them from source on each push to `main` (`wasm-pack build crates/web --target web --out-dir site/pkg` and `mapexport` for each pack), lays out the site, and deploys it to GitHub Pages.
 - The site root is the Pages URL. `index.html` redirects to `js/client/play.html`.
 - The page loads the pack's map from its manifest's `image` (`scenarios/moba/moba.osdt`, built by `mapexport`).
 - The deployed site serves the moba game as loose files under `scenarios/moba`; the workflow publishes no `packs/` archive. `scripts/pack-package.mjs` still writes the split gzip archive for `?pack=` hosting by hand (`…tar.gz.parts.json` index when larger than `--part-size` MiB).
-- After the deploy, `scripts/observe/compare.mjs` fetches the live page and compares it with the built tree (`--expect-sha`).
+- Nothing compares the live page with the build automatically: `scripts/observe/compare.mjs` was retired in `9a17155e`. Check `version.json` against the deploy run by hand after a deploy.
 
 ## Node guest
 

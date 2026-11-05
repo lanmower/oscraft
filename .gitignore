@@ -1,10 +1,5 @@
 /.gm/config-source-cache-default/
 /_site/
-2026-10-27T14:00:00Z
-2026-10-27T15:25:00Z
-2026-10-27T15:30:00Z
-2026-10-27T15:35:00Z
-2026-10-27T15:45:00Z
 node_modules/
 target/
 .dev-site/
@@ -71,3 +66,9 @@ opencode.jsonc
 /scripts/perf/asset-packs-cache-check.mjs
 /scripts/perf/node_modules/
 .playwriter/
+/sources/
+/.gm/drain-*.txt
+/.gm/improvement-*.json
+/.gm/config-source-cache-*.sync.json
+/.gm/last-dispatch-ts
+/.gm/last-instruction-ts

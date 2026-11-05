@@ -36,7 +36,7 @@ Source tags: `6.88g` is the map data (`items_688g.tsv`, `shops_688g.tsv`); `web`
 
 - **SHOP-COURIER.** When the hero is out of reach, Buy sends the player's courier to the nearest shop that sells the item. The courier must reach that shop (walk within its reach) to buy, then carries the item back. Source: `design` (owner to confirm).
 - **SHOP-NO-COURIER.** An off-hand buy is refused, with a reason shown to the player, when the player has no courier (`noCourier`) or the courier is already on an errand (`busy`). Source: `design`.
-- **SHOP-DELIVER.** The courier, once within 64 units of the hero, drops its items at the hero's position; the hero picks them up two ticks later; the courier returns home. If the shop refused the purchase, the courier comes back empty and the panel says so (`shopRefused`). While the errand runs the courier is held (`courier.errand` in `courier.lua`): the idle follow and the automatic delivery of `courier.lua` skip it, so they cannot override the walk to the seller. Source: `design`; the 64-unit delivery reach is `GUESS`.
+- **SHOP-DELIVER.** The courier, once within 1300 units of the hero (`PICKUP_REACH_MILLI = 20312` in `courier.lua`), drops its items at the hero's position; the hero picks them up two ticks later; the courier returns home. If the shop refused the purchase, the courier comes back empty and the panel says so (`shopRefused`). While the errand runs the courier is held (`courier.errand` in `courier.lua`): the idle follow and the automatic delivery of `courier.lua` skip it, so they cannot override the walk to the seller. Source: `design`; the 64-unit delivery reach is `GUESS`.
 
 ## Item text
 

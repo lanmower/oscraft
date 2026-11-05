@@ -10,3 +10,9 @@ export function cameraDragAction(button, moved) {
   if (!moved) return null;
   return DRAG_ACTION_BY_BUTTON.get(button) ?? null;
 }
+
+export function pointerReleaseKinds(button, moved) {
+  if (button === 0) return ["up"];
+  if (moved) return [];
+  return ["down", "up"];
+}

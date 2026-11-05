@@ -1,0 +1,6 @@
+id: "prd-mw42vvsa0b2f"
+kind: "prd"
+title: "keep local receipts and gm state out of git"
+body: "Ignore sources/ and .gm/drain-*.txt; untrack the four tracked gm timestamp and cache files so git status reflects project work only; delete five stray timestamp patterns that name no file."
+status: "open"
+createdAt: "2026-11-05T21:49:16.330Z"

@@ -24,8 +24,7 @@ the full path with `--toktx`. On Windows the script looks for `toktx.exe` on `PA
 
 `scripts/assets/build-packs.mjs` builds the icon atlases the page reads (heroes, items, skills: 64 px cells, WebP q80 and
 KTX2 each, content-hashed). It uses the same `toktx` (`--toktx` or `TOKTX`) and Pillow (`--python` or `PYTHON`, the
-interpreter that runs `scripts/assets/atlas.py`). `pages.yml` and `ci.yml` install both at the pinned versions before
-they lay out the site.
+interpreter that runs `scripts/assets/atlas.py`). `pages.yml` installs both at the pinned versions before it lays out the site.
 
 Install the script's npm dependencies once:
 

@@ -1,5 +1,6 @@
 {
   "task": "finish all remaining work, and respond to any queries, plan any improvements you feel is appropriate, and make sure the project is nice and well architected",
+  "canonical": "docs/IMPROVEMENTS.md",
   "head": "8d21b00da4a4504c6f67eda44dc94a8977b5ab06",
   "state": {
     "rows": "201 rows, 0 open, 0 parked, 0 defects",

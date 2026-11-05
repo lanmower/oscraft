@@ -245,7 +245,24 @@ fn start_match(dir: &Path, image: &[u8]) -> (Game, Vec<String>) {
     let modes = lobby_modes(&claim);
     let codes: Vec<&str> = modes.iter().map(|mode| mode.0.as_str()).collect();
     println!("probe modes count={} codes={}", modes.len(), codes.join(","));
-    assert_eq!(modes.len(), 19, "lobby sends every match mode");
+    let modes_lua = std::fs::read_to_string(dir.join("modes.lua")).expect("read modes.lua");
+    let supported_block = modes_lua
+        .split_once("local SUPPORTED = {")
+        .expect("SUPPORTED table")
+        .1
+        .split('}')
+        .next()
+        .expect("SUPPORTED table end");
+    let supported_codes: Vec<&str> = supported_block
+        .split(',')
+        .filter_map(|entry| entry.split('=').next())
+        .map(str::trim)
+        .filter(|code| !code.is_empty() && code.chars().all(|c| c.is_ascii_alphanumeric()))
+        .collect();
+    for code in &supported_codes {
+        assert!(codes.contains(code), "lobby shows supported mode {code}");
+    }
+    assert_eq!(modes.len(), supported_codes.len(), "lobby sends every match mode");
     let ai_on = ui(&mut game, "mode", json!({ "code": "ai" }));
     println!("probe mode ai on error=\"{}\"", lobby_error(&ai_on));
     let total = lobby_heroes(&ai_on).len();
@@ -527,6 +544,47 @@ fn probe_ground_click_keeps_selection() {
     let after = selection_ids(&drain(&mut game));
     println!("probe ground_click selection_after={after:?}");
     assert_eq!(after, Some(vec![json!(hero)]), "a ground click keeps the selection");
+}
+
+#[test]
+fn probe_camera_drag_keeps_selection() {
+    let dir = scenario_dir();
+    let image = image_for(&dir);
+    let (mut game, heroes) = start_match(&dir, &image);
+    let hero = hero_of(&alive_units(&game), &heroes, 1);
+    let selected = call(&mut game, "select", json!({ "ids": [hero], "player": 1, "pubkey": OWNER }));
+    assert_eq!(selection_ids(&selected), Some(vec![json!(hero)]), "hero selected before the drag");
+    let ids = game.unit_ids();
+    let spots = game.units();
+    let index = ids.iter().position(|&id| id == hero).expect("hero index");
+    let (hx, hz) = (f64::from(spots[index * 3]), f64::from(spots[index * 3 + 1]));
+    let ground = [(600.0, 0.0), (-600.0, 0.0), (0.0, 600.0), (0.0, -600.0), (900.0, 900.0), (-900.0, -900.0)]
+        .iter()
+        .map(|(dx, dz)| (hx + dx, hz + dz))
+        .find(|&(x, z)| spots.chunks(3).all(|spot| (f64::from(spot[0]) - x).hypot(f64::from(spot[1]) - z) > 300.0))
+        .expect("an empty ground point");
+    let down = game.pointer("down", ground.0, ground.1, 2);
+    let up = game.pointer("up", ground.0 + 1.0, ground.1 + 1.0, 2);
+    advance(&mut game, 1);
+    let right = selection_ids(&drain(&mut game));
+    println!("probe right_drag selection={right:?} down={down} up={up}");
+    assert_eq!(right, None, "a camera drag leaves the selection alone");
+    let selected = call(&mut game, "select", json!({ "ids": [hero], "player": 1, "pubkey": OWNER }));
+    assert_eq!(selection_ids(&selected), Some(vec![json!(hero)]), "hero reselected");
+    let down = game.pointer("down", ground.0, ground.1, 0);
+    let up = game.pointer("up", ground.0 + 1.0, ground.1 + 1.0, 0);
+    advance(&mut game, 1);
+    let left = selection_ids(&drain(&mut game));
+    println!("probe left_drag selection={left:?} down={down} up={up}");
+    assert_eq!(left, Some(vec![json!(hero)]), "an empty drag box keeps the selection");
+    let selected = call(&mut game, "select", json!({ "ids": [hero], "player": 1, "pubkey": OWNER }));
+    assert_eq!(selection_ids(&selected), Some(vec![json!(hero)]), "hero reselected again");
+    let down = game.pointer("down", ground.0, ground.1, 1);
+    let up = game.pointer("up", ground.0 + 1.0, ground.1 + 1.0, 1);
+    advance(&mut game, 1);
+    let middle = selection_ids(&drain(&mut game));
+    println!("probe middle_drag selection={middle:?} down={down} up={up}");
+    assert_eq!(middle, None, "a middle drag leaves the selection alone");
 }
 
 fn nodes_of_kind<'a>(node: &'a Value, kind: &str, out: &mut Vec<&'a Value>) {

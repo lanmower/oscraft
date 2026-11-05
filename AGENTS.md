@@ -144,7 +144,7 @@ No comments in source: durable facts live here, names carry intent.
 
 ## Facts found by troubleshooting
 
-- `tools/gm-continue-setup.mjs` was absent, so the gm-continue setup command failed before any row could be worked; DESIGN.md 2026-11-05 records the read-only restoration.
-- A 19-agent gm.search fan-out crashed the gm worker with exit 139; gm commit 5d9e8358ae631661546035e97c52a6ffb2f50247 serializes SearchVerbs::call and keeps cached index pointers valid, with 22 native tests and 16 parallel bodies passing; DESIGN.md 2026-11-05 records the fix.
-- `.gm/witness-log.md` is untracked and stale; committed DESIGN.md, AGENTS.md and git bodies are the authoritative debugging state. DESIGN.md 2026-11-05 records the workflow finding.
-- A stale `.dev-site` can keep a bot-filled host at tick 0: re-stage from HEAD with SKIP_PACKS=1 before browser witnesses. DESIGN.md 2026-11-05 records the 2026-11-02 snapshot and the world_ready fix.
+- Dated troubleshooting receipts and their witnesses live in DESIGN.md and commit bodies; AGENTS.md holds durable facts.
+- Re-stage `.dev-site` from HEAD with SKIP_PACKS=1 before browser witnesses; a stale snapshot holds a bot-filled host at tick 0.
+- `node scripts/check-all.mjs` is the one local validation entry point: 36 gates, 3 drifted generated outputs and 5 external-input dependencies reported with reasons (`--strict` fails on drift). Regenerating the three drifted outputs would change gameplay data loaded through manifest.json, so a source-of-truth decision comes first. DESIGN.md 2026-11-05 records the survey and the drift.
+- An empty drag box keeps the selection, and camera drags (middle/right button) forward no pointer kinds; `pointerReleaseKinds` is the pure decision and `camera-mouse-check.mjs` gates it. DESIGN.md 2026-11-06 records the native pointer probe.

@@ -691,7 +691,9 @@ local function on_ground(who, kind, x, y, button)
   end
   if p.button ~= 0 then return end
   if moved then
-    set_selection(who, box_ids(who, p.x, p.z, x, y, p.shift))
+    local picked = box_ids(who, p.x, p.z, x, y, p.shift)
+    if #picked == 0 then picked = st(who).sel end
+    set_selection(who, picked)
     return
   end
   if s.armed ~= nil then

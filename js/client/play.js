@@ -17,7 +17,7 @@ import { createHud } from "./hud.js";
 import { centredOnHero, createHeroViewLock, findHeroOf, followTarget, heroDirection } from "./hero_view_lock.js";
 import { createHeroRun, enemiesInSight, stepHeroRun } from "./hero_run.js";
 import { teamOf } from "./moba_select.js";
-import { cameraDragAction, MIDDLE_BUTTON } from "./camera_mouse.js";
+import { cameraDragAction, MIDDLE_BUTTON, pointerReleaseKinds } from "./camera_mouse.js";
 import { createMinimap } from "./ui_minimap.js";
 import { activePalette, rgbOfHex, seatRampHex } from "./colour_vision.js";
 import { pingKindOf } from "./moba_input.js";
@@ -1427,9 +1427,9 @@ function bindInput() {
       pingWheel.open(e.clientX, e.clientY);
       return;
     }
-    drag = e.button === 0 ? null : { button: e.button, x: e.clientX, y: e.clientY, moved: false };
+    drag = e.button === 0 ? null : { button: e.button, x: e.clientX, y: e.clientY, downX: e.clientX, downY: e.clientY, moved: false };
     canvas.setPointerCapture(e.pointerId);
-    forwardPointer("down", e);
+    if (e.button === 0) forwardPointer("down", e);
   });
   canvas.addEventListener("pointermove", (e) => {
     if (!drag) return;
@@ -1460,9 +1460,11 @@ function bindInput() {
       forwardPointer(kind, press);
       return;
     }
-    const wasDrag = drag && drag.moved;
+    const wasDrag = !!(drag && drag.moved);
+    const button = drag ? drag.button : e.button;
+    const downAt = drag ? { clientX: drag.downX, clientY: drag.downY, button: drag.button } : e;
     drag = null;
-    if (!wasDrag) forwardPointer("up", e);
+    for (const kind of pointerReleaseKinds(button, wasDrag)) forwardPointer(kind, kind === "down" ? downAt : e);
     if (e.button === 2) document.body.dataset.rightUp = `${wasDrag ? "drag" : "click"} hud=${!!hud} local=${myPlayer}`;
   });
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());

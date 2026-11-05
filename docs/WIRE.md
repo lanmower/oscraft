@@ -1,6 +1,6 @@
 # Wire format
 
-The binary frames the browser peers exchange over WebRTC data channels. The codec is `js/wire/frame.js` (pure: `Uint8Array` in and out, no DOM or Node APIs). `js/client/wire/frame.js` is a hand-kept copy of it; the page imports the copy. `js/wire/test.js` round-trips every frame type and checks the reject rules.
+The binary frames the browser peers exchange over WebRTC data channels. The codec is `js/wire/frame.js` (pure: `Uint8Array` in and out, no DOM or Node APIs). `js/client/wire/frame.js` is a hand-kept copy of it; the page imports the copy. The round-trip test was retired in `9a17155e`; verify a codec change with a Node harness that round-trips every frame type and checks the reject rules.
 
 ## Header
 
@@ -66,4 +66,4 @@ Encoders throw `WireError` with code `RANGE` for any value that does not fit its
 
 ## Tests
 
-`js/wire/test.js` runs in the `wire` job of `.github/workflows/ci.yml` (`node test.js` in `js/wire`). It round-trips every frame type, checks the reject rules, and imports `js/client/delta.js` and `js/client/swap_protocol.js` to check the state encoder and the swap gate. Its output line is `wire frames ok types=<n> roundtrip=<n>`.
+The wire round-trip test and the `ci.yml` job that ran it were retired in `9a17155e`; `js/wire` now holds only the codec (`frame.js`), and `js/client/wire/frame.js` is the page copy. Verify a codec change with a Node harness that round-trips every frame type and compares the two copies.

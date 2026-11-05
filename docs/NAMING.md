@@ -66,7 +66,7 @@ This map is the spec for one atomic rename commit across `rust/` and `docs/`. Ev
 | `sim` | `oscraft-sim` | `crates/sim/Cargo.toml` | crate name |
 | `spawn_unit(kind, x, y)` | `game.spawn_entity(kind, x, y)` | `rust/crates/mod-host/src/piccolo_host.rs`, `rust/crates/mod-host/src/lib.rs`, `docs/SCRIPTING.md` | Lua host function, namespace `game`, verb_noun |
 | `get_unit_count()` | `game.count_entities()` | `rust/crates/mod-host/src/piccolo_host.rs`, `docs/SCRIPTING.md` | Lua host function |
-| CLI flags, env vars | `OSCRAFT_` prefix | `rust/gate/src/checks.rs` reads `GATE_ONLY`; the binaries (`mapexport`, `osdt-data`, `mod_check`) parse their own arguments | new env vars use the `OSCRAFT_` prefix and binaries use `oscraft-*` names |
+| CLI flags, env vars | `OSCRAFT_` prefix | the retired gate suite read `GATE_ONLY`; the binaries (`mapexport`, `osdt-data`, `mod_check`) parse their own arguments | new env vars use the `OSCRAFT_` prefix and binaries use `oscraft-*` names |
 | `harvest.rs` | removed | `sim/src/harvest.rs` (deleted) | the gather rule is `scenarios/duel-routes/harvest.lua` |
 | `arrays.rs`, `hash.rs`, `lib.rs` | unchanged | `sim/src/` | keep |
 | `production.rs` | removed | `sim/src/` (deleted) | no `spawning.rs`; the queue rules are `scenarios/duel-routes/production.lua` |

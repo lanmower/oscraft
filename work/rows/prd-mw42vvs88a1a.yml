@@ -1,0 +1,6 @@
+id: "prd-mw42vvs88a1a"
+kind: "prd"
+title: "single local validation entry point"
+body: "scripts/check-all.mjs runs the self-contained Node checks, reproducible generator --check gates and git diff --check; drift and external dependencies are reported with reasons; --strict fails on drift. docs/DEVELOPMENT.md documents it."
+status: "open"
+createdAt: "2026-11-05T21:49:16.328Z"

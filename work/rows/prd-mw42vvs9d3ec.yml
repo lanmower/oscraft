@@ -1,0 +1,6 @@
+id: "prd-mw42vvs9d3ec"
+kind: "prd"
+title: "reconcile stale CI documentation"
+body: "9a17155e retired ci.yml, tests.yml, first-draw.yml, js/wire/test.js and scripts/observe/compare.mjs. Eight docs still described those jobs; update them to pages.yml, release.yml and local validation."
+status: "open"
+createdAt: "2026-11-05T21:49:16.329Z"
