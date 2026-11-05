@@ -63,6 +63,10 @@ const STYLE = `
 .w-cell.t-muted{opacity:.8}
 .w-bar.t-hp{--bar:var(--hp)}
 .w-bar.t-mp{--bar:var(--mp)}
+.w-line{display:flex;flex-direction:column;gap:2px;min-width:0}
+.w-line svg{display:block;width:100%;height:80px;overflow:visible;background:var(--well);border-radius:3px}
+.w-line polyline{fill:none;stroke:currentColor;stroke-width:2;vector-effect:non-scaling-stroke}
+.w-line-legend{display:flex;flex-wrap:wrap;gap:8px;font-variant-numeric:tabular-nums}
 .w-root .w-bar{min-height:4px}
 #ui-full{top:0;right:0;bottom:0;left:0}
 #ui-full>.w-root{width:100%;height:100%}
@@ -507,6 +511,40 @@ function iconNode(src, alt) {
   return img;
 }
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+const LINE_W = 300;
+const LINE_H = 80;
+
+function lineChart(n) {
+  const series = Array.isArray(n.series) ? n.series : [];
+  const count = series.reduce((most, s) => Math.max(most, s.values?.length ?? 0), 0);
+  const top = n.max > 0 ? n.max : 1;
+  const x = (i) => (count > 1 ? (i * LINE_W) / (count - 1) : LINE_W / 2);
+  const y = (v) => LINE_H - (Math.min(top, Math.max(0, v ?? 0)) * LINE_H) / top;
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${LINE_W} ${LINE_H}`);
+  svg.setAttribute("preserveAspectRatio", "none");
+  svg.setAttribute("role", "img");
+  const legend = el("div", "w-line-legend");
+  const names = [];
+  for (const s of series) {
+    const values = s.values ?? [];
+    const last = values.length ? values[values.length - 1] : 0;
+    names.push(`${s.label} ${last}`);
+    const group = document.createElementNS(SVG_NS, "g");
+    if (s.tone) group.setAttribute("class", "t-" + s.tone);
+    const line = document.createElementNS(SVG_NS, "polyline");
+    line.setAttribute("points", values.map((v, i) => `${x(i)},${y(v)}`).join(" "));
+    group.append(line);
+    svg.append(group);
+    legend.append(el("span", s.tone ? "w-label t-" + s.tone : "w-label", `${s.label} ${last}`));
+  }
+  svg.setAttribute("aria-label", names.join(", "));
+  const wrap = el("div", "w-line");
+  wrap.append(svg, legend);
+  return wrap;
+}
+
 export function buildNode(n, send, panel = null) {
   if (n.t === "panel" && panel && n.title && PHONE?.matches && FOLDABLE_SLOTS.has(panel.slot)) return foldablePanel(n, send, panel);
   let e;
@@ -528,6 +566,9 @@ export function buildNode(n, send, panel = null) {
       e = el("div", "w-bar");
       e.append(el("i"));
       e.firstChild.style.width = `${percent(n.value, n.max)}%`;
+      break;
+    case "line":
+      e = lineChart(n);
       break;
     case "button":
       e = el("button", "w-button", n.text ?? "");

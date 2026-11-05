@@ -8,11 +8,11 @@ local AVERAGES = { "gold_per_minute", "xp_per_minute", "kills", "deaths", "assis
 local PERCENT_MAX = 100
 local MVP_ROWS = 3
 local GRAPH_ROWS = {
-  { key = "gold", title = "goldPerMinute" },
+  { key = "gold", title = "goldOverTime", levels = true },
+  { key = "buffs", title = "buffsOverTime", levels = true },
   { key = "experience", title = "xpPerMinute" },
   { key = "kills", title = "killsPerMinute" },
 }
-local BLOCKS = { "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█" }
 
 local state = { tab = "overview", view = "comparison", picks = {} }
 
@@ -272,19 +272,9 @@ local function peak_of(rates)
   return top
 end
 
-local function sparkline(rates, peak)
-  local out = ""
-  for _, value in ipairs(rates) do
-    local level = 1
-    if peak > 0 then level = 1 + math.min(#BLOCKS - 1, math.floor(value * #BLOCKS / peak)) end
-    out = out .. BLOCKS[level]
-  end
-  return out
-end
-
-local function trace(c, rates, peak, tone)
-  if #rates == 0 then return c.w.label(c.texts.noSamples, "muted") end
-  return c.w.label(sparkline(rates, peak) .. "  " .. tostring(peak_of(rates)), tone)
+local function series_of(entry, row)
+  if row.levels then return match_stats.minute_levels(entry.player, row.key) end
+  return match_stats.minute_rates(entry.player, row.key)
 end
 
 local function graphs(c)
@@ -297,12 +287,18 @@ local function graphs(c)
   local ta, tb = "team" .. tostring(left_side), "team" .. tostring(right_side)
   local kids = { w.label(texts.graphsNote, "muted") }
   for _, row in ipairs(GRAPH_ROWS) do
-    local left = match_stats.minute_rates(a.player, row.key)
-    local right = match_stats.minute_rates(b.player, row.key)
-    local peak = math.max(peak_of(left), peak_of(right))
+    local left = series_of(a, row)
+    local right = series_of(b, row)
     kids[#kids + 1] = w.label(texts[row.title], "accent")
-    kids[#kids + 1] = w.box({ w.label(a.name, ta), trace(c, left, peak, ta) }, "row")
-    kids[#kids + 1] = w.box({ w.label(b.name, tb), trace(c, right, peak, tb) }, "row")
+    if #left == 0 and #right == 0 then
+      kids[#kids + 1] = w.label(texts.noSamples, "muted")
+    else
+      local peak = math.max(peak_of(left), peak_of(right))
+      kids[#kids + 1] = w.line({
+        { label = a.name, tone = ta, values = left },
+        { label = b.name, tone = tb, values = right },
+      }, peak)
+    end
   end
   return w.box(kids, "col")
 end

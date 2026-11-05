@@ -203,7 +203,7 @@ function match_stats.roster()
 end
 
 local function totals(hero)
-  return { gold = bounty.earned(hero), experience = game.xp(hero), kills = game.kills_of(hero) }
+  return { gold = bounty.earned(hero), experience = game.xp(hero), kills = game.kills_of(hero), buffs = #game.unit_buffs(hero) }
 end
 
 local function record(minute, heroes)
@@ -237,6 +237,19 @@ function match_stats.minute_rates(player, key)
     rates[m] = math.max(0, math.floor(last - before))
   end
   return rates
+end
+
+function match_stats.minute_levels(player, key)
+  local levels = {}
+  local samples = history[player]
+  if samples == nil or final_seconds == nil then return levels end
+  local last = 0
+  if samples[0] ~= nil then last = samples[0][key] end
+  for m = 1, math.min(final_minutes, SAMPLE_CAP) do
+    if samples[m] ~= nil then last = samples[m][key] end
+    levels[m] = last
+  end
+  return levels
 end
 
 function match_stats.publish(heroes)

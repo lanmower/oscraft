@@ -94,6 +94,13 @@ end
 local function bar(value, max, tone)
   return node("bar", with({ I("value", value), I("max", max) }, tone and S("tone", tone) or nil))
 end
+local function line(series, max)
+  local items = {}
+  for _, s in ipairs(series) do
+    items[#items + 1] = obj({ S("label", s.label), S("tone", s.tone), R("values", arr(s.values)) })
+  end
+  return node("line", { I("max", max), R("series", arr(items)) })
+end
 local function button(text, call, args, disabled, tip)
   local f = { S("text", text), S("call", call), R("args", args or "{}") }
   if disabled then f[#f + 1] = B("disabled", true) end
@@ -338,7 +345,7 @@ local function win_tree()
   local kids = { label(team_name(side) .. " " .. TEXT.winner.suffix, "accent") }
   kids[#kids + 1] = mode_rules_box()
   local body = require("post_view").kids({
-    w = { label = label, box = box, grid = grid, bar = bar, button = button, cell = cell, obj = obj, S = S, I = I, hero_picture = hero_picture },
+    w = { label = label, box = box, grid = grid, bar = bar, line = line, button = button, cell = cell, obj = obj, S = S, I = I, hero_picture = hero_picture },
     ranked = match_stats.final_ranked() or {},
     seconds = match_stats.match_seconds() or 0,
     local_player = LOCAL,
