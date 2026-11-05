@@ -9,6 +9,7 @@ import { encodeFrame, decodeFrame, frameTypeName, FRAME, MAX_PLAYERS, TEAM_SIZE,
 import { iceServersFrom } from "./ice.js";
 import { assetJson, assetRel, assetUrl, fetchRetrying, manifest, manifestOf, moduleClosure, modulePaths, packBytes, packJson, packText, packUrl, readPackFile, stashPack, UI } from "./pack_load.js";
 import { applyFrame, createAutoSeats, createSeating, createStateEncoder, startFrame } from "./delta.js";
+import { createFrameRecovery } from "./net_recovery.js";
 import { AnimationPlayer, cycleSpeed, globalMatrices, jointMatrices, retargetLibrary, skinFloor } from "./anim.js";
 import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { resolveGlbExtensions } from "./glb_resolve.js";
@@ -1538,17 +1539,26 @@ function sendTo(peerPubkey, bytes) {
 }
 
 function sendJoin(hostKey, attempt = 0) {
-  if (sendTo(hostKey, encodeFrame({ type: FRAME.JOIN, lastTick: lastAppliedTick })) !== false) return;
-  console.warn(`[net] JOIN to ${String(hostKey).slice(0, 8)} not sent (attempt ${attempt + 1})`);
-  if (attempt < JOIN_RETRIES) setTimeout(() => { if (peers.has(hostKey)) sendJoin(hostKey, attempt + 1); }, JOIN_RETRY_MS * (attempt + 1));
-}
-
-function askForKeyframe(hostKey) {
-  awaitingKeyframe = true;
-  if (Date.now() - keyframeAskedAt < KEYFRAME_ASK_MS) return;
-  keyframeAskedAt = Date.now();
-  console.warn(`[net] delta from ${String(hostKey).slice(0, 8)} has no baseline; asking for a keyframe`);
-  sendJoin(hostKey);
+  const short = String(hostKey).slice(0, 8);
+  let sent = false;
+  try {
+    sent = sendTo(hostKey, encodeFrame({ type: FRAME.JOIN, lastTick: lastAppliedTick })) !== false;
+  } catch (err) {
+    console.warn(`[net] JOIN to ${short} threw on attempt ${attempt + 1}: ${err.message}`);
+  }
+  if (sent) return;
+  console.warn(`[net] JOIN to ${short} not sent (attempt ${attempt + 1})`);
+  if (attempt >= JOIN_RETRIES) {
+    console.warn(`[net] JOIN to ${short} exhausted ${JOIN_RETRIES + 1} attempts; waiting for a peer-open`);
+    return;
+  }
+  setTimeout(() => {
+    if (!peers.has(hostKey)) {
+      console.warn(`[net] JOIN retry to ${short} skipped: peer closed`);
+      return;
+    }
+    sendJoin(hostKey, attempt + 1);
+  }, JOIN_RETRY_MS * (attempt + 1));
 }
 
 function sendRoster(peerPubkey) {
@@ -2474,6 +2484,11 @@ const createPeerConnection = (config) => {
 const session = createDataSession({ fsm, xstate, relayPool, auth, namespace, createPeerConnection, iceServers: relayUrls && !params.has("ice") ? [] : iceConfig.servers });
 const frameTimer = createFrameTimer();
 const netReadout = createNetReadout({ doc: document, timer: frameTimer, peerConnections: livePeerConnections });
+const frameRecovery = createFrameRecovery({
+  applyFrame,
+  requestKeyframe: (key) => sendJoin(hostKey ?? key),
+  log: (key) => console.warn(`[net] frame from ${String(key).slice(0, 8)} has no baseline; asking for a keyframe`),
+});
 
 session.addEventListener("peer-open", (e) => {
   peers.add(e.detail.peerPubkey);
@@ -2508,7 +2523,7 @@ session.addEventListener("peer-close", (e) => {
   telemetry(`peer-close ${String(e.detail.peerPubkey).slice(0, 8)}`);
   if (peers.size === 0) {
     netTick = -1;
-    awaitingKeyframe = true;
+    frameRecovery.lostPeer();
     scheduleReconnect();
   }
 });
@@ -2516,10 +2531,7 @@ const netUnits = new Map();
 let netTick = -1;
 const JOIN_RETRIES = 4;
 const JOIN_RETRY_MS = 250;
-const KEYFRAME_ASK_MS = 1000;
 const HOST_LINK_WAIT_MS = 8000;
-let keyframeAskedAt = 0;
-let awaitingKeyframe = false;
 session.addEventListener("data", (e) => {
   let frame = null;
   const bytes = new Uint8Array(e.detail.data);
@@ -2622,11 +2634,7 @@ session.addEventListener("data", (e) => {
   if (hosting) return;
   if (frame.type !== FRAME.STATE && frame.type !== FRAME.DELTA) return;
   if (frame.tick <= netTick && frame.type !== FRAME.STATE) return;
-  if ((frame.type === FRAME.DELTA && awaitingKeyframe) || !applyFrame(netUnits, frame)) {
-    askForKeyframe(e.detail.peerPubkey);
-    return;
-  }
-  awaitingKeyframe = false;
+  if (!frameRecovery.apply(netUnits, frame, e.detail.peerPubkey).applied) return;
   netTick = frame.tick;
   lastAppliedTick = frame.tick;
   if (!gate.live) goLive("state");

@@ -1,0 +1,19 @@
+ok delta without a baseline is dropped false
+ok null baseline triggers one recovery request 1
+ok recovery request names the frame sender "host-a"
+ok null baseline is logged once 1
+ok guest is awaiting a keyframe true
+ok second delta is dropped false
+ok third delta is dropped false
+ok repeated deltas keep one recovery request 1
+ok repeated deltas keep one log 1
+ok later keyframe applies true
+ok keyframe replaces the units [1]
+ok keyframe clears the wait false
+ok delta after the keyframe applies true
+ok units carry the post-keyframe delta [1,4]
+ok resume adds no recovery request 1
+ok resume adds no log 1
+net-recovery-check: all passed
+Covered by code: the guest no longer drops STATE/DELTA frames silently when applyFrame returns null; one keyframe request is made, failed JOIN sends are retried with explicit logs, and a later keyframe resumes normal application. Witnessed by js/client/net-recovery-check.mjs above.
+Unwitnessed: a live two-tab net session on reachable relays after a peer close, with body[data-ticks] and getState().tick sampled over 10 s before and after this change on the live Pages build; a fresh host starting a moba match on the live Pages build.
