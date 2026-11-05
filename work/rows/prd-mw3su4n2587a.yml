@@ -1,0 +1,6 @@
+id: "prd-mw3su4n2587a"
+kind: "prd"
+title: "Record the gm parallel-search crash fix"
+body: "Record the gm worker crash fix from the other gm session, including its root cause, regression witness and the fact that gm.search is live again."
+status: "open"
+createdAt: "2026-11-05T17:07:58.334Z"
