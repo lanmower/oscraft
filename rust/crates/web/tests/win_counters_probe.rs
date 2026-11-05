@@ -687,6 +687,55 @@ fn expected_ratings(rows: &[Vec<String>], seconds: i64) -> Vec<i64> {
         .collect()
 }
 
+fn feedback_reasons(lines: &[Value]) -> Vec<String> {
+    lines
+        .iter()
+        .filter(|line| line.to_string().contains("\"feedback\""))
+        .filter_map(|line| {
+            line.to_string()
+                .split("\"reason\":\"")
+                .nth(1)
+                .and_then(|rest| rest.split('"').next())
+                .map(str::to_owned)
+        })
+        .collect()
+}
+
+#[test]
+fn a_player_commends_one_other_player_once_after_the_match() {
+    let dir = scenario_dir();
+    let image = image_for(&dir);
+    let (mut game, heroes) = start_match(&dir, &image);
+    let (killer, victim, ally_id, _) = prepare_kill(&mut game, &heroes);
+    let early = ui(&mut game, "post_commend", json!({ "target": 3 }));
+    println!("probe commend before the match ends reasons={:?}", feedback_reasons(&early));
+    assert_eq!(feedback_reasons(&early), vec!["notover".to_owned()], "a commend before the match ends is refused");
+    kill_victim(&mut game, killer, ally_id, victim);
+    end_match(&mut game);
+    let units = alive_units(&game);
+    let third = hero_of(&units, &heroes, 3);
+    let fifth = hero_of(&units, &heroes, 5);
+
+    let own = ui(&mut game, "post_commend", json!({ "target": 1 }));
+    println!("probe commend self reasons={:?}", feedback_reasons(&own));
+    assert_eq!(feedback_reasons(&own), vec!["self".to_owned()], "a player cannot commend themselves");
+
+    let first = ui(&mut game, "post_commend", json!({ "target": 3 }));
+    assert!(feedback_reasons(&first).is_empty(), "the first commend is accepted");
+    assert_eq!(game.counter(third, "commend_received"), 1.0, "the commended hero counts one commend");
+
+    let second = ui(&mut game, "post_commend", json!({ "target": 5 }));
+    println!("probe commend second reasons={:?}", feedback_reasons(&second));
+    assert_eq!(feedback_reasons(&second), vec!["used".to_owned()], "a second commend from the same player is refused");
+    assert_eq!(game.counter(fifth, "commend_received"), 0.0, "the refused commend records nothing on its target");
+
+    let mut nodes = Vec::new();
+    tree_nodes(win_tree(&first), &mut nodes);
+    let tips: Vec<&str> = nodes.iter().filter_map(|node| node["tip"].as_str()).collect();
+    println!("probe commend tips={:?}", tips.iter().filter(|tip| tip.contains("ommend")).collect::<Vec<_>>());
+    assert!(tips.iter().any(|tip| tip.starts_with("Commended")), "the commended player's button shows the commended state");
+}
+
 fn held_items(game: &Game, unit: u32) -> i64 {
     let inventory: Value = serde_json::from_str(&game.inventory_json(unit)).expect("inventory json");
     inventory["slots"]

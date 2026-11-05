@@ -290,6 +290,18 @@
     "postGame": {
       "tabs": { "overview": "Overview", "scoreboard": "Scoreboard", "graphs": "Graphs", "mvp": "MVP" },
       "teamView": "Back to team view",
+      "commend": {
+        "action": "Commend",
+        "commended": "Commended",
+        "used": "You have already commended a player this match",
+        "denied": {
+          "notover": "Commendations open when the match ends",
+          "target": "No such player",
+          "self": "You cannot commend yourself",
+          "nohero": "Both players need a hero to commend",
+          "used": "You have already commended a player this match"
+        }
+      },
       "noPick": "Click a hero portrait to compare it.",
       "vs": "vs",
       "level": "Level",

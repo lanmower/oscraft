@@ -98,12 +98,39 @@ local function portrait(c, e)
   })
 end
 
+local function commend_cell(c, e)
+  local w = c.w
+  local texts = c.texts.commend
+  if e.player == c.local_player then return nil end
+  local received = w.label(tostring(c.commend.received[e.player] or 0), "muted")
+  local tip = texts.action .. " " .. e.name
+  if c.commend.given == e.player then
+    return w.cell({ w.label("♥", "accent"), received }, { tone = "accent", tip = texts.commended .. " " .. e.name })
+  end
+  if c.commend.given ~= nil then
+    return w.cell({ w.label("♡", "muted"), received }, { tone = "muted", tip = texts.used })
+  end
+  return w.cell({ w.label("♡", "accent"), received }, {
+    tip = tip,
+    call = "post_commend",
+    args = w.obj({ w.I("target", e.player) }),
+  })
+end
+
+local function portrait_column(c, e)
+  local w = c.w
+  local kids = { portrait(c, e) }
+  local commend_node = commend_cell(c, e)
+  if commend_node ~= nil then kids[#kids + 1] = commend_node end
+  return w.box(kids, "col")
+end
+
 local function portraits(c)
   local w = c.w
   local columns = {}
   for _, side in ipairs(c.sides) do
     local cells = {}
-    for _, e in ipairs(members(c, side)) do cells[#cells + 1] = portrait(c, e) end
+    for _, e in ipairs(members(c, side)) do cells[#cells + 1] = portrait_column(c, e) end
     columns[#columns + 1] = w.box({ w.label(c.team_name(side), "team" .. tostring(side)), w.box(cells, "row") }, "col")
   end
   return w.box(columns, "row")

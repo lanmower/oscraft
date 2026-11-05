@@ -349,6 +349,7 @@ local function win_tree()
     menu = TEXT.menu,
     note = REPLAY_NOTE,
     scoreboard = win_table,
+    commend = require("commend").view(LOCAL),
   })
   for _, node in ipairs(body) do kids[#kids + 1] = node end
   return box(kids, "col")
@@ -2168,6 +2169,12 @@ local function ui_call(who, call, a)
     emit("win", "win", (not WIN_CLOSED) and win_tree() or nil)
   elseif call == "post_pick" then
     require("post_view").pick_hero(team_of(a.player), a.player)
+    emit("win", "win", (not WIN_CLOSED) and win_tree() or nil)
+  elseif call == "post_commend" then
+    local ok, reason = require("commend").give(who, a.target)
+    if not ok then
+      game.ui_event("feedback", obj({ I("player", who), S("kind", "refusal"), S("reason", reason), S("text", TEXT.postGame.commend.denied[reason]) }))
+    end
     emit("win", "win", (not WIN_CLOSED) and win_tree() or nil)
   elseif call == "post_team_view" then
     require("post_view").team_view()
