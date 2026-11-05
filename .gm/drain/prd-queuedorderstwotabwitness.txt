@@ -1,0 +1,2 @@
+STATUS: PARKED
+In-process and native witnesses exist (01171c74d Status resolved: probe_queued_order_resync_two_tabs; d501ba3f5: cargo test -p sim --test order_queue_resync 2 passed). The row acceptance requires two browser tabs and a dispatch from another session. The browser agent was stopped after its cache-server timeout; no two-tab dispatch exists. Parked until a bounded playwriter two-tab run.

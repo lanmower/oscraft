@@ -1,0 +1,2 @@
+STATUS: PARKED
+Owner oscraft-8d reports the commend subagent has not reported and the row is not green. They declined my resolving it and authorized parking. Parked pending their green commit with Row/Witness/Status.

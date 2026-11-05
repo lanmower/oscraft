@@ -1,0 +1,2 @@
+STATUS: PARKED
+Owner oscraft-8d reports the post-game graph test post_match_graphs_sample_gold_and_buffs_per_minute is red: "the graphs tab draws one line per metric, got 0" at rust/crates/mod-host/tests/post_graph_samples.rs:127, and the row stays open until the test passes and its commit has Row/Witness/Status. They declined my resolving it and authorized parking. Parked pending their green commit.

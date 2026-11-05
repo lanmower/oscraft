@@ -1,0 +1,2 @@
+STATUS: PARKED
+The Overview widget is witnessed in-process (140b0b0a8: "probe overview left=witch_doctor right=necrolyte seconds=420 kda=[1 / 0 / 0] [0 / 0 / 0] gpm=[68] [10] xpm=[9] [0] bars=[0, 0, 6, 0, 0, 0] not_tracked=12"; "test result: ok. 2 passed"). The row needs a browser read at 1280x720 of a finished match. The browser agent was stopped after its cache-server timeout; no 1280x720 page read exists. Parked until a served win screen can be opened.
