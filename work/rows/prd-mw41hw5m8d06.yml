@@ -1,0 +1,9 @@
+id: "prd-mw41hw5m8d06"
+kind: "prd"
+title: "Plan architecture improvements and tidy local receipts"
+body: "Record current architecture constraints, a bounded improvement queue, and ignore local witness receipts without deleting them."
+status: "resolved"
+createdAt: "2026-11-05T21:10:24.010Z"
+witnessEvent: 570
+witnessCommit: "c7df04ebad4f90b0434f75d36e5a5b62bf613d21"
+resolvedAt: "2026-11-05T21:11:13.375Z"
