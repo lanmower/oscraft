@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use mod_host::{build_image, ModHost};
+use serde_json::json;
 use sim::fixed::{self, HALF};
 
 const NEUTRAL_SLOT: usize = 9;
@@ -66,6 +67,29 @@ fn spawn_hero(host: &mut ModHost, kind_name: &str, player: u8, cell_x: i32, cell
     let x = fixed::from_int(cell_x) + HALF;
     let y = fixed::from_int(cell_y) + HALF;
     sim.spawn_attributed(player, kind as u32, x, y).expect("the hero fits on the map")
+}
+
+fn ui_file() -> serde_json::Value {
+    serde_json::from_str(&std::fs::read_to_string(pack_dir().join("moba_ui.json")).expect("the moba ui file"))
+        .expect("a valid moba ui file")
+}
+
+fn setup_panels(host: &mut ModHost) {
+    host.dispatch_action("setup", &json!({ "ui": ui_file(), "player": 0, "pubkey": "owner" }))
+        .expect("the panels accept the setup");
+}
+
+#[test]
+fn a_neutral_sell_away_from_the_fountain_leaves_the_item_in_the_neutral_slot() {
+    let mut host = pack_host();
+    setup_panels(&mut host);
+    let hero = spawn_hero(&mut host, "antimage", 0, 92, 240);
+    let kind = host.sim().catalog().item_index("essence_ring").expect("the neutral item is in the moba catalog") as u32 + 1;
+    assert!(host.sim_mut().inventory_add(hero, kind, 1), "the neutral item fits the neutral slot");
+    host.dispatch_action("ui", &json!({ "call": "sell", "args": { "slot": NEUTRAL_SLOT }, "player": 0 }))
+        .expect("the panels accept the neutral click");
+    assert_eq!(host.sim().inventory_slot(hero, NEUTRAL_SLOT), (kind, 1), "the neutral item stays put away from the fountain");
+    assert!((0..NEUTRAL_SLOT).all(|s| host.sim().stash_slot(hero, s) == (0, 0)), "no stash slot holds the neutral item");
 }
 
 #[test]

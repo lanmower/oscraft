@@ -580,6 +580,12 @@ export function buildNode(n, send, panel = null) {
         e.tabIndex = 0;
         e.setAttribute("role", "button");
         e.onclick = (ev) => send(n.call, withModifiers(n.args, ev));
+        if (n.secondary) {
+          e.oncontextmenu = (ev) => {
+            ev.preventDefault();
+            send(n.call, withModifiers(n.args, ev));
+          };
+        }
         e.onkeydown = (ev) => {
           if (ev.key !== "Enter" && ev.key !== " ") return;
           ev.preventDefault();

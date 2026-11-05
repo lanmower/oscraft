@@ -14,6 +14,7 @@ local match_stats = require("match_stats")
 local recap = require("recap")
 local pings = require("pings")
 local HERO_ACRONYM = require("hero_acronyms")
+local protection = require("protection")
 
 local TICKS_PER_SECOND = config.TICKS_PER_SECOND
 local REFRESH_TICKS = 4
@@ -141,6 +142,7 @@ local function cell(kids, opts)
     f[#f + 1] = S("call", opts.call)
     f[#f + 1] = R("args", opts.args or "{}")
   end
+  if opts.secondary then f[#f + 1] = B("secondary", true) end
   f[#f + 1] = R("kids", arr(kids))
   return node("cell", f)
 end
@@ -1099,6 +1101,13 @@ local function ownership_refusal(hero)
   return nil
 end
 
+local function neutral_stash_refusal(hero)
+  if not unit_alive(hero) then return "dead" end
+  if unit_player(hero) ~= LOCAL then return "notyours" end
+  if not protection.in_fountain(hero) then return "outofreach" end
+  return nil
+end
+
 local function sell_refusal(hero, slot)
   for _, row in ipairs(game.unit_items(hero)) do
     if row.slot == slot then
@@ -1129,7 +1138,7 @@ local function inventory_cell(hero, items, s)
     local armed = SELL_ARMED == s
     local neutral = s == NEUTRAL_SLOT
     local refusal
-    if neutral then refusal = ownership_refusal(hero) else refusal = sell_refusal(hero, s) end
+    if neutral then refusal = neutral_stash_refusal(hero) else refusal = sell_refusal(hero, s) end
     local tip
     if armed then
       tip = TEXT.menu.moveOrSell
@@ -1140,7 +1149,7 @@ local function inventory_cell(hero, items, s)
     else
       tip = TEXT.menu.sell .. " " .. held.name .. " (" .. refund_text(held.item, held.name) .. ")"
     end
-    return cell({ label(held.name, "strong") }, { tip = tip, tone = armed and "active" or nil, call = "sell", args = obj({ I("slot", s) }) })
+    return cell({ label(held.name, "strong") }, { tip = tip, tone = armed and "active" or nil, call = "sell", args = obj({ I("slot", s) }), secondary = neutral })
   end
   if SELL_ARMED ~= nil then
     return cell({}, { tone = "empty", tip = TEXT.menu.moveHere, call = "sell", args = obj({ I("slot", s) }) })
@@ -2103,7 +2112,7 @@ local function ui_call(who, call, a)
     end
     if held == nil then return end
     if a.slot == NEUTRAL_SLOT then
-      local neutral_refusal = ownership_refusal(hero)
+      local neutral_refusal = neutral_stash_refusal(hero)
       if neutral_refusal ~= nil then
         game.ui_event("feedback", obj({ I("player", who), S("kind", "refusal"), S("reason", neutral_refusal), S("text", TEXT.menu.refund.denied[neutral_refusal]) }))
         return
