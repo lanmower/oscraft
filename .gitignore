@@ -1,31 +1,19 @@
-# derived config caches are nested git repos: staging one as a gitlink without
-# a .gitmodules url makes every CI checkout fail on submodule update
 /.gm/config-source-cache-default/
-
-# local site layout from scripts/layout-site.sh and scripts/dev/stage.sh
 /_site/
-
-# stray timestamp files
 2026-10-27T14:00:00Z
 2026-10-27T15:25:00Z
 2026-10-27T15:30:00Z
 2026-10-27T15:35:00Z
 2026-10-27T15:45:00Z
-
-# dependency installs and generated build output
 node_modules/
 target/
 .dev-site/
-
-# browser profiles, CDP session captures and scratch probes: local only
+/.cargo-stage-final/
 /.gm/browser-lease/
 /.gm/browser-cdp-sessions/
 /.gm/browser-cdp-capture/
 /.gm/crawl-cdp-sessions/
 /.inspect/
-
-# agent-host MCP registrations written by the gm installer: one local file per host, never tracked,
-# and they made every writer_lock check report not_clean
 /.codex/
 /.cursor/
 /.factory/
@@ -42,12 +30,8 @@ target/
 /config/
 kilo.json
 opencode.jsonc
-
-# generated caches: regenerated on demand, never versioned
 /.agentplug-kv/
 /.gm/codesearch-result-*.json
-
-# gm runtime state, databases, perf runs, screenshots and run logs: local only
 /runs/
 /.gm/perf/
 /.gm/exec-spool/
@@ -68,7 +52,22 @@ opencode.jsonc
 /.gm/unknowns-log.d/
 /.gm/*.png
 /.gm/*.log
+/.gm/*-msg.txt
+/.gm/commit-msg-*.txt
+/.gm/tasks/
+/.gm/receipts/
+/.gm/heroicon-pack/
+/.gm/model-order/
+/.gm/first-draw-defer/
+/.gm/gpu-check/
+/.gm/verify-49/
+/.gm/shelved/
+/.gm/drain/
+/.gm/witness-log.md
 /.gm/unknowns-log.jsonl
 /.gm/mutables-log.jsonl
+/.mcp.json.bak-*
+/scripts/assets/__pycache__/
+/scripts/perf/asset-packs-cache-check.mjs
 /scripts/perf/node_modules/
 .playwriter/

@@ -87,3 +87,20 @@ Peers talk over wireweave data channels (WebRTC). The frame codec in `js/wire/fr
 ## Determinism
 
 The sim is integer-only: no floats, no maps, no wall clock, and no heap allocation inside `Sim::tick`. Every buffer is sized in `Sim::new` or `load`. The fixed tick and the hash make a match replayable and comparable across native and wasm builds.
+
+## Current constraints
+
+- Engine mechanics stay genre-agnostic; packs express matches through data and Lua.
+- Generator outputs are never hand-edited; a generator change owns its output.
+- Browser pages stay the host; local ES modules load directly, while Pages builds wasm, maps, asset packs and bundles from source.
+- Sim state layout changes bump STATE_VERSION; transient queues and logs are not hashed or saved.
+- Language is the last channel for visual state; icons, colours and shapes carry state first.
+- AGENTS.md stays under 30 KB and holds durable facts, not comments in source.
+
+## Improvement queue
+
+1. Add --check gates for every deterministic generator and fail CI when a committed output drifts from its generator.
+2. Extract a module from js/client/play.js only when a test names the seam; avoid moving code without a measured failure.
+3. Keep a single site layout path for Pages, CI smoke and local staging; compare served hashes instead of trusting a fresh deploy by time.
+4. Re-scope browser-only witnesses to a fresh dev-origin row when their acceptance depends on /__hmr, a finished match or a two-tab dispatch.
+5. Keep local witness receipts, task briefs, commit-message files and lane-private cargo targets out of git status without deleting evidence from disk.

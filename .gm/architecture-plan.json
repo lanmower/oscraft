@@ -1,0 +1,52 @@
+{
+  "task": "finish all remaining work, and respond to any queries, plan any improvements you feel is appropriate, and make sure the project is nice and well architected",
+  "head": "8d21b00da4a4504c6f67eda44dc94a8977b5ab06",
+  "state": {
+    "rows": "201 rows, 0 open, 0 parked, 0 defects",
+    "questions": "none",
+    "pagesCI": "42106832583 success"
+  },
+  "decisions": [
+    "No gameplay or 6.88g rule changes; the engine stays general.",
+    "No generated-file hand edits; generator outputs remain owned by their generators.",
+    "No broad rewrite of play.js; split only when a test names the seam.",
+    "No deletion of local receipts; ignore them so git status stays clean.",
+    "No owner question rows; no open question or PRD row remains."
+  ],
+  "improvements": [
+    {
+      "id": "generator-check-gates",
+      "action": "Add --check CI gates for every deterministic generator.",
+      "risk": "low",
+      "validation": "run each generator --check and fail on drift"
+    },
+    {
+      "id": "client-seam-extraction",
+      "action": "Extract a js/client/play.js module only behind a named test.",
+      "risk": "medium",
+      "validation": "node check plus a browser smoke on the seam"
+    },
+    {
+      "id": "single-site-layout",
+      "action": "Keep Pages, CI smoke and local staging on one layout path and compare served hashes.",
+      "risk": "low",
+      "validation": "gh run view and version.json sha equality"
+    },
+    {
+      "id": "browser-witness-rescope",
+      "action": "Create narrow dev-origin rows for HMR, finished-match and two-tab witnesses if still wanted.",
+      "risk": "low",
+      "validation": "bounded playwriter run with own context and finally cleanup"
+    },
+    {
+      "id": "local-receipt-hygiene",
+      "action": "Ignore local witness receipts, task briefs, commit-message files and lane-private cargo targets.",
+      "risk": "low",
+      "validation": "git status --short and git diff --check"
+    }
+  ],
+  "applied": [
+    "docs/ARCHITECTURE.md constraints and improvement queue",
+    ".gitignore receipt hygiene without comments"
+  ]
+}
