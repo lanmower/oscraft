@@ -361,6 +361,7 @@
       "moveHere": "Click to move the armed item here",
       "stashHere": "Stash armed item",
       "stashHint": "Put the armed item into the stash (at a shop)",
+      "stashNeutral": "Click to stash this neutral item (within reach of a depot)",
       "refund": {
         "format": "$item has been sold for $gold gold.",
         "denied": {

@@ -1092,13 +1092,17 @@ local function refund_text(item, name)
   return fill(TEXT.menu.refund.format, { item = name, gold = tostring(gold) })
 end
 
+local function ownership_refusal(hero)
+  if not unit_alive(hero) then return "dead" end
+  if unit_player(hero) ~= LOCAL then return "notyours" end
+  if not store.in_reach(hero) then return "outofreach" end
+  return nil
+end
+
 local function sell_refusal(hero, slot)
   for _, row in ipairs(game.unit_items(hero)) do
     if row.slot == slot then
-      if not unit_alive(hero) then return "dead" end
-      if unit_player(hero) ~= LOCAL then return "notyours" end
-      if not store.in_reach(hero) then return "outofreach" end
-      return store.sale_refusal(game.item_info(row.item))
+      return ownership_refusal(hero) or store.sale_refusal(game.item_info(row.item))
     end
   end
   return nil
@@ -1123,12 +1127,16 @@ local function inventory_cell(hero, items, s)
   local held = items[s]
   if held ~= nil then
     local armed = SELL_ARMED == s
-    local refusal = sell_refusal(hero, s)
+    local neutral = s == NEUTRAL_SLOT
+    local refusal
+    if neutral then refusal = ownership_refusal(hero) else refusal = sell_refusal(hero, s) end
     local tip
     if armed then
       tip = TEXT.menu.moveOrSell
     elseif refusal ~= nil then
       tip = TEXT.menu.refund.denied[refusal]
+    elseif neutral then
+      tip = TEXT.menu.stashNeutral
     else
       tip = TEXT.menu.sell .. " " .. held.name .. " (" .. refund_text(held.item, held.name) .. ")"
     end
@@ -2094,6 +2102,16 @@ local function ui_call(who, call, a)
       if row.slot == a.slot then held = row end
     end
     if held == nil then return end
+    if a.slot == NEUTRAL_SLOT then
+      local neutral_refusal = ownership_refusal(hero)
+      if neutral_refusal ~= nil then
+        game.ui_event("feedback", obj({ I("player", who), S("kind", "refusal"), S("reason", neutral_refusal), S("text", TEXT.menu.refund.denied[neutral_refusal]) }))
+        return
+      end
+      game.cmd_stash_item(hero, NEUTRAL_SLOT)
+      inventory_cache = {}
+      return
+    end
     local refusal = sell_refusal(hero, a.slot)
     if refusal ~= nil then
       game.ui_event("feedback", obj({ I("player", who), S("kind", "refusal"), S("reason", refusal), S("text", TEXT.menu.refund.denied[refusal]) }))

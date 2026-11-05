@@ -273,7 +273,7 @@ impl Sim {
     }
 
     pub fn stash_item(&mut self, i: usize, slot: usize) -> bool {
-        if i >= self.n || self.alive[i] == 0 || slot >= INV_SLOTS || slot == NEUTRAL_SLOT {
+        if i >= self.n || self.alive[i] == 0 || slot >= INV_SLOTS {
             self.refuse(Refusal::NoSlot);
             return false;
         }
@@ -288,10 +288,6 @@ impl Sim {
             self.refuse(Refusal::NoItem);
             return false;
         };
-        if def.flags & ITEM_FLAG_NEUTRAL != 0 {
-            self.refuse(Refusal::NoSlot);
-            return false;
-        }
         let stack_max = u32::from(def.stack_max);
         let target = (0..STASH_SLOTS)
             .find(|&s| stack_max > 0 && self.stash_kind[base + s] == kind && self.stash_count[base + s] + count <= stack_max)
