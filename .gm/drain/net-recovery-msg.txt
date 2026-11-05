@@ -1,0 +1,12 @@
+guest: recover a missing frame baseline with one keyframe request
+
+The guest logs a dropped delta once, re-sends JOIN with an explicit retry path, and waits for a keyframe instead of silently dropping frames. A node check covers the recovery path.
+
+Row: prd-mobaguestsilentafterpeerclose
+Witness: node js/client/net-recovery-check.mjs => "ok null baseline triggers one recovery request 1"; "ok later keyframe applies true"; "ok delta after the keyframe applies true"; "net-recovery-check: all passed"; node --check js/client/play.js => play_parse_ok
+Status: resolved
+
+Row: prd-livemobagueststalls
+Witness: node js/client/net-recovery-check.mjs => "net-recovery-check: all passed" (code path only)
+Status: open
+Gap: no live two-tab net session on reachable relays; the frozen-tick reading before and after the change and a fresh host starting a moba match on the live Pages build remain unwitnessed.
