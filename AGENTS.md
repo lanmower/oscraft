@@ -147,3 +147,4 @@ No comments in source: durable facts live here, names carry intent.
 - `tools/gm-continue-setup.mjs` was absent, so the gm-continue setup command failed before any row could be worked; DESIGN.md 2026-11-05 records the read-only restoration.
 - A 19-agent gm.search fan-out crashed the gm worker with exit 139; gm commit 5d9e8358ae631661546035e97c52a6ffb2f50247 serializes SearchVerbs::call and keeps cached index pointers valid, with 22 native tests and 16 parallel bodies passing; DESIGN.md 2026-11-05 records the fix.
 - `.gm/witness-log.md` is untracked and stale; committed DESIGN.md, AGENTS.md and git bodies are the authoritative debugging state. DESIGN.md 2026-11-05 records the workflow finding.
+- A stale `.dev-site` can keep a bot-filled host at tick 0: re-stage from HEAD with SKIP_PACKS=1 before browser witnesses. DESIGN.md 2026-11-05 records the 2026-11-02 snapshot and the world_ready fix.
