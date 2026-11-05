@@ -26,6 +26,8 @@ import { buildTerrain, GROUND_UV_PER_CELL, readProps, readGrid, vertexNormals } 
 import { controlMap, fitModel, planarGroundUvs, rampLowCells, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_TINTS, walkableBounds, waterMap, waterSurface } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
 import { loadBasis, loadMeshopt } from "./decoders.js";
+import { createFrameTimer } from "./frame_timer.js";
+import { createNetReadout } from "./net_readout.js";
 
 const decodersReady = Promise.all([loadBasis(), loadMeshopt()]);
 import { SWAP_DEFER_TICKS, SWAP_GATE_TICKS, SWAP_LEAD_TICKS, hostSwapStep, packSwapKind, swapAdmitPeer, swapGate, swapIsNew } from "./swap_protocol.js";
@@ -1438,6 +1440,11 @@ function bindInput() {
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   window.addEventListener("keydown", (e) => {
     if (e.target instanceof HTMLInputElement) return;
+    if (e.ctrlKey && !e.altKey && !e.metaKey && !e.repeat && e.key.toLowerCase() === "f") {
+      e.preventDefault();
+      netReadout.toggle();
+      return;
+    }
     if (zoomKeys?.onKeyDown(e)) {
       e.preventDefault();
       return;
@@ -2409,12 +2416,19 @@ const iceConfig = (() => {
   }
 })();
 const ciPeerConnections = [];
+const livePeerConnections = new Set();
 const createPeerConnection = (config) => {
   const pc = new RTCPeerConnection(config);
   if (params.get("ci") === "1") ciPeerConnections.push(pc);
+  livePeerConnections.add(pc);
+  pc.addEventListener("connectionstatechange", () => {
+    if (pc.connectionState === "closed" || pc.connectionState === "failed") livePeerConnections.delete(pc);
+  });
   return pc;
 };
 const session = createDataSession({ fsm, xstate, relayPool, auth, namespace, createPeerConnection, iceServers: relayUrls && !params.has("ice") ? [] : iceConfig.servers });
+const frameTimer = createFrameTimer();
+const netReadout = createNetReadout({ doc: document, timer: frameTimer, peerConnections: livePeerConnections });
 
 session.addEventListener("peer-open", (e) => {
   peers.add(e.detail.peerPubkey);
@@ -3440,6 +3454,7 @@ async function main() {
 
   let worldBuilt = false;
   function frame(now) {
+    frameTimer.tick();
     const dtS = lastFrameMs ? Math.min(0.1, (now - lastFrameMs) / 1000) : 0;
     lastFrameMs = now;
     panByKeys(dtS);
