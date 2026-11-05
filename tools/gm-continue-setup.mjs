@@ -51,7 +51,7 @@ function planLine(row) {
 }
 
 function parkedLine(row) {
-  return `PARKED ${row.id ?? row.file} ${row.reason ?? ""}`.trimEnd();
+  return `PARKED ${row.id ?? row.file} ${row.parkReason ?? row.reason ?? row.title ?? ""}`.trimEnd();
 }
 
 function defectLine(row) {
