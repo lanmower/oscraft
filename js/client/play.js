@@ -40,6 +40,7 @@ import { packCameraRules } from "./camera_rules.js";
 import { installGameFocusGuard } from "./game_focus.js";
 import { createZoomKeys } from "./zoom_keys.js";
 import { createDraftClock } from "./draft_clock.js";
+import { LOBBY_LINK_WAIT_MS, lobbyInputRoute, heldCallsAfterSettle } from "./lobby_link.js";
 import { createGuiFlow } from "./gui_flow.js";
 import { createPodium, podiumScene, podiumCameraStep, podiumPlinthTransforms } from "./podium.js";
 import { saveReplayFile } from "./replay_save.js";
@@ -213,6 +214,7 @@ let lastApplied = null;
 let peerFetch = null;
 let hostKey = null;
 let heldLobbyCalls = [];
+let lobbyLinkTimer = null;
 let lobbyLinkSettled = false;
 const swapRejections = [];
 let rosterView = null;
@@ -302,19 +304,13 @@ function logModError(text) {
 
 function sendInput(name, args) {
   if (gate.loading) return;
-  if (netState || (!hosting && peers.size > 0)) {
+  const route = lobbyInputRoute({ netState, hosting, peers: peers.size, settled: lobbyLinkSettled, name, call: args && args.call, phase: gate.phase });
+  if (route.broadcast) {
     if (session) session.broadcast(encodeFrame({ type: FRAME.ACTION, name, body: JSON.stringify(args) }));
     return;
   }
-  if (holdsForHost(name, args)) {
-    heldLobbyCalls.push({ name, args });
-    return;
-  }
-  applyLocalInput(name, args);
-}
-
-function holdsForHost(name, args) {
-  return !hosting && !lobbyLinkSettled && name === "ui" && args.call !== "world_ready" && gate.phase === PHASE.LOBBY;
+  if (route.queue) heldLobbyCalls.push({ name, args });
+  if (route.apply) applyLocalInput(name, args);
 }
 
 function applyLocalInput(name, args) {
@@ -327,9 +323,9 @@ function flushHeldLobbyCalls() {
 }
 
 function settleLobbyLink() {
+  if (lobbyLinkSettled) return;
   lobbyLinkSettled = true;
-  if (peers.size > 0) return;
-  for (const call of heldLobbyCalls.splice(0)) applyLocalInput(call.name, call.args);
+  if (heldCallsAfterSettle({ peers: peers.size }) === "clear") heldLobbyCalls.length = 0;
 }
 
 function sendLobbySnapshot() {
@@ -2305,11 +2301,12 @@ async function joinRoom() {
   reconnectNote = "";
   renderStatus();
   lobbyLinkSettled = false;
+  clearTimeout(lobbyLinkTimer);
+  lobbyLinkTimer = setTimeout(settleLobbyLink, LOBBY_LINK_WAIT_MS);
   try {
     await session.connect(room);
     setStatus("joined");
     if (reconnectAttempt > 0 && peers.size === 0) scheduleReconnect();
-    setTimeout(settleLobbyLink, HOST_LINK_WAIT_MS);
   } catch (err) {
     setStatus(`join failed: ${err && err.message ? err.message : err}`);
     settleLobbyLink();
@@ -2533,7 +2530,6 @@ const netUnits = new Map();
 let netTick = -1;
 const JOIN_RETRIES = 4;
 const JOIN_RETRY_MS = 250;
-const HOST_LINK_WAIT_MS = 8000;
 session.addEventListener("data", (e) => {
   let frame = null;
   const bytes = new Uint8Array(e.detail.data);

@@ -20,7 +20,7 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 
 | change | witness |
 | --- | --- |
-| `scripts/check-all.mjs`: one local validation entry point | `RESULT gates=36 ok=36 failed=0 drift=3 skipped=5 strict=false`; `--strict` exits 1 |
+| `scripts/check-all.mjs`: one local validation entry point | `RESULT gates=37 ok=37 failed=0 drift=3 skipped=5 strict=false`; `--strict` exits 1 |
 | `scripts/check-doc-claims.mjs`: the retired-CI and stale-API claims cannot come back | `doc claims ok 17/17` |
 | `scripts/check-staged-secrets.mjs`: pure matcher, self-test on every run, git errors fail the gate | `secret patterns ok 5/5`, `selftest=0` |
 | `scripts/check-hero-models.mjs`: 127 heroes all have a model, with a negative fixture | `hero models ok: 127 heroes, all with a model`, `hero models negative fixture caught` |
@@ -106,7 +106,7 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 | `client-js-frame-chain-guard` | high | rAF chain dies on one unguarded Game call | planned, needs a named test |
 | `client-js-safe-storage-seam` | medium | Only 2 of 9 localStorage sites are guarded | planned, needs a named test |
 | `client-js-hud-hot-state` | medium | hmrReload rebuilds the HUD and drops selection and courier state | planned, needs a named test |
-| `client-js-input-route-seam` | medium | sendInput routing is pure branching mixed with I/O and seven globals | planned, needs a named test |
+| `client-js-input-route-seam` | medium | sendInput routing is pure branching mixed with I/O and seven globals | landed as `lobby_link.js` with `lobby-link-check.mjs` (12 cases) |
 | `client-js-key-names-seam` | low | Two key normalizers disagree on pack Numpad bindings | planned, needs a named test |
 | `client-js-codec-copy-gate` | medium | Deployed wire codec is a 421-line copy with no drift gate | planned, needs a named test |
 

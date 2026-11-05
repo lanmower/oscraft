@@ -146,5 +146,6 @@ No comments in source: durable facts live here, names carry intent.
 
 - Dated troubleshooting receipts and their witnesses live in DESIGN.md and commit bodies; AGENTS.md holds durable facts.
 - Re-stage `.dev-site` from HEAD with SKIP_PACKS=1 before browser witnesses; a stale snapshot holds a bot-filled host at tick 0.
-- `node scripts/check-all.mjs` is the one local validation entry point: 36 gates, 3 drifted generated outputs and 5 external-input dependencies reported with reasons (`--strict` fails on drift). Regenerating the three drifted outputs would change gameplay data loaded through manifest.json, so a source-of-truth decision comes first. DESIGN.md 2026-11-05 records the survey and the drift.
+- `node scripts/check-all.mjs` is the one local validation entry point: 37 gates, 3 drifted generated outputs and 5 external-input dependencies reported with reasons (`--strict` fails on drift). Regenerating the three drifted outputs would change gameplay data loaded through manifest.json, so a source-of-truth decision comes first. DESIGN.md 2026-11-05 records the survey and the drift.
 - An empty drag box keeps the selection, and camera drags (middle/right button) forward no pointer kinds; `pointerReleaseKinds` is the pure decision and `camera-mouse-check.mjs` gates it. DESIGN.md 2026-11-06 records the native pointer probe.
+- A solo lobby UI click is applied locally at once and queued only for host replay; `lobbyInputRoute` is the pure decision and `lobby-link-check.mjs` gates it. DESIGN.md 2026-11-06 records the eight-second dead-click window.
