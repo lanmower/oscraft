@@ -72,8 +72,8 @@ function createHitLayer(win) {
   };
 }
 
-function createMinimapImpl({ canvas, mapSize, lanes, selected, localPlayer, playerColor, teams, viewRect, centre, drag = () => {}, order = () => {}, isHero = () => false, isBuilding = () => false }) {
-  hot.set("ui-minimap", { canvas, mapSize, lanes, selected, localPlayer, playerColor, teams, viewRect, centre, drag, order, isHero, isBuilding });
+function createMinimapImpl({ canvas, mapSize, lanes, selected, localPlayer, playerColor, teams, viewRect, centre, drag = () => {}, order = () => {}, isHero = () => false, isBuilding = () => false, palette = {} }) {
+  hot.set("ui-minimap", { canvas, mapSize, lanes, selected, localPlayer, playerColor, teams, viewRect, centre, drag, order, isHero, isBuilding, palette });
   canvas.dataset.ui = "minimap";
   LIVE_CANVAS_DISPOSERS.get(canvas)?.();
   let fittedWidth = -1;
@@ -211,11 +211,11 @@ function createMinimapImpl({ canvas, mapSize, lanes, selected, localPlayer, play
       const neutral = u.player === NEUTRAL_PLAYER;
       const own = !neutral && u.player === me;
       if (!neutral && !own && myTeam >= 0 && teamOf(teams, u.player) === myTeam) {
-        ctx.strokeStyle = ALLY_RING;
+        ctx.strokeStyle = palette.ally ?? ALLY_RING;
         ctx.lineWidth = 1;
         ctx.strokeRect(x - s / 2 - 1.5, y - s / 2 - 1.5, s + 3, s + 3);
       } else if (!neutral && !own) {
-        ctx.strokeStyle = ENEMY_CROSS;
+        ctx.strokeStyle = palette.enemy ?? ENEMY_CROSS;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(x - 2, y - 2);
@@ -238,16 +238,16 @@ function createMinimapImpl({ canvas, mapSize, lanes, selected, localPlayer, play
       ctx.fillStyle = fillFor(u, me, active);
       ctx.fillRect(x - size / 2, y - size / 2, size, size);
       if (flags & HERO_BIT) {
-        ctx.strokeStyle = HERO_OUTLINE;
+        ctx.strokeStyle = palette.heroOutline ?? HERO_OUTLINE;
         ctx.lineWidth = 1;
         ctx.strokeRect(x - size / 2 - 0.5, y - size / 2 - 0.5, size + 1, size + 1);
       }
       if (ally) {
-        ctx.strokeStyle = ALLY_RING;
+        ctx.strokeStyle = palette.ally ?? ALLY_RING;
         ctx.lineWidth = 1;
         ctx.strokeRect(x - 4, y - 4, 8, 8);
       } else if (!neutral && !own) {
-        ctx.strokeStyle = ENEMY_CROSS;
+        ctx.strokeStyle = palette.enemy ?? ENEMY_CROSS;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(x - 2, y - 2);

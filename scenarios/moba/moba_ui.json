@@ -545,6 +545,48 @@
     "side",
     "secret"
   ],
+  "colourVision": {
+    "order": ["default", "deuteranopia", "protanopia", "tritanopia"],
+    "palettes": {
+      "default": {
+        "teams": null,
+        "ally": "#7cc7ff",
+        "enemy": "#0b0f13",
+        "heroOutline": "#0b0f13",
+        "bar": { "own": "#4caf50", "ally": "#3f8fd2", "enemy": "#e53935" }
+      },
+      "deuteranopia": {
+        "teams": [
+          ["#0072b2", "#56b4e9", "#005f8c", "#a6d8f0", "#003b5c"],
+          ["#e69f00", "#f0c25a", "#a86a00", "#f7dc9a", "#7a4b00"]
+        ],
+        "ally": "#56b4e9",
+        "enemy": "#e69f00",
+        "heroOutline": "#000000",
+        "bar": { "own": "#f0e442", "ally": "#0072b2", "enemy": "#e69f00" }
+      },
+      "protanopia": {
+        "teams": [
+          ["#0072b2", "#56b4e9", "#005f8c", "#a6d8f0", "#003b5c"],
+          ["#e69f00", "#f0c25a", "#a86a00", "#f7dc9a", "#7a4b00"]
+        ],
+        "ally": "#56b4e9",
+        "enemy": "#e69f00",
+        "heroOutline": "#000000",
+        "bar": { "own": "#f0e442", "ally": "#0072b2", "enemy": "#e69f00" }
+      },
+      "tritanopia": {
+        "teams": [
+          ["#d55e00", "#f0a070", "#8f3d00", "#f7c8a8", "#5c2600"],
+          ["#009e73", "#5fd0b0", "#00604a", "#a6e8d5", "#003b2c"]
+        ],
+        "ally": "#009e73",
+        "enemy": "#d55e00",
+        "heroOutline": "#000000",
+        "bar": { "own": "#f0e442", "ally": "#009e73", "enemy": "#d55e00" }
+      }
+    }
+  },
   "effects": {
     "colours": {
       "fire": [1, 0.45, 0.1],

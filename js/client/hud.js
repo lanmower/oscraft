@@ -6,15 +6,14 @@ import { NOTICE_KINDS, renderToast } from "./notice_kinds.js";
 import { createMinimap } from "./ui_minimap.js";
 import { UI } from "./pack_load.js";
 import { teamOf } from "./moba_select.js";
+import { activePalette } from "./colour_vision.js";
 
 const BAR_WIDTH_PX = 20;
 const BAR_HEIGHT_PX = 3;
 const BAR_LIFT_PX = 5;
 const SELECTED_BAR_WIDTH_PX = 28;
 const SELECTED_BAR_HEIGHT_PX = 5;
-const OWN_BAR_RGB = "#4caf50";
-const ALLY_BAR_RGB = "#3f8fd2";
-const ENEMY_BAR_RGB = "#e53935";
+const PALETTE = activePalette(UI);
 const MESSAGE_LIMIT = 4;
 const MESSAGE_HOLD_MS = 3000;
 const MESSAGE_FADE_MS = 700;
@@ -25,8 +24,8 @@ const XP_RGB = "#8e6cff";
 const SLOW_REFRESH_MS = 100;
 
 export function barColour(player, me, myTeam) {
-  if (player === me) return OWN_BAR_RGB;
-  return myTeam >= 0 && teamOf(UI.teams, player) === myTeam ? ALLY_BAR_RGB : ENEMY_BAR_RGB;
+  if (player === me) return PALETTE.bar.own;
+  return myTeam >= 0 && teamOf(UI.teams, player) === myTeam ? PALETTE.bar.ally : PALETTE.bar.enemy;
 }
 
 export function xpProgress(xp, curve) {
@@ -227,6 +226,7 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
     selected,
     localPlayer,
     playerColor,
+    palette: PALETTE,
     teams: UI.teams,
     viewRect,
     centre: centreMinimap,
