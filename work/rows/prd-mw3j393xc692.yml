@@ -1,0 +1,9 @@
+id: "prd-mw3j393xc692"
+kind: "prd"
+title: "Smart ping wheel with eight alerts, Alt or Ctrl plus click, G and V default keys"
+body: ""
+status: "resolved"
+createdAt: "2026-11-05T12:35:07.869Z"
+witnessEvent: 470
+witnessCommit: "4dc6cd7d"
+resolvedAt: "2026-11-05T15:35:04.510Z"

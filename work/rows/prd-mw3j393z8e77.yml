@@ -1,0 +1,9 @@
+id: "prd-mw3j393z8e77"
+kind: "prd"
+title: "In-game latency and FPS readout on a hotkey (Ctrl+F in League)"
+body: ""
+status: "resolved"
+createdAt: "2026-11-05T12:35:07.871Z"
+witnessEvent: 470
+witnessCommit: "5d920b2c"
+resolvedAt: "2026-11-05T15:35:04.446Z"

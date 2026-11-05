@@ -1,0 +1,9 @@
+id: "prd-mw3j3940fd63"
+kind: "prd"
+title: "Colorblind colour options for team and hero-outline UI colours"
+body: ""
+status: "resolved"
+createdAt: "2026-11-05T12:35:07.872Z"
+witnessEvent: 509
+witnessCommit: "f8afdbab"
+resolvedAt: "2026-11-05T15:35:19.206Z"

@@ -1,0 +1,9 @@
+id: "prd-mw3j39406ece"
+kind: "prd"
+title: "Neutral item stash at the fountain, right-click to send to home stash"
+body: ""
+status: "resolved"
+createdAt: "2026-11-05T12:35:07.872Z"
+witnessEvent: 719
+witnessCommit: "6545bc1d"
+resolvedAt: "2026-11-05T15:52:53.499Z"

@@ -145,4 +145,4 @@ No comments in source: durable facts live here, names carry intent.
 ## Facts found by troubleshooting
 
 - `tools/gm-continue-setup.mjs` was absent, so the gm-continue setup command failed before any row could be worked; DESIGN.md 2026-11-05 records the read-only restoration.
-- A 19-agent gm.search fan-out crashed the gm worker with exit 139 through an unguarded Searcher cache data race; DESIGN.md 2026-11-05 records the root cause and the narrow-verb mitigation.
+- A 19-agent gm.search fan-out crashed the gm worker with exit 139; gm commit 5d9e8358ae631661546035e97c52a6ffb2f50247 serializes SearchVerbs::call and keeps cached index pointers valid, with 22 native tests and 16 parallel bodies passing; DESIGN.md 2026-11-05 records the fix.
