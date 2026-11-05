@@ -1,0 +1,9 @@
+id: "prd-mw3sn6vl201c"
+kind: "prd"
+title: "gm-continue setup prints parked reasons"
+body: "The read-only setup must print each parked row with its parkReason so a drain can see why it is settled. DESIGN.md must stop saying parked rows are defects."
+status: "resolved"
+createdAt: "2026-11-05T17:02:34.641Z"
+witnessEvent: 1919
+witnessCommit: "cd83e74505ce0cb4ee35969f89e95531e2cf57d3"
+resolvedAt: "2026-11-05T17:03:55.729Z"
