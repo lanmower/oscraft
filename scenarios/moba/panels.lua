@@ -1181,9 +1181,16 @@ local inventory_cache = {}
 local function inventory_tree_cached()
   local hero = hero_of(LOCAL)
   local gen = hero ~= nil and game.unit_item_gen(hero) or nil
-  if gen ~= nil and inventory_cache.hero == hero and inventory_cache.gen == gen then return inventory_cache.tree end
+  local key = table.concat({
+    tostring(gen),
+    tostring(hero),
+    tostring(hero ~= nil and store.in_reach(hero) or false),
+    tostring(hero ~= nil and unit_alive(hero) or false),
+    tostring(SELL_ARMED),
+  }, ":")
+  if gen ~= nil and inventory_cache.key == key then return inventory_cache.tree end
   local tree = inventory_tree()
-  inventory_cache = { hero = hero, gen = gen, tree = tree }
+  inventory_cache = { key = key, tree = tree }
   return tree
 end
 
