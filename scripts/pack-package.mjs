@@ -71,7 +71,8 @@ out.data = manifest.data.map((rel) => place(rel, "external"));
 out.mods = manifest.mods.map((rel) => place(rel, "external"));
 out.fixtures = (manifest.fixtures ?? []).map((rel) => place(rel, "external"));
 out.image = place(manifest.image, "external");
-out.tables = [];
+out.tables = (manifest.tables ?? []).map((rel) => place(rel, "external"));
+out.modules = Object.fromEntries(Object.entries(manifest.modules ?? {}).map(([stem, rel]) => [stem, place(rel, "external")]));
 if (manifest.assets) {
   const assetRoot = path.resolve(pkgDir, manifest.assets.root ?? ".");
   const assetOut = { ...manifest.assets, root: "assets" };
