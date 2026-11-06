@@ -15,6 +15,7 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 | single-site-layout | Pages and local staging share `scripts/layout-site.sh`; served-hash comparison is still manual. | partly landed, remainder planned |
 | browser-witness-rescope | Browser witnesses need a bounded playwriter run with its own context. | landed: docs/BROWSER_WITNESSES.md and check-browser-witnesses.mjs |
 | local-receipt-hygiene | Receipts are ignored, volatile gm state is untracked, and five stray ignore patterns were deleted. | landed |
+| generated-lua-uncovered | Left uncovered on purpose: `gen-ability-keys` needs an external g688 LNI dir; `gen-ui-fill` and `gen-hero-acronyms` have no `--check`. turn_rates.lua is content-checked (417af5d9). | accepted gap, owner-approved |
 
 ## Landed in this run
 
