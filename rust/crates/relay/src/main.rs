@@ -186,11 +186,19 @@ fn on_event(state: &mut State, conn: Conn, ev: &Value) {
     deliver(state, ev);
 }
 
+fn event_order(a: &Value, b: &Value) -> std::cmp::Ordering {
+    let created_a = a.get("created_at").and_then(Value::as_i64).unwrap_or(0);
+    let created_b = b.get("created_at").and_then(Value::as_i64).unwrap_or(0);
+    let id_a = a.get("id").and_then(Value::as_str).unwrap_or("");
+    let id_b = b.get("id").and_then(Value::as_str).unwrap_or("");
+    created_b.cmp(&created_a).then_with(|| id_a.cmp(id_b))
+}
+
 fn on_req(state: &mut State, conn: Conn, sub_id: String, filters: Vec<Value>) {
     state.subs.push(Sub { conn, id: sub_id.clone(), filters: filters.clone() });
     for f in &filters {
         let mut hits: Vec<&Value> = state.events.values().filter(|ev| matches(ev, f)).collect();
-        hits.sort_by_key(|ev| std::cmp::Reverse(ev.get("created_at").and_then(Value::as_i64).unwrap_or(0)));
+        hits.sort_by(|a, b| event_order(*a, *b));
         if let Some(limit) = f.get("limit").and_then(Value::as_u64) {
             hits.truncate(limit as usize);
         }
@@ -283,5 +291,34 @@ fn main() {
         next += 1;
         let (conn, state) = (next, Arc::clone(&state));
         thread::spawn(move || handle(stream, conn, state));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn event(id: &str, created: i64) -> Value {
+        json!({ "id": id, "kind": 1, "created_at": created })
+    }
+
+    #[test]
+    fn equal_timestamps_sort_by_id() {
+        let events = vec![event("c", 100), event("a", 100), event("b", 100)];
+        for order in [vec![0, 1, 2], vec![2, 1, 0], vec![1, 0, 2]] {
+            let mut hits: Vec<&Value> = order.iter().map(|&i| &events[i]).collect();
+            hits.sort_by(|a, b| event_order(*a, *b));
+            let ids: Vec<&str> = hits.iter().map(|e| e.get("id").and_then(Value::as_str).unwrap()).collect();
+            assert_eq!(ids, vec!["a", "b", "c"], "a tie is independent of insertion order");
+        }
+    }
+
+    #[test]
+    fn a_newer_timestamp_wins_over_the_id() {
+        let events = vec![event("z", 101), event("a", 100)];
+        let mut hits: Vec<&Value> = events.iter().collect();
+        hits.sort_by(|a, b| event_order(*a, *b));
+        let ids: Vec<&str> = hits.iter().map(|e| e.get("id").and_then(Value::as_str).unwrap()).collect();
+        assert_eq!(ids, vec!["z", "a"], "created_at still dominates");
     }
 }

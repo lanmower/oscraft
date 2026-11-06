@@ -20,7 +20,7 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 
 | change | witness |
 | --- | --- |
-| `scripts/check-all.mjs`: one local validation entry point | `RESULT gates=42 ok=42 failed=0 drift=0 skipped=5 strict=false`; `--strict` exits 1 |
+| `scripts/check-all.mjs`: one local validation entry point | `RESULT gates=44 ok=44 failed=0 drift=0 skipped=5 strict=false`; `--strict` exits 1 |
 | `scripts/check-doc-claims.mjs`: the retired-CI and stale-API claims cannot come back | `doc claims ok 17/17` |
 | `scripts/check-staged-secrets.mjs`: pure matcher, self-test on every run, git errors fail the gate | `secret patterns ok 5/5`, `selftest=0` |
 | `scripts/check-hero-models.mjs`: 127 heroes all have a model, with a negative fixture | `hero models ok: 127 heroes, all with a model`, `hero models negative fixture caught` |
@@ -96,8 +96,8 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 | `rust-sim-item-generation-global` | medium | Make item_generation_total per-Sim instead of a process-wide atomic | landed: Sim field, existing tests pass |
 | `rust-sim-replay-format-untested` | low | Add replay format-3 parse/render round-trip tests to the only format code with no tests | landed: replay/tests/format_three.rs, 2 tests |
 | `rust-sim-state-version-contract` | medium | Pin STATE_VERSION with a full-plane save/load contract test | landed: sim/tests/state_version_contract.rs, 1 test |
-| `rust-sim-wasip3-command-wit-parity` | low | Replace the hand-synced wasip3 COMMANDS and WIT contract with a checked parity script | planned |
-| `rust-sim-relay-tie-order` | low | Give relay REQ responses a total order when created_at ties | planned |
+| `rust-sim-wasip3-command-wit-parity` | low | Replace the hand-synced wasip3 COMMANDS and WIT contract with a checked parity script | landed: check-wasip3-parity.mjs gates 20 exports vs 20 commands |
+| `rust-sim-relay-tie-order` | low | Give relay REQ responses a total order when created_at ties | landed: event_order created_at+id, 2 Rust tests |
 
 ### Client JS
 
