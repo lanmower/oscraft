@@ -11,6 +11,7 @@ const GENERATED = [
 ];
 const CHECKABLE = [
   "gen-ability-fx.mjs", "gen-buff-fx.mjs", "gen-hero-sides.mjs", "gen-shops-688g.mjs", "gen-trees-688g.mjs",
+  "gen-turn-rates.mjs",
 ];
 for (const name of GENERATED) {
   const head = readFileSync(join(moba, name), "utf8").split("\n")[0];
