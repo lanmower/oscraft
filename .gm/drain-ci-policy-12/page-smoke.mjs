@@ -1,12 +1,4 @@
 #!/usr/bin/env node
-// Headless smoke of the built page, the browser step of ci.yml. It serves the site the Pages build produces under a
-// name that is not localhost, as the live page is served, so the dev hot reload (hmr.js) stays off as it is on the
-// live page. It checks that the lobby mounts (#ui-modal has content), that no page response is 4xx or 5xx (each one is
-// named by its URL), that the page raises no uncaught error and no console error, and that the hero icons the lobby
-// requests load. A failed connection to an external relay or STUN server is the network, not the page, and
-// /favicon.ico is not part of the page, so neither is counted. Exits 1 with one line per problem.
-//
-// Usage: node scripts/perf/page-smoke.mjs <site-dir> [--timeout-ms=90000]
 
 import { chromium } from "playwright";
 import fs from "node:fs";

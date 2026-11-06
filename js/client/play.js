@@ -1700,9 +1700,6 @@ function openPackEditor() {
   packEditor.open();
 }
 
-// A saved change goes two ways. Its files go to the peers as PACK_FILE frames; then the host's own sim takes the change at a
-// swap tick, the same tick the peers take it: a Lua file reloads the mod set, a data file or the manifest swaps the map
-// image (both through the image swap: SWAP, the readiness gate and applyDueSwap). An asset applies at once.
 function publishPackChanges(changes) {
   if (!hosting) throw new Error("only the host may save the pack");
   for (const change of changes) for (const frame of changeFrames(change, packBlobs)) session.broadcast(encodeFrame(frame));
