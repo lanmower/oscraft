@@ -14,6 +14,7 @@ const GATE_CHECKS = [
   "scripts/check-ability-effect-mapping.mjs",
   "scripts/check-doc-claims.mjs",
   "js/client/lobby-link-check.mjs",
+  "js/client/lobby-replay-check.mjs",
   "scripts/check-acronyms.mjs",
   "scripts/check-modulepreload.mjs",
   "scripts/check-pack-allow-list.mjs",

@@ -9,3 +9,8 @@ export function lobbyInputRoute({ netState, hosting, peers, settled, name, call,
 export function heldCallsAfterSettle({ peers }) {
   return peers > 0 ? "keep" : "clear";
 }
+
+export function replayHeldCalls(held, { hasHost }) {
+  if (!hasHost) return [];
+  return held.splice(0);
+}

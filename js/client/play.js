@@ -40,7 +40,7 @@ import { packCameraRules } from "./camera_rules.js";
 import { installGameFocusGuard } from "./game_focus.js";
 import { createZoomKeys } from "./zoom_keys.js";
 import { createDraftClock } from "./draft_clock.js";
-import { LOBBY_LINK_WAIT_MS, lobbyInputRoute, heldCallsAfterSettle } from "./lobby_link.js";
+import { LOBBY_LINK_WAIT_MS, lobbyInputRoute, heldCallsAfterSettle, replayHeldCalls } from "./lobby_link.js";
 import { createGuiFlow } from "./gui_flow.js";
 import { createPodium, podiumScene, podiumCameraStep, podiumPlinthTransforms } from "./podium.js";
 import { saveReplayFile } from "./replay_save.js";
@@ -318,8 +318,9 @@ function applyLocalInput(name, args) {
 }
 
 function flushHeldLobbyCalls() {
-  if (hostKey === null || !peers.has(hostKey)) return;
-  for (const call of heldLobbyCalls.splice(0)) sendTo(hostKey, encodeFrame({ type: FRAME.ACTION, name: call.name, body: JSON.stringify(call.args) }));
+  for (const call of replayHeldCalls(heldLobbyCalls, { hasHost: hostKey !== null && peers.has(hostKey) })) {
+    sendTo(hostKey, encodeFrame({ type: FRAME.ACTION, name: call.name, body: JSON.stringify(call.args) }));
+  }
 }
 
 function settleLobbyLink() {
@@ -3637,6 +3638,7 @@ installDebugApi({
 });
 if (params.get("ci") === "1") {
     window.__ciPeers = () => peers.size;
+  window.__ciHeldLobbyCalls = () => heldLobbyCalls.length;
   window.__ciFrames = [];
   window.__ciUnits = () => currentUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player, type: u.type, modeled: !!unitMeshes[u.type] }));
   window.__ciRoster = () => simUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player, type: u.type }));
