@@ -3,6 +3,7 @@ local TILE = 65536
 local X, Y = 64 * TILE, 64 * TILE
 
 game.unit("knight", { health = 100, speed = 1500, weapon = { damage = 10, range = 1000, period = 20 } })
+game.unit("barracks", { health = 500, radius = 800, filter = 1 })
 game.unit("champion", { health = 300, speed = 1500, cost = 200 })
 
 game.upgrade("forged_armor", {

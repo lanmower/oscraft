@@ -1,4 +1,7 @@
 
+local Bot = { DECIDE_EVERY = 2, stats = { walks = 0, retreats = 0, attacks = 0, blinks = 0, helps = 0, heals = 0 } }
+function Bot.new(slot, seat) return { slot = slot, seat = seat, hero = nil, held = false } end
+function Bot.think(bot, units, ticks) bot.held = false end
 local BOT_SLOTS = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }
 
 local bots = {}

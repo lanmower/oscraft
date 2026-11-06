@@ -20,7 +20,7 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 
 | change | witness |
 | --- | --- |
-| `scripts/check-all.mjs`: one local validation entry point | `RESULT gates=50 ok=50 failed=0 drift=0 skipped=5 strict=false`; `--strict` exits 1 |
+| `scripts/check-all.mjs`: one local validation entry point | `RESULT gates=54 ok=54 failed=0 drift=0 skipped=5 strict=false`; `--strict` exits 1 |
 | `scripts/check-doc-claims.mjs`: the retired-CI and stale-API claims cannot come back | `doc claims ok 17/17` |
 | `scripts/check-staged-secrets.mjs`: pure matcher, self-test on every run, git errors fail the gate | `secret patterns ok 5/5`, `selftest=0` |
 | `scripts/check-hero-models.mjs`: 127 heroes all have a model, with a negative fixture | `hero models ok: 127 heroes, all with a model`, `hero models negative fixture caught` |
@@ -127,10 +127,10 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 | --- | --- | --- | --- |
 | `lua-pack-image-order-divergence` | high | manifest.data order and build_image sorted order produce different moba images | landed: `generate` uses manifest.data; images now hash identically |
 | `lua-pack-archive-module-omission` | high | pack-package.mjs omits 98 module files and all 10 tables from the tar.gz | landed: audit missing 108 -> 0; `check-pack-archive.mjs` gates it |
-| `lua-pack-hook-order-unpinned` | medium | init.lua death-hook order is documented but has no test | planned, needs a pack build witness |
-| `lua-pack-generated-lua-ungated` | medium | Three generated Lua tables have no banner or --check and CI runs no generator check | planned, needs a pack build witness |
-| `lua-pack-ci-lua-bundle-unused` | low | Pages writes a package.preload Lua bundle that nothing loads and omits subdir modules | planned, needs a pack build witness |
-| `lua-pack-example-mods-unloadable` | medium | Two of 15 example mods fail mod_check and no test exercises mods/ | planned, needs a pack build witness |
+| `lua-pack-hook-order-unpinned` | medium | init.lua death-hook order is documented but has no test | landed: check-hook-order.mjs gates 61 requires |
+| `lua-pack-generated-lua-ungated` | medium | Three generated Lua tables have no banner or --check and CI runs no generator check | landed: 9 banners, 16 generator gates; ability_text_688g.lua external |
+| `lua-pack-ci-lua-bundle-unused` | low | Pages writes a package.preload Lua bundle that nothing loads and omits subdir modules | landed: bundle-lua.mjs walks manifest.modules, 99 stems preloaded; output still unused |
+| `lua-pack-example-mods-unloadable` | medium | Two of 15 example mods fail mod_check and no test exercises mods/ | landed: both fixed, check-example-mods.mjs runs all 15 |
 
 ## Verification
 

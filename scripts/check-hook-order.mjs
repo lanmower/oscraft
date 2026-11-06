@@ -1,0 +1,18 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const init = readFileSync(resolve(root, "scenarios/moba/init.lua"), "utf8");
+const manifest = JSON.parse(readFileSync(resolve(root, "scenarios/moba/manifest.json"), "utf8"));
+const requires = [...init.matchAll(/^require\("([^"]+)"\)/gm)].map((m) => m[1]);
+const modules = new Set(Object.keys(manifest.modules ?? {}));
+if (requires.length < 60) throw new Error("init.lua lost its hook order");
+if (requires[0] !== "aegis") throw new Error("aegis must load first");
+if (requires.at(-1) !== "unit_rules") throw new Error("unit_rules must load last");
+const unknown = requires.filter((name) => !modules.has(name));
+if (unknown.length) throw new Error("init.lua requires unlisted modules: " + unknown.join(", "));
+const duplicates = requires.filter((name, i) => requires.indexOf(name) !== i);
+if (duplicates.length) throw new Error("init.lua requires a module twice: " + duplicates.join(", "));
+const before = (a, b) => requires.indexOf(a) < requires.indexOf(b);
+if (!before("heroes", "kill_gold") || !before("kill_gold", "unit_rules")) throw new Error("death hooks are out of order");
+console.log("hook order ok " + requires.length + " requires, aegis first, unit_rules last");
