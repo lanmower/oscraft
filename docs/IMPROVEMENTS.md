@@ -97,7 +97,7 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 | `rust-sim-replay-format-untested` | low | Add replay format-3 parse/render round-trip tests to the only format code with no tests | landed: replay/tests/format_three.rs, 2 tests |
 | `rust-sim-state-version-contract` | medium | Pin STATE_VERSION with a full-plane save/load contract test | landed: sim/tests/state_version_contract.rs, 1 test |
 | `rust-sim-wasip3-command-wit-parity` | low | Replace the hand-synced wasip3 COMMANDS and WIT contract with a checked parity script | landed: check-wasip3-parity.mjs gates 20 exports vs 20 commands |
-| `rust-sim-relay-tie-order` | low | Give relay REQ responses a total order when created_at ties | landed: event_order created_at+id, 2 Rust tests |
+| `rust-sim-relay-tie-order` | low | Give relay REQ responses a total order when created_at ties | landed: REQ responses total-ordered on created_at+id; live subscription EVENT delivery stays arrival-ordered by design |
 
 ### Client JS
 
