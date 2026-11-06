@@ -32,7 +32,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: rust/crates/web/site/pkg
-          key: page-pkg-v2-${{ runner.os }}-${{ hashFiles('rust/Cargo.toml', 'rust/Cargo.lock', 'rust/rust-toolchain.toml', 'rust/crates/**', '.github/workflows/pages.yml') }}
+          key: page-pkg-v2-${{ runner.os }}-${{ hashFiles('rust/Cargo.toml', 'rust/Cargo.lock', 'rust/rust-toolchain.toml', 'rust/crates/**', '.github/workflows/pages.yml', 'js/client/vendor/**') }}
 
       - id: maps
         uses: actions/cache@v4
@@ -40,7 +40,7 @@ jobs:
           path: |
             scenarios/moba/moba.osdt
             scenarios/duel-routes/duel-routes.osdt
-          key: page-maps-v2-${{ runner.os }}-${{ hashFiles('rust/Cargo.toml', 'rust/Cargo.lock', 'rust/rust-toolchain.toml', 'rust/crates/**', 'scenarios/**') }}
+          key: page-maps-v2-${{ runner.os }}-${{ hashFiles('rust/Cargo.toml', 'rust/Cargo.lock', 'rust/rust-toolchain.toml', 'rust/crates/**', 'scenarios/**', 'js/client/vendor/**') }}
 
       - name: Install the pinned Rust toolchain
         if: steps.pkg.outputs.cache-hit != 'true' || steps.maps.outputs.cache-hit != 'true'
@@ -109,6 +109,12 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/bundle-lua.mjs scenarios/moba _site/scenarios/moba/bundle/moba.modules.lua
+
+      - name: Check the bundled site and stamp its content hash
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          node scripts/check-site-bundle.mjs _site --stamp
 
       - uses: actions/upload-pages-artifact@v3
         with:

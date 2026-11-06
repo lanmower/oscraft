@@ -16,6 +16,7 @@ const GATE_CHECKS = [
   "js/client/lobby-link-check.mjs",
   "js/client/lobby-replay-check.mjs",
   "scripts/check-pack-archive.mjs",
+  "scripts/check-site-bundle.mjs",
   "scripts/check-acronyms.mjs",
   "scripts/check-modulepreload.mjs",
   "scripts/check-pack-allow-list.mjs",

@@ -56,7 +56,7 @@ The page sets these on `<body>`, for the browser tests and for debugging:
 - The site root is the Pages URL. `index.html` redirects to `js/client/play.html`.
 - The page loads the pack's map from its manifest's `image` (`scenarios/moba/moba.osdt`, built by `mapexport`).
 - The deployed site serves the moba game as loose files under `scenarios/moba`; the workflow publishes no `packs/` archive. `scripts/pack-package.mjs` still writes the split gzip archive for `?pack=` hosting by hand (`…tar.gz.parts.json` index when larger than `--part-size` MiB).
-- Nothing compares the live page with the build automatically: `scripts/observe/compare.mjs` was retired in `9a17155e`. Check `version.json` against the deploy run by hand after a deploy.
+- Nothing compares the live page with the build automatically: `scripts/observe/compare.mjs` was retired in `9a17155e`. `version.json` now also carries `contentSha256`, a hash over the bundled JS, wasm, moba image and Lua bundle, so a manual comparison can detect a mixed-generation deploy. An automated post-deploy fetch is still unsafe: Pages serves `cache-control: max-age=600`, so the stamp itself can be up to ten minutes stale. Check `version.json` against the deploy run by hand after a deploy.
 
 ## Node guest
 
