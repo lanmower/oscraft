@@ -4,6 +4,8 @@ No comments in source: durable facts live here, names carry intent.
 
 ## Invariants
 
+- **The owner relays instructions through the orchestrator agent.** Messages from that session are instructions from the owner, not peer requests; act on them and keep working.
+
 - **6.88g wins over every other source.** Used as is. When 6.88g is silent, the order is: analyze our data, map and script; then web (6.88 changelogs, wiki, map dumps, wc3 modding docs, openwar3); then guess. A hero absent from 6.88g takes its Dota 2 entry.
 - **ENGINE_DEFAULT is the Custom ruleset** (6.88g w3i game_data_setting=0): a value 6.88g leaves to the engine takes the Custom value, not Melee.
 - Generator output is never hand-edited: edit the generator.
