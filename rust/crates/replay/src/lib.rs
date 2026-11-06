@@ -256,6 +256,16 @@ pub const FORMAT_HEADER: &str = "oscraft-replay 3";
 const RETIRED_FLAG: u8 = 0;
 const FORMAT_HEADER_V1: &str = "oscraft-replay 1";
 const FORMAT_HEADER_V2: &str = "oscraft-replay 2";
+const ACCEPTED_FORMAT_HEADERS: &[&str] = &[FORMAT_HEADER, FORMAT_HEADER_V2, FORMAT_HEADER_V1];
+const RETIRED_HEADER_LINES: &[&str] = &["payout_owner", "gold_by_mod"];
+const LEGACY_COMMAND_CODES: &[(&str, &str)] = &[("ah", "au")];
+
+fn normalise_command_code(code: &str) -> &str {
+    LEGACY_COMMAND_CODES
+        .iter()
+        .find(|(legacy, _)| *legacy == code)
+        .map_or(code, |(_, canonical)| canonical)
+}
 pub const CHECK_EVERY: u32 = 64;
 pub const MAX_KEPT: usize = 4_000_000;
 
@@ -874,6 +884,7 @@ impl Command {
     }
 
     fn decode(code: &str, it: &mut SplitWhitespace) -> Option<Command> {
+        let code = normalise_command_code(code);
         Some(match code {
             "o" => Command::Order { unit: num(it)?, x: num(it)?, y: num(it)? },
             "h" => Command::Hold { unit: num(it)? },
@@ -924,7 +935,7 @@ impl Command {
             "rm" => Command::Remove { unit: num(it)? },
             "gi" => Command::GiveItem { unit: num(it)?, item: num(it)?, count: num(it)? },
             "ag" => Command::AddGold { player: num(it)?, amount: num(it)? },
-            "au" | "ah" => Command::AddUnitGold { unit: num(it)?, amount: num(it)? },
+            "au" => Command::AddUnitGold { unit: num(it)?, amount: num(it)? },
             "vw" => Command::Victory { player: num(it)? },
             "df" => Command::Defeat { player: num(it)? },
             "ui" => Command::Ui { body: text(it)? },
@@ -1220,7 +1231,7 @@ impl Recording {
         let bad = |line: usize, why: &str| ReplayError::Parse { line, why: why.to_string() };
         let mut lines = text.lines().enumerate().map(|(i, l)| (i + 1, l.trim_end())).filter(|(_, l)| !l.is_empty());
         match lines.next() {
-            Some((_, FORMAT_HEADER)) | Some((_, FORMAT_HEADER_V2)) | Some((_, FORMAT_HEADER_V1)) => {}
+            Some((_, line)) if ACCEPTED_FORMAT_HEADERS.contains(&line) => {}
             Some((n, _)) => return Err(bad(n, "not an oscraft replay (first line must be `oscraft-replay 1`, `2` or `3`)")),
             None => return Err(bad(0, "empty replay")),
         }
@@ -1232,7 +1243,7 @@ impl Recording {
         for (n, line) in lines {
             let mut it = line.split_whitespace();
             let first = it.next().unwrap_or_default();
-            let header = matches!(first, "image" | "max_units" | "init" | "payout_owner" | "gold_by_mod" | "incomplete");
+            let header = matches!(first, "image" | "max_units" | "init" | "incomplete") || RETIRED_HEADER_LINES.contains(&first);
             if header && segments.len() > 1 {
                 return Err(bad(n, "a header line must come before the segments"));
             }
@@ -1243,7 +1254,7 @@ impl Recording {
             }
             match first {
                 "max_units" => head.max_units = num(&mut it).ok_or_else(|| bad(n, "max_units needs a number"))?,
-                "payout_owner" | "gold_by_mod" => {}
+                name if RETIRED_HEADER_LINES.contains(&name) => {}
                 "init" => {
                     head.init = it.next().and_then(|h| u64::from_str_radix(h, 16).ok()).ok_or_else(|| bad(n, "init needs a hex hash"))?;
                     have_init = true;
@@ -1535,6 +1546,7 @@ mod format_three_tests {
         for code in ALL_CODES {
             assert!(seen.contains(*code), "no command exercised code {code}");
         }
+        assert_eq!(normalise_command_code("ah"), "au", "the legacy alias is named in code");
         let mut alias = "1 42".split_whitespace();
         let legacy = Command::decode("ah", &mut alias).expect("the legacy ah code decodes");
         assert_eq!(legacy.encode(), "au 1 42", "the legacy alias normalises to au");
@@ -1559,6 +1571,57 @@ mod format_three_tests {
         assert_eq!(text, rendered, "segments, checks and every command survive render/parse/render");
         Recording::parse(&rendered).expect("the rendered text parses again");
         println!("replay format-3 lines covered={}", text.lines().count());
+    }
+
+    fn test_sim() -> Sim {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba");
+        let image = osdt_data::generate(&dir).expect("compile the moba scenario");
+        sim::load(&image, 4096).expect("load the moba scenario")
+    }
+
+    fn canonical_text() -> String {
+        format!(
+            "{FORMAT_HEADER}\nimage moba.osdt\nmax_units 4096\ninit {:016x}\nincomplete 8\nchk 0 {:016x}\nsegment 8 4096 {:016x} 0 moba.osdt\n8 au 1 42\n",
+            1u64, 1u64, 2u64,
+        )
+    }
+
+    fn legacy_text(header: &str, retired: bool, alias: bool) -> String {
+        let mut out = format!("{header}\nimage moba.osdt\nmax_units 4096\ninit {:016x}\n", 1u64);
+        if retired {
+            out.push_str("payout_owner 1\ngold_by_mod 2\n");
+        }
+        out.push_str(&format!("incomplete 8\nchk 0 {:016x}\nsegment 8 4096 {:016x} 0 moba.osdt\n", 1u64, 2u64));
+        out.push_str(if alias { "8 ah 1 42\n" } else { "8 au 1 42\n" });
+        out
+    }
+
+    fn assert_normalised(text: &str, canonical: &str) {
+        let sim = test_sim();
+        let mut parsed = Recording::parse(text).expect("a legacy replay parses");
+        let rendered = parsed.render(&sim);
+        assert_eq!(rendered, canonical, "legacy forms normalise to canonical format-3 bytes");
+        let mut again = Recording::parse(&rendered).expect("canonical output parses");
+        assert_eq!(again.render(&sim), rendered, "parse/render/parse stays stable");
+        let mut direct = Recording::parse(canonical).expect("canonical text parses");
+        assert_eq!(direct.render(&sim), canonical, "canonical output is byte-identical");
+    }
+
+    #[test]
+    fn legacy_command_alias_normalises() {
+        assert_normalised(&legacy_text(FORMAT_HEADER, false, true), &canonical_text());
+    }
+
+    #[test]
+    fn retired_header_lines_normalise() {
+        assert_normalised(&legacy_text(FORMAT_HEADER, true, false), &canonical_text());
+    }
+
+    #[test]
+    fn legacy_format_headers_normalise() {
+        for header in [FORMAT_HEADER_V1, FORMAT_HEADER_V2] {
+            assert_normalised(&legacy_text(header, true, true), &canonical_text());
+        }
     }
 }
 
