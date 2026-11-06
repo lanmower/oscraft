@@ -831,7 +831,7 @@ impl Sim {
         next.rebucket();
         next.resync_unit_mana();
         next.item_gen = self.item_gen.iter().map(|g| g.wrapping_add(1)).collect();
-        crate::inventory::bump_item_generation_total();
+        next.item_generation_total = self.item_generation_total.wrapping_add(1);
         *self = next;
         Ok(())
     }
