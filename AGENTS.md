@@ -18,7 +18,6 @@ No comments in source: durable facts live here, names carry intent.
 - Dev loop: localhost loads `hmr.js` (~80 fetches per module), so local request counts are not page footprint. Disable the CDP network cache before load.
 - Scripts take root from `import.meta.url` or their own dir, never a machine path; Python runs as `python3 -I`. Stage archives use colon-free names (GNU tar on Windows reads `D:` as a host).
 - `node scripts/check-all.mjs` is the full local gate; its entry list lives in that file, not here.
-- `.gm/drain-ci-policy-12/page-smoke.mjs <site-dir> [--timeout-ms=90000]` is the headless page smoke (playwright). It serves the site under a name that is not localhost so hmr.js stays off, and checks that the lobby mounts (#ui-modal has content), no local 4xx or 5xx (each named by URL), no uncaught or console error, and that lobby hero icons load. favicon.ico and external relay or STUN failures are not counted. It exits 1 with one line per problem.
 - `scripts/check-example-mods.mjs` needs `rust/target/debug/mod_check`; build it first with `cargo build -p mod-host --bin mod_check` (the gate fails with that command when the binary is absent).
 
 ## Lua mod host and sim
