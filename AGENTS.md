@@ -17,6 +17,7 @@ No comments in source: durable facts live here, names carry intent.
 - Freshness: nothing compares the live page with the build; check by hand after a deploy. Pages sends `cache-control: max-age=600` (platform header; the repo sets none): a browser may show an earlier build up to 10 min after deploy.
 - Dev loop: localhost loads `hmr.js` (~80 fetches per module), so local request counts are not page footprint. Disable the CDP network cache before load.
 - Scripts take root from `import.meta.url` or their own dir, never a machine path; Python runs as `python3 -I`. Stage archives use colon-free names (GNU tar on Windows reads `D:` as a host).
+- `node scripts/check-all.mjs` is the full local gate; its entry list lives in that file, not here.
 - `scripts/check-example-mods.mjs` needs `rust/target/debug/mod_check`; build it first with `cargo build -p mod-host --bin mod_check` (the gate fails with that command when the binary is absent).
 
 ## Lua mod host and sim
