@@ -45,6 +45,7 @@ game.trigger("on_spawned", {
   conditions = { function(unit) return game.alive(unit) end },
   action = function(unit)
     local p = unit_player(unit)
+    if p < 0 or p > 16 then return end
     for _, g in ipairs(GROUPS) do
       for level = 1, g.levels do
         local name = g.name .. "_" .. level

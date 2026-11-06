@@ -33,6 +33,7 @@ const GATE_CHECKS = [
   "scripts/check-perf-probes.mjs",
   "scripts/check-browser-witnesses.mjs",
   "scripts/check-naming-doc.mjs",
+  "scripts/check-generated-lua-mutation.mjs",
   "scripts/check-acronyms.mjs",
   "scripts/check-modulepreload.mjs",
   "scripts/check-pack-allow-list.mjs",

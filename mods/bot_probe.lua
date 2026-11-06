@@ -1,6 +1,5 @@
 local probe_stage = 0
 local probe_creep = nil
-local base_on_tick = on_tick
 local function hero_of(slot)
   for _, u in ipairs(game.units(slot)) do
     if game.unit_kind(u) == "hero" then return u end
@@ -36,5 +35,4 @@ function on_tick(state)
     game.cmd_damage(enemy, hero, (hp * 9 // 10) * 65536)
     probe_stage = 3
   end
-  base_on_tick(state)
 end
