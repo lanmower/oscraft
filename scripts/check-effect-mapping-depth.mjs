@@ -1,0 +1,15 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const mapText = readFileSync(resolve(root, "scenarios/moba/abilities_688g_label_effects.tsv"), "utf8");
+const batch = readFileSync(resolve(root, "scenarios/moba/abilities_688g_b01.osd"), "utf8");
+const rules = readFileSync(resolve(root, "scenarios/moba/abilities_ruleset.osd"), "utf8");
+const damageRows = mapText.trim().split("\n").slice(1).map((line) => line.split("\t")).filter((c) => c[1] === "damage" && c[2] !== "UNVERIFIED");
+if (damageRows.length < 7) throw new Error("only " + damageRows.length + " damage labels are bound");
+if (!batch.includes("effect(") || !batch.includes("damage")) throw new Error("the batch lost its damage effect");
+if (!rules.includes("execute")) throw new Error("the rules lost execute");
+const mutant = mapText.trim().split("\n").filter((line, i) => i === 0 || line.split("\t")[1] !== "damage").slice(0, 2).join("\n");
+const mutantDamage = mutant.split("\n").slice(1).filter((line) => line.split("\t")[1] === "damage").length;
+if (mutantDamage >= 7) throw new Error("the mutation case did not remove the damage labels");
+console.log("effect mapping depth ok " + damageRows.length + " labels, mutation case removes them");

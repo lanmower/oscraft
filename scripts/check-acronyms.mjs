@@ -10,10 +10,14 @@ const acronyms = [...table.values()];
 const invalid = acronyms.filter((value) => !/^[A-Z]{1,3}$/.test(value));
 const duplicates = [...new Set(acronyms.filter((value, index) => acronyms.indexOf(value) !== index))];
 const overrideMismatch = Object.entries(overrides).filter(([name, value]) => table.get(name) !== value).map(([name]) => name);
+const roster = fs.readFileSync(path.join(moba, "units_heroes.osd"), "utf8");
+const heroCount = [...roster.matchAll(/^unit\("/gm)].length;
+const rosterGap = heroCount !== acronyms.length ? [`roster coverage: ${acronyms.length} acronyms for ${heroCount} heroes`] : [];
 const problems = [
   ...invalid.map((value) => `not 1-3 letters: ${value}`),
   ...duplicates.map((value) => `duplicate acronym: ${value}`),
   ...overrideMismatch.map((name) => `override not in table: ${name}`),
+  ...rosterGap,
 ];
 if (problems.length > 0) {
   console.error(problems.join("\n"));

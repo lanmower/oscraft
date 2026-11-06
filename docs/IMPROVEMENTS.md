@@ -13,14 +13,14 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 | generator-check-gates | CI gates were deliberately retired in `9a17155e`; a local runner replaces them. | landed as `scripts/check-all.mjs` |
 | client-seam-extraction | No broad rewrite of `play.js`; split only behind a named test. | deferred, see client-js group |
 | single-site-layout | Pages and local staging share `scripts/layout-site.sh`; served-hash comparison is still manual. | partly landed, remainder planned |
-| browser-witness-rescope | Browser witnesses need a fresh dev-origin row and a bounded playwriter run with its own context. | deferred |
+| browser-witness-rescope | Browser witnesses need a bounded playwriter run with its own context. | landed: docs/BROWSER_WITNESSES.md and check-browser-witnesses.mjs |
 | local-receipt-hygiene | Receipts are ignored, volatile gm state is untracked, and five stray ignore patterns were deleted. | landed |
 
 ## Landed in this run
 
 | change | witness |
 | --- | --- |
-| `scripts/check-all.mjs`: one local validation entry point | `RESULT gates=54 ok=54 failed=0 drift=0 skipped=5 strict=false`; `--strict` exits 1 |
+| `scripts/check-all.mjs`: one local validation entry point | `RESULT gates=58 ok=58 failed=0 drift=0 skipped=5 strict=false`; `--strict` exits 1 |
 | `scripts/check-doc-claims.mjs`: the retired-CI and stale-API claims cannot come back | `doc claims ok 17/17` |
 | `scripts/check-staged-secrets.mjs`: pure matcher, self-test on every run, git errors fail the gate | `secret patterns ok 5/5`, `selftest=0` |
 | `scripts/check-hero-models.mjs`: 127 heroes all have a model, with a negative fixture | `hero models ok: 127 heroes, all with a model`, `hero models negative fixture caught` |
@@ -41,7 +41,7 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 | `docs-hygiene-retired-ci-gate-docs` | medium | Twelve tracked docs still describe the CI gate suite that commit 9a17155e retired | landed |
 | `docs-hygiene-build-deploy-provenance` | medium | README, HOST, ARCHITECTURE and QUICKSTART disagree on wasm, maps, bundling, the dev URL and a live-build check that does not exist | landed |
 | `docs-hygiene-stale-hook-and-behaviour-notes` | low | Four finished-work claims and the hand-copied HOOK_KEYS list contradict the current code | landed |
-| `docs-hygiene-naming-spec-retired` | low | docs/NAMING.md is an unapplied rename spec that declares its own deletion | planned |
+| `docs-hygiene-naming-spec-retired` | low | docs/NAMING.md is an unapplied rename spec that declares its own deletion | landed: retired with git rm; check-naming-doc.mjs |
 | `docs-hygiene-agents-budget-duplicates` | low | AGENTS.md is at 83% of its 30 KB cap and carries four troubleshooting receipts already in DESIGN.md | landed |
 | `docs-hygiene-gitignore-tracked-state` | medium | The applied .gitignore receipt hygiene does not cover the paths that keep git status dirty, and ignore rules cannot clean tracked runtime files | landed |
 
@@ -117,9 +117,9 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 | `scripts-check-runner-wiring-and-external-skip` | medium | The new check runner is untracked, unwired, and permanently skips editor-check | landed |
 | `scripts-check-doc-command-drift` | low | Stale gate commands need a documentation path and command check | landed |
 | `scripts-check-secret-self-test` | high | The secret scanner is a gate that can pass without scanning a line | landed |
-| `scripts-check-effect-mapping-depth` | medium | Ability label mapping passes after six of seven damage effects disappear | planned |
-| `scripts-check-perf-server-not-a-check` | medium | An ignored perf server is named as a check but asserts nothing | planned |
-| `scripts-check-acronym-roster-coverage` | low | Acronym check validates values but never asserts roster coverage | planned |
+| `scripts-check-effect-mapping-depth` | medium | Ability label mapping passes after six of seven damage effects disappear | landed: 7-label floor and mutation case |
+| `scripts-check-perf-server-not-a-check` | medium | An ignored perf server is named as a check but asserts nothing | landed: renamed to asset-packs-server.mjs, check-perf-probes.mjs |
+| `scripts-check-acronym-roster-coverage` | low | Acronym check validates values but never asserts roster coverage | landed: 127 acronyms for 127 heroes |
 
 ### Lua pack and image build
 

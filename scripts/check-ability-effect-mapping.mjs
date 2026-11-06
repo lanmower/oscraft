@@ -12,7 +12,7 @@ const batch = readFileSync(batchPath, "utf8");
 const rules = readFileSync(rulesPath, "utf8");
 const encoded = batch.match(/ability\("([^"]+)"[^\n]*effect\("damage"[^)]*\)/);
 const execute = /effect\("execute"/.test(rules);
-if (!damageLabels.length || !encoded || !execute) {
+if (damageLabels.length < 7 || !encoded || !execute) {
   console.log(`check-ability-effect-mapping: FAIL labels=${damageLabels.length} encoded=${!!encoded} execute=${execute}`);
   process.exitCode = 1;
 } else {

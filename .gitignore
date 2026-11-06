@@ -63,7 +63,7 @@ opencode.jsonc
 /.gm/mutables-log.jsonl
 /.mcp.json.bak-*
 /scripts/assets/__pycache__/
-/scripts/perf/asset-packs-cache-check.mjs
+/scripts/perf/asset-packs-server.mjs
 /scripts/perf/node_modules/
 .playwriter/
 /sources/
