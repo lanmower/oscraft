@@ -20,7 +20,7 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 
 | change | witness |
 | --- | --- |
-| `scripts/check-all.mjs`: one local validation entry point | `RESULT gates=44 ok=44 failed=0 drift=0 skipped=5 strict=false`; `--strict` exits 1 |
+| `scripts/check-all.mjs`: one local validation entry point | `RESULT gates=45 ok=45 failed=0 drift=0 skipped=5 strict=false`; `--strict` exits 1 |
 | `scripts/check-doc-claims.mjs`: the retired-CI and stale-API claims cannot come back | `doc claims ok 17/17` |
 | `scripts/check-staged-secrets.mjs`: pure matcher, self-test on every run, git errors fail the gate | `secret patterns ok 5/5`, `selftest=0` |
 | `scripts/check-hero-models.mjs`: 127 heroes all have a model, with a negative fixture | `hero models ok: 127 heroes, all with a model`, `hero models negative fixture caught` |
@@ -52,9 +52,9 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 | `pages-scout-postdeploy-compare-gate` | medium | Pages deploys with no post-deploy comparison, and the docs claim one exists | deferred with reason: max-age=600 makes an automated fetch unsafe; docs/HOST.md now says to check by hand |
 | `pages-scout-cache-key-omits-vendor` | medium | Cached wasm/maps can come from an older commit while version.json stamps HEAD | landed: both keys hash js/client/vendor/** |
 | `pages-scout-post-bundle-artifacts-unchecked` | low | Bundling rewrites _site after its only file check, and chunk/Lua outputs are never asserted | landed: check-site-bundle.mjs runs after both bundle steps |
-| `pages-scout-observer-preload-blind-spot` | low | Live probe skips 24 of 63 modulepreload URLs, exactly the vendor files layout prunes | planned, deploy path |
+| `pages-scout-observer-preload-blind-spot` | low | Live probe skips 24 of 63 modulepreload URLs, exactly the vendor files layout prunes | refuted for HEAD (64/64 present); regression gate in check-site-bundle.mjs |
 | `pages-scout-version-stamp-lacks-content-hash` | medium | version.json is a claim string, not a content hash; a mixed-generation deploy passes the probe | landed: contentSha256 stamped over the built artifacts |
-| `pages-scout-release-duplicates-site-layout` | medium | Release archive re-stages the site with a third, unrelated build identity | planned, deploy path |
+| `pages-scout-release-duplicates-site-layout` | medium | Release archive re-stages the site with a third, unrelated build identity | landed: build.sh delegates to layout-site.sh |
 
 ### gm MCP tooling
 

@@ -19,6 +19,7 @@ const GATE_CHECKS = [
   "scripts/check-site-bundle.mjs",
   "scripts/check-wasip3-parity.mjs",
   "scripts/check-relay-tie-order.mjs",
+  "scripts/check-release-layout.mjs",
   "scripts/check-acronyms.mjs",
   "scripts/check-modulepreload.mjs",
   "scripts/check-pack-allow-list.mjs",
