@@ -20,11 +20,11 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 
 | change | witness |
 | --- | --- |
-| `scripts/check-all.mjs`: one local validation entry point | `RESULT gates=40 ok=40 failed=0 drift=3 skipped=5 strict=false`; `--strict` exits 1 |
+| `scripts/check-all.mjs`: one local validation entry point | `RESULT gates=42 ok=42 failed=0 drift=0 skipped=5 strict=false`; `--strict` exits 1 |
 | `scripts/check-doc-claims.mjs`: the retired-CI and stale-API claims cannot come back | `doc claims ok 17/17` |
 | `scripts/check-staged-secrets.mjs`: pure matcher, self-test on every run, git errors fail the gate | `secret patterns ok 5/5`, `selftest=0` |
 | `scripts/check-hero-models.mjs`: 127 heroes all have a model, with a negative fixture | `hero models ok: 127 heroes, all with a model`, `hero models negative fixture caught` |
-| Three drifted generated outputs classified instead of regenerated | temp mirror diff_lines 38 / 96 / 15; `manifest.json` loads `turn_rates.lua` and `ability_fx.lua` |
+| Three drifted generated outputs reconciled by owner decision | hy3d patch sha 18eead38... applies cleanly; "RESULT gates=42 ok=42 failed=0 drift=0" |
 | Twelve docs corrected for retired CI, gate, server and hook claims | single-term `gm.grep` sweeps now show only historical mentions |
 | `docs/PACKAGING.md` rewritten against `scripts/package/build.sh` | `rust/crates/server` and `rust/gate` absent; workspace members are `crates/*` |
 | Receipt and gm-state hygiene | `git rm --cached` staged four deletions; `sources/` and `.gm/drain-*.txt` ignored |
@@ -82,7 +82,7 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 | id | risk | finding | status |
 | --- | --- | --- | --- |
 | `data-generators-offline-gate` | medium | Replace the generic generator-check idea with one manifest-driven offline gate | landed |
-| `data-generators-current-drift` | high | Regenerate three shipped outputs that already fail their own checks | classified, needs decision |
+| `data-generators-current-drift` | high | Regenerate three shipped outputs that already fail their own checks | landed: owner approved hy3d's patch; all three --check now pass |
 | `data-generators-external-input-contract` | medium | Pin external hy3d inputs instead of relying on a machine path or local checkout | planned |
 | `data-generators-temp-copy-no-check` | medium | Compare no-check generators through a temp copy rather than adding 25 ad hoc flags | planned |
 | `data-generators-osdt-exclusion` | low | Exclude the committed stale .osdt snapshot from source-drift checks | planned |
@@ -93,9 +93,9 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 | id | risk | finding | status |
 | --- | --- | --- | --- |
 | `rust-sim-ci-test-job-retired` | medium | Restore a Rust test workflow and correct the stale ci.yml / rust-gate documentation | needs decision |
-| `rust-sim-item-generation-global` | medium | Make item_generation_total per-Sim instead of a process-wide atomic | planned |
-| `rust-sim-replay-format-untested` | low | Add replay format-3 parse/render round-trip tests to the only format code with no tests | planned |
-| `rust-sim-state-version-contract` | medium | Pin STATE_VERSION with a full-plane save/load contract test and an in-tree version log | planned |
+| `rust-sim-item-generation-global` | medium | Make item_generation_total per-Sim instead of a process-wide atomic | landed: Sim field, existing tests pass |
+| `rust-sim-replay-format-untested` | low | Add replay format-3 parse/render round-trip tests to the only format code with no tests | landed: replay/tests/format_three.rs, 2 tests |
+| `rust-sim-state-version-contract` | medium | Pin STATE_VERSION with a full-plane save/load contract test | landed: sim/tests/state_version_contract.rs, 1 test |
 | `rust-sim-wasip3-command-wit-parity` | low | Replace the hand-synced wasip3 COMMANDS and WIT contract with a checked parity script | planned |
 | `rust-sim-relay-tie-order` | low | Give relay REQ responses a total order when created_at ties | planned |
 
@@ -138,14 +138,14 @@ The adversarial vote was capped at six claims and started, but no verifier retur
 
 ## Needs a decision
 
-- `data-generators-current-drift`: regenerating `ability_fx.lua`, `turn_rates.lua` and `routes.osd` changes values a live match reads through `manifest.json`. The committed data is 6.88g-era; the generators now consume later `heroes_688g.tsv` web columns and a newer pathing map. Reconcile the source of truth before regenerating.
+- `data-generators-current-drift`: resolved. The owner approved reconciling the three outputs to their generators; DESIGN.md 2026-11-06 records hy3d's patch and the zero-drift gates.
 - `rust-sim-ci-test-job-retired`: `9a17155e` deliberately retired the test workflows. Re-adding one is an owner decision, not a defect fix.
 
 ## Deferred with a reason
 
-- Client JS seam extraction and the rAF/hot-reload guards need a named Node check and a browser witness on the seam; a broad `play.js` rewrite is explicitly out of scope.
+- Client JS seams remain open; hy3d supplied read-only witnesses (rAF partly guarded, 6 of 9 localStorage sites unguarded, no hot-state check, key-name normalizers disagree on Numpad1/End, codec copies byte-identical but ungated). Each needs a named Node check; a broad `play.js` rewrite is out of scope.
 - Browser witnesses (HMR, finished match, two-tab dispatch) need a bounded playwriter run in the worker's own context with a finally cleanup.
-- First-draw and Pages changes need a measurement first: CI medians swing between runs and the deployed page carries a 10-minute `max-age=600`.
+- First-draw measurement supplied by hy3d, no code change: the retired CI job's last band is 6007-11772 ms median with 21,797,827 B per cold load in the latest green run 40189655805. Any change still needs a fresh measurement; Pages sends `max-age=600`.
 - gm MCP fixes are owned by the `gm` session; the seven findings were forwarded with their evidence.
 
 ## Validation
@@ -156,4 +156,4 @@ The adversarial vote was capped at six claims and started, but no verifier retur
     node scripts/check-hero-models.mjs --negative-fixture
     git diff --check
 
-The runner reports every gate, every drifted output and every external dependency with its reason; no check is silently skipped.
+The runner reports every gate, every soft drift check and every external dependency with its reason; no check is silently skipped.

@@ -53,12 +53,12 @@ const GATE_GENERATORS = [
   "retire-688g-abilities.mjs",
   "apply-items-688g.mjs",
   "apply-pathing-688g.mjs",
+  "gen-ability-fx.mjs",
+  "gen-lane-routes-688g.mjs",
 ];
 
 const DRIFT = [
-  { id: "gen-ability-fx.mjs", output: "ability_fx.lua", reason: "committed FX signatures predate the abilities-inventory changes; regeneration changes forms and durations" },
-  { id: "gen-turn-rates.mjs", output: "turn_rates.lua", reason: "committed rates predate the web-1.27.1 SLK columns in heroes_688g.tsv; regeneration sets nonzero rates and reads the hy3d unit.ini" },
-  { id: "gen-lane-routes-688g.mjs", output: "routes.osd", reason: "committed routes differ from the generator pathfinding output; regeneration moves lane waypoints" },
+  { id: "gen-turn-rates.mjs", output: "turn_rates.lua", reason: "reads the machine-local hy3d 6.88g unit.ini; a --check failure means the committed rates diverged from the generator" },
 ];
 
 const EXTERNAL = [
