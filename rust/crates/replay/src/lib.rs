@@ -1438,6 +1438,129 @@ impl Replayer {
         self.run_to_end_with(sim, &mut |_| None)
     }
 }
+#[cfg(test)]
+mod format_three_tests {
+    use super::*;
+    use std::collections::BTreeSet;
+
+    const ALL_CODES: &[&str] = &[
+        "o", "h", "ok", "oa", "a", "c", "s", "u", "b", "l", "t", "tr", "pk", "sv", "ro", "f",
+        "co", "ho", "rs", "iv", "rd", "hl", "ds", "am", "k", "sp", "dm", "bf", "so", "st", "sa",
+        "ap", "rp", "da", "du", "di", "dr", "gu", "ga", "rm", "gi", "ag", "au", "vw", "df", "ui", "rn",
+    ];
+
+    fn every_command() -> Vec<Command> {
+        let effect = Effect { kind: 7, p0: 1, p1: 2, p2: 3, p3: 4 };
+        let unit_spec = UnitSpec {
+            name: "probe".to_string(), model: "probe".to_string(), health: 100, speed: 10,
+            radius: 8, armor: 1, shield: 0, sight: 20, filter: 0, cost: 0, bounty: 0,
+            weapon: Some((1, 2, 3)), abilities: vec!["blink".to_string()],
+        };
+        let item_spec = ItemSpec {
+            name: "probe".to_string(), cost: 10, armor: 0, damage: 0, health: 0,
+            ability: Some("blink".to_string()),
+        };
+        let upgrade_spec = UpgradeSpec {
+            name: "probe".to_string(), building: "probe".to_string(), time: 10, cost: 10, gas: 0,
+            effect, filter: 0, requires: vec!["a".to_string()], unlocks: Vec::new(),
+        };
+        let verdicts = vec![
+            ItemVerdict::Acquire { unit: 1, item: 2, allow: true, deny: Refusal::Unset, debit: 5, takes: [NO_TAKE; VERDICT_TAKES] },
+            ItemVerdict::Release { unit: 1, slot: 2, allow: false, deny: Refusal::Unset, credit: 5 },
+            ItemVerdict::TakeOut { unit: 1, slot: 2, allow: true, deny: Refusal::Unset },
+        ];
+        let mut out = vec![
+            Command::Order { unit: 1, x: 2, y: 3 },
+            Command::Hold { unit: 1 },
+            Command::Kind { unit: 1, kind: 2, x: 3, y: 4 },
+            Command::OrderAll { player: 1, x: 2, y: 3 },
+            Command::Attack { unit: 1, target: 2 },
+            Command::Cast { unit: 1, slot: 2, target: 3, x: 4, y: 5 },
+            Command::SkillUp { unit: 1, slot: 2 },
+            Command::UseItem { unit: 1, slot: 2, target: 3, x: 4, y: 5 },
+            Command::Buy { unit: 1, item: 2 },
+            Command::Sell { unit: 1, slot: 2 },
+            Command::Unstash { unit: 1, slot: 2 },
+            Command::PackStash { unit: 1 },
+            Command::SaveOrder { unit: 1, x: 2, y: 3 },
+            Command::RestoreOrder { unit: 1 },
+            Command::Fog { on: true },
+            Command::ClassOverride { unit: 1, class: 2 },
+            Command::HoldOverride { unit: 1, hold: 2 },
+            Command::SetRespawn { unit: 1, delay_s: 2 },
+            Command::Invulnerable { unit: 1, ticks: 2 },
+            Command::Reduction { unit: 1, pct: 2 },
+            Command::Healing { unit: 1, hp_per_s: 2 },
+            Command::DeclareSide { side: 1 },
+            Command::AttackMove { unit: 1, x: 2, y: 3 },
+            Command::Cadence { paths: false, vision: true },
+            Command::Spawn { handle: 1, index: 2, x: 3, y: 4, owner: 5, route: 6 },
+            Command::Damage { caster: 1, target: 2, dmg: 3 },
+            Command::Buff { unit: 1, kind: 2, ticks: 3 },
+            Command::SetOwner { unit: 1, player: 2 },
+            Command::SetTeam { player: 1, team: 2 },
+            Command::SetAlliance { a: 1, b: 2, kind: 3 },
+            Command::AddPlayer { player: 1, controller: 2 },
+            Command::RemovePlayer { player: 1 },
+            Command::DefineAbility { name: "probe".to_string(), cooldown: 1, energy: 2, target: 3, filter: 4, effects: vec![effect] },
+            Command::DefineUnit { spec: unit_spec },
+            Command::DefineItem { spec: item_spec },
+            Command::DefineUpgrade { spec: upgrade_spec },
+            Command::GrantUpgrade { player: 1, name: "probe".to_string() },
+            Command::GiveAbility { unit: 1, slot: 2, name: "probe".to_string() },
+            Command::Remove { unit: 1 },
+            Command::GiveItem { unit: 1, item: 2, count: 3 },
+            Command::AddGold { player: 1, amount: 2 },
+            Command::AddUnitGold { unit: 1, amount: 2 },
+            Command::Victory { player: 1 },
+            Command::Defeat { player: 1 },
+            Command::Ui { body: "{\"call\":\"probe\"}".to_string() },
+            Command::Respawn { unit: 1, kind: 2, player: 3, x: 4, y: 5 },
+        ];
+        for verdict in verdicts { out.push(Command::Trade { verdict }); }
+        out
+    }
+
+    #[test]
+    fn every_command_code_encode_decode_round_trips() {
+        let mut seen = BTreeSet::new();
+        for cmd in every_command() {
+            let encoded = cmd.encode();
+            let mut it = encoded.split_whitespace();
+            let code = it.next().expect("a command code").to_string();
+            let decoded = Command::decode(&code, &mut it).unwrap_or_else(|| panic!("decode failed for {code}"));
+            assert_eq!(decoded.encode(), encoded, "encode/decode round trip for {code}");
+            seen.insert(code);
+        }
+        for code in ALL_CODES {
+            assert!(seen.contains(*code), "no command exercised code {code}");
+        }
+        let mut alias = "1 42".split_whitespace();
+        let legacy = Command::decode("ah", &mut alias).expect("the legacy ah code decodes");
+        assert_eq!(legacy.encode(), "au 1 42", "the legacy alias normalises to au");
+        println!("replay command codes covered={} expected={} legacy=ah", seen.len(), ALL_CODES.len());
+    }
+
+    #[test]
+    fn format_three_round_trips_segments_checks_and_all_commands() {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba");
+        let image = osdt_data::generate(&dir).expect("compile the moba scenario");
+        let sim = sim::load(&image, 4096).expect("load the moba scenario");
+        let commands = every_command();
+        let mut text = format!(
+            "{FORMAT_HEADER}\nimage moba.osdt\nmax_units 4096\ninit {:016x}\nchk 0 {:016x}\nsegment 8 4096 {:016x} 0 moba.osdt\n",
+            1u64, 1u64, 2u64,
+        );
+        for (i, cmd) in commands.iter().enumerate() {
+            text.push_str(&format!("{} {}\n", 8 + i as u32, cmd.encode()));
+        }
+        let mut parsed = Recording::parse(&text).expect("every format-3 line parses");
+        let rendered = parsed.render(&sim);
+        assert_eq!(text, rendered, "segments, checks and every command survive render/parse/render");
+        Recording::parse(&rendered).expect("the rendered text parses again");
+        println!("replay format-3 lines covered={}", text.lines().count());
+    }
+}
 
 
 
