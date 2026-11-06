@@ -40,6 +40,9 @@ import { packCameraRules } from "./camera_rules.js";
 import { installGameFocusGuard } from "./game_focus.js";
 import { createZoomKeys } from "./zoom_keys.js";
 import { createDraftClock } from "./draft_clock.js";
+import { chainFrame } from "./frame_chain.js";
+import { readItem, writeItem, removeItem } from "./safe_storage.js";
+import { keyNameOf } from "./key_names.js";
 import { LOBBY_LINK_WAIT_MS, lobbyInputRoute, heldCallsAfterSettle, replayHeldCalls } from "./lobby_link.js";
 import { createGuiFlow } from "./gui_flow.js";
 import { createPodium, podiumScene, podiumCameraStep, podiumPlinthTransforms } from "./podium.js";
@@ -121,10 +124,10 @@ const SHADOW_ON = params.get("shadows") !== "0";
 const SHADOW_SIZE = 2048;
 const AMBIENT_OFF_KEY = "oscraft.ambientOff";
 function readStoredFlag(key) {
-  try { return localStorage.getItem(key) === "1"; } catch { return false; }
+  return readItem(key) === "1";
 }
 function writeStoredFlag(key, on) {
-  try { localStorage.setItem(key, on ? "1" : "0"); } catch { }
+  writeItem(key, on ? "1" : "0");
 }
 let ambientOff = params.get("ambient") === "0" || readStoredFlag(AMBIENT_OFF_KEY);
 function toggleAmbient() {
@@ -347,15 +350,6 @@ function forwardPointer(kind, e) {
   else if (localGame) logModError(localGame.pointer(kind, at.x, at.z, e.button));
 }
 
-function numpadKey(e) {
-  const pad = /^Numpad(\d)$/.exec(e.code || "");
-  return pad ? `num${pad[1]}` : null;
-}
-
-function keyNameOf(e) {
-  return numpadKey(e) ?? (e.key === " " ? "space" : e.key.toLowerCase());
-}
-
 function collectKeyNames(node, out) {
   if (typeof node === "string") out.add(node.toLowerCase());
   else if (Array.isArray(node)) for (const item of node) collectKeyNames(item, out);
@@ -458,7 +452,7 @@ function winAction(data) {
   }
   if (data.action === "win_new_game" && restartInPage()) return;
   if (data.action === "win_play_again") writeRematch(data.modes);
-  else localStorage.removeItem(snapshotKey());
+  else removeItem(snapshotKey());
   location.reload();
 }
 
@@ -471,7 +465,7 @@ function restartInPage() {
     logModError(`new game: ${err.message || err}`);
     return false;
   }
-  localStorage.removeItem(snapshotKey());
+  removeItem(snapshotKey());
   if (typeof localGame?.free === "function") localGame.free();
   localGame = next;
   lastGoodSnapshot = captureSnapshot(localGame);
@@ -485,7 +479,7 @@ function writeRematch(modesText) {
   const slots = flowLobby.slots
     .map((s, slot) => ({ slot, owner: s.owner || "", bot: String(s.owner || "").startsWith("bot:"), hero: s.hero || "", ready: s.ready === true }))
     .filter((s) => s.owner !== "");
-  localStorage.setItem(snapshotKey(), JSON.stringify({ tick: 0, me: auth.pubkey || LOCAL_OWNER_ID, seats: seating.export(), slots, modes: codes }));
+  writeItem(snapshotKey(), JSON.stringify({ tick: 0, me: auth.pubkey || LOCAL_OWNER_ID, seats: seating.export(), slots, modes: codes }));
 }
 
 function saveWinReplay() {
@@ -2158,13 +2152,12 @@ function saveSnapshot(tick) {
     document.body.dataset.snapshotTooLarge = String(text.length);
     return;
   }
-  try {
-    localStorage.setItem(snapshotKey(), text);
-    delete document.body.dataset.snapshotSkipped;
-  } catch (e) {
-    if (e && e.name === "QuotaExceededError") { localStorage.removeItem(snapshotKey()); document.body.dataset.snapshotSkipped = String(tick); return; }
-    throw e;
+  const failure = writeItem(snapshotKey(), text);
+  if (failure) {
+    if (failure.name === "QuotaExceededError") { removeItem(snapshotKey()); document.body.dataset.snapshotSkipped = String(tick); return; }
+    throw failure;
   }
+  delete document.body.dataset.snapshotSkipped;
 }
 
 function restoreRematch(record) {
@@ -2188,7 +2181,7 @@ function restoreRematch(record) {
 }
 
 function restoreLobbyRematch() {
-  const raw = localStorage.getItem(snapshotKey());
+  const raw = readItem(snapshotKey());
   if (raw === null) return;
   try {
     const record = JSON.parse(raw);
@@ -2199,7 +2192,7 @@ function restoreLobbyRematch() {
 }
 
 function restoreSnapshot() {
-  const raw = localStorage.getItem(snapshotKey());
+  const raw = readItem(snapshotKey());
   if (raw === null) {
     telemetry("snapshot: none stored, starting fresh");
     return 0;
@@ -3505,7 +3498,7 @@ async function main() {
   joinRoom();
 
   let worldBuilt = false;
-  function frame(now) {
+  function frameStep(now) {
     frameTimer.tick();
     const dtS = lastFrameMs ? Math.min(0.1, (now - lastFrameMs) / 1000) : 0;
     lastFrameMs = now;
@@ -3548,7 +3541,9 @@ async function main() {
     } catch (err) {
       reportPublishFailure("witness", err);
     }
-    requestAnimationFrame(frame);
+  }
+  function frame(now) {
+    chainFrame(() => frameStep(now), () => requestAnimationFrame(frame), (err) => logModError("frame: " + (err && err.message ? err.message : String(err))));
   }
   requestAnimationFrame(frame);
   worldReady.then(() => {

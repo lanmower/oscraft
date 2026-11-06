@@ -1,0 +1,13 @@
+import { setHot, getHot, resetHot } from "./hot_state.js";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+const here = dirname(fileURLToPath(import.meta.url));
+const hud = readFileSync(resolve(here, "hud.js"), "utf8");
+if (!hud.includes("resetHot()")) throw new Error("hud.js hmrReload does not reset hot state");
+if (!hud.includes("getHot(")) throw new Error("hud.js does not read the shared hot state");
+setHot("courier", { ready: true });
+if (getHot("courier") === null) throw new Error("setHot did not store");
+resetHot();
+if (getHot("courier") !== null) throw new Error("resetHot did not clear");
+console.log("hud hot state ok (resetHot in hmrReload, state clears)");

@@ -1,4 +1,4 @@
-const keyName = (e) => (e.key === " " ? "space" : e.key.toLowerCase());
+import { zoomKeyName as keyName } from "./key_names.js";
 
 const has = (list, name) => Array.isArray(list) && list.includes(name);
 

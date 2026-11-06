@@ -1,5 +1,6 @@
 
 import { cellKind, voidMask } from "./tiles.js";
+import { setHot, getHot, resetHot } from "./hot_state.js";
 import { createMobaInput } from "./moba_input.js";
 import { createFeedback } from "./feedback.js";
 import { NOTICE_KINDS, renderToast } from "./notice_kinds.js";
@@ -152,9 +153,8 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
   const status = createStatusPanel();
   undo.push(status.dispose);
 
-  let courierState = null;
   listen("moba:courier", (e) => {
-    courierState = e.detail ?? null;
+    setHot("courier", e.detail ?? null);
   });
 
   const sendCameraTo = (x, z) => {
@@ -354,7 +354,7 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
     const progress = hero && curve.length > 0 ? xpProgress(game.xp(hero.id), curve) : null;
     const parts = ["Gold " + gold];
     if (progress) parts.push("Level " + progress.level);
-    const courier = courierLine(courierState);
+    const courier = courierLine(getHot("courier"));
     if (courier) parts.push(courier);
     status.show(parts.join("   "), progress ? progress.fraction : null);
   }
@@ -397,6 +397,7 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
 
 const hot = (globalThis.__oscraftHot ??= new Map());
 export function hmrReload() {
+  resetHot();
   const args = hot.get("hud");
   return args ? createHud(args) : null;
 }

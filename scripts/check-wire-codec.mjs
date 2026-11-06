@@ -1,0 +1,10 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const hash = (rel) => createHash("sha256").update(readFileSync(resolve(root, rel))).digest("hex");
+const canonical = hash("js/wire/frame.js");
+const deployed = hash("js/client/wire/frame.js");
+if (canonical !== deployed) throw new Error("wire codec copies drifted: " + canonical + " vs " + deployed);
+console.log("wire codec ok " + canonical.slice(0, 12) + " (canonical = deployed)");

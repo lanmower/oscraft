@@ -1,0 +1,15 @@
+import { chainFrame } from "./frame_chain.js";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+const here = dirname(fileURLToPath(import.meta.url));
+const play = readFileSync(resolve(here, "play.js"), "utf8");
+if (!play.includes("chainFrame(")) throw new Error("play.js does not chain the frame");
+const errors = [];
+let scheduled = 0;
+const onError = (err) => errors.push(String(err));
+chainFrame(() => {}, () => { scheduled += 1; }, onError);
+chainFrame(() => { throw new Error("simulated unguarded call"); }, () => { scheduled += 1; }, onError);
+if (scheduled !== 2) throw new Error("the rAF chain stopped after a failure");
+if (errors.length !== 1) throw new Error("the failure was not reported");
+console.log("frame chain ok (schedule in finally, 1 error reported)");
