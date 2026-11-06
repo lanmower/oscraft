@@ -36,7 +36,7 @@ try {
   writeFileSync(join(tmp, "ability_fx.lua"), real.replace("dur = ", "dur = 999999 "));
   let refused = false;
   try {
-    execFileSync(process.execPath, [resolve(root, "scenarios/moba/tools/gen-ability-fx.mjs"), "--out", tmp, "--check"], { encoding: "utf8" });
+    execFileSync(process.execPath, [resolve(root, "scenarios/moba/tools/gen-ability-fx.mjs"), "--out", tmp, "--check"], { encoding: "utf8", stdio: "pipe" });
   } catch { refused = true; }
   if (!refused) throw new Error("a mutated generated output did not fail the generator --check gate");
 } finally {
