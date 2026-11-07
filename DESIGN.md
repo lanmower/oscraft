@@ -64,3 +64,15 @@ This supersedes the 2dad9b5 section above. The authoritative gm hash is cf884aa 
 - Mod camera drag: still releases the lock, because shared.rs:118 ui_camera carries no origin field (modui.js:176).
 - Current tree figures: gates=66, gate path refs=54 with 0 missing, camera writes=24 with 0 unclassified.
 - The figures above track the tree; scripts/check-design-record.mjs fails when they drift.
+
+## Four-repo pass: gm 7be1790 (2026-11-07)
+
+This adds to the cf884aa section above, which stays the authoritative record of the final state. Gm HEAD is 7be1790 (lanmower, clean, origin == HEAD).
+
+- gm 7be1790: `node tools/check.mjs` exit 0, ending "check: ... documented gap checks passed". Gm's own validation, posted to orchestrate: BUILD_RC=0, CONF_RC=0 (stamp 7be1790-dev), CHECK_RC=0, parity 23/93 match and 0 differ. Gm's first npm check failed only on an inflight-check 120000 ms watchdog while other sessions were building. The low-load re-run (25 s at load 0.97) is the valid witness. The first run is not counted as a pass.
+- oscraft 413315ef: `node scripts/check-all.mjs` exit 0, `RESULT gates=66 ok=66 failed=0 drift=0 skipped=5 strict=false`.
+- bota 8e97019 (clean): `node tools/verify-props.mjs --self-test` exit 0, `SELF TEST: PASS file:// witnesses good/bad-sha/truncated/missing`. The harness `verify(gm, {commits: [becc112b, deb29f53]})` via gm.run_code returned `passed 35, failed 0, skipped 0, total 35`.
+- hy3d 0c7e9ec (clean): `scripts/check-staged-secrets.mjs` exit 0 `RESULT: PASS`; `scripts/relay-download-check.mjs` exit 0 `RESULT: PASS forced failed download is counted as failed`.
+- Path-level proof: check-all names 54 gate path refs, 0 missing, and none under /workspace/gm, bota or hy3d.
+- Fresh `ls-remote origin refs/heads/main` at 18:25 to 18:28: gm 7be1790, oscraft 413315e, bota 8e97019, hy3d 0c7e9ec. All four trees are clean.
+- Live feel is still OPEN, with no RAF_FRAMES, SAMPLES or frames_with_motion. The mod camera drag still releases the lock (shared.rs:118). The minimap centre stays gated and inert while locked.
