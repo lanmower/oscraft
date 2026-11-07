@@ -46,6 +46,7 @@ const GATE_CHECKS = [
   "js/client/hero-run-check.mjs",
   "js/client/hero-trajectory-check.mjs",
   "js/client/movement-callsite-check.mjs",
+  "js/client/movement-lock-release-check.mjs",
   "js/client/hero-view-lock-check.mjs",
   "js/client/hud-canvas-check.mjs",
   "js/client/hud-canvas-keys-check.mjs",

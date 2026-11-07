@@ -1222,7 +1222,10 @@ function drawWorld3d() {
   lastDrawMs = now;
   if (podium.active) {
     const cam = podiumCameraStep(podium, dt * 1000);
-    if (cam) renderer3d.setCamera({ target: cam.target, distance: cam.distance, yaw: cam.yaw, pitch: cam.pitch });
+    if (cam) {
+      heroViewLock.release();
+      renderer3d.setCamera({ target: cam.target, distance: cam.distance, yaw: cam.yaw, pitch: cam.pitch });
+    }
   }
   renderer3d.beginFrame(BACKGROUND);
   const units = currentUnits();
@@ -1657,7 +1660,10 @@ function flowCameraRestore() {
 function flowPodium(seats) {
   if (seats === null) {
     podium.active = false;
-    if (flowCameraSaved) renderer3d.setCamera(flowCameraRestore());
+    if (flowCameraSaved) {
+      heroViewLock.release();
+      renderer3d.setCamera(flowCameraRestore());
+    }
     flowCameraSaved = null;
     return;
   }
@@ -2072,7 +2078,10 @@ function goLive(why) {
   if (!gate.open()) return;
   if (podium.active) {
     podium.active = false;
-    if (flowCameraSaved) renderer3d.setCamera(flowCameraRestore());
+    if (flowCameraSaved) {
+      heroViewLock.release();
+      renderer3d.setCamera(flowCameraRestore());
+    }
     flowCameraSaved = null;
   }
   guiFlow?.hide();
@@ -3480,6 +3489,7 @@ async function main() {
     baseUrl: eventsBase === null ? undefined : eventsBase.replace(/\/$/, ""),
     onBind: (bind) => sendInput("bind", bind),
     onSound: manifest.assets?.sounds ? ((name) => sfx.play(name)) : undefined,
+    onCameraTake: () => heroViewLock.release(),
   });
   window.__modUi = modUi;
   createChat({

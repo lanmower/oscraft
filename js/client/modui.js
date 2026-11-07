@@ -82,7 +82,7 @@ export function watchMatchStart(onChange) {
 }
 
 export function createModUi(opts) {
-  const { root, renderer, localPlayer, defaultDistance, baseUrl, onSound, onBind } = opts;
+  const { root, renderer, localPlayer, defaultDistance, baseUrl, onSound, onBind, onCameraTake = () => {} } = opts;
   const doc = root.ownerDocument;
   const style = doc.createElement("style");
   style.textContent = STYLE;
@@ -123,6 +123,7 @@ export function createModUi(opts) {
     const r = renderer();
     if (!r || !e.detail) return;
     move = null;
+    onCameraTake();
     r.setCamera({ target: [e.detail.x, r.camera.target[1], e.detail.z], distance: r.camera.distance });
   };
   doc.defaultView.addEventListener("moba:minimap-drag", onMinimapDrag);
@@ -172,7 +173,7 @@ export function createModUi(opts) {
       const now = performance.now();
       const dragging = now - lastCameraAt < CAMERA_FOLLOW_MS;
       lastCameraAt = now;
-      if (dragging) { move = null; r.setCamera(to); return; }
+      if (dragging) { move = null; onCameraTake(); r.setCamera(to); return; }
       move = { from: { target: [...cam.target], distance: cam.distance }, to, elapsed: 0, seconds: ev.seconds };
       if (!(ev.seconds > 0)) step(0);
     },
