@@ -49,6 +49,7 @@ const GATE_CHECKS = [
   "js/client/movement-lock-release-check.mjs",
   "js/client/movement-sequence-check.mjs",
   "js/client/camera-target-audit-check.mjs",
+  "js/client/lock-engage-order-check.mjs",
   "js/client/hero-view-lock-check.mjs",
   "js/client/hud-canvas-check.mjs",
   "js/client/hud-canvas-keys-check.mjs",
