@@ -13,6 +13,7 @@ const tools = (name) => ["scenarios/moba/tools/" + name, "--check"];
 const GATE_CHECKS = [
   "scripts/check-ability-effect-mapping.mjs",
   "scripts/check-doc-claims.mjs",
+  "scripts/check-design-record.mjs",
   "js/client/lobby-link-check.mjs",
   "js/client/lobby-replay-check.mjs",
   "scripts/check-pack-archive.mjs",
