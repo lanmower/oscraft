@@ -86,7 +86,8 @@ function simulate({ speed, intervals, schedule, strictFrameCap = false, mutate =
           record.holds.push({ t, held: segment.held });
         }
       }
-      focus = approachTarget(focus, followTarget(hero, groundAt), 1 - Math.exp(-dt * LOCK_FOLLOW_RATE));
+      const gain = mutate.focusGain ?? 1;
+      focus = approachTarget(focus, followTarget(hero, groundAt), Math.min(1, gain * (1 - Math.exp(-dt * LOCK_FOLLOW_RATE))));
       record.frames.push({ t, dt, held: segment.held, hero: { x: sim.x, z: sim.z }, target: followTarget(hero, groundAt), focus: [...focus] });
     }
     record.segments.push({ held: segment.held, startT: segmentStart, endT: t, firstFrame, lastFrame: record.frames.length });
@@ -183,6 +184,9 @@ const droppedOrder = violations(simulate({ speed: 12, intervals: JITTERED_LOW_FP
 if (droppedOrder.length === 0) fail("negative control: a dropped order did not fail the gate");
 const missedRelease = violations(simulate({ speed: 12, intervals: JITTERED_LOW_FPS, schedule: SCHEDULE, mutate: { dropHolds: true } }));
 if (missedRelease.length === 0) fail("negative control: a missed release did not fail the gate");
+const overgainedFocus = violations(simulate({ speed: 12, intervals: JITTERED_LOW_FPS, schedule: SCHEDULE, mutate: { focusGain: 3 } }));
+if (!overgainedFocus.some((v) => v.includes("derived cap"))) fail("negative control: an over-gained focus did not fail the derived cap");
 console.log(`negative control dropped order: ${droppedOrder.length} violation(s), first: ${droppedOrder[0]}`);
-console.log(`negative control missed release: ${missedRelease.length} violation(s), first: ${missedRelease[0]}`);
-console.log(`hero trajectory ok (${ASSUMED_SPEEDS_CELLS_PER_S.length} assumed speeds x ${PROFILES.length} frame profiles, 2 negative controls)`);
+console.log(`negative control missed release: ${missedRelease.length} violation(s), first: ${missedRelease[0]} (removes the hold from the record only; the simulated hero is not changed)`);
+console.log(`negative control focus gain x3: ${overgainedFocus.length} violation(s), first: ${overgainedFocus.find((v) => v.includes("derived cap"))}`);
+console.log(`hero trajectory ok (${ASSUMED_SPEEDS_CELLS_PER_S.length} assumed speeds x ${PROFILES.length} frame profiles, 3 negative controls)`);
