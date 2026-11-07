@@ -76,3 +76,4 @@ This adds to the cf884aa section above, which stays the authoritative record of 
 - Path-level proof: check-all names 54 gate path refs, 0 missing, and none under /workspace/gm, bota or hy3d.
 - Fresh `ls-remote origin refs/heads/main` at 18:25 to 18:28: gm 7be1790, oscraft 413315e, bota 8e97019, hy3d 0c7e9ec. All four trees are clean.
 - Live feel is still OPEN, with no RAF_FRAMES, SAMPLES or frames_with_motion. The mod camera drag still releases the lock (shared.rs:118). The minimap centre stays gated and inert while locked.
+- Follow-up: gm 4de3d2a is a data-only change to work/tooling-fix-units.json (26 follow-ups). Its gate exited 0 (gate:true, failed: []), and its code is unchanged from 7be1790. The four-repo pass stays at 7be1790, and this section stays authoritative for it.
