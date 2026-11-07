@@ -59,6 +59,28 @@ const positiveStatic = staticViolations(sources);
 if (positive.unclassified.length > 0) fail(`unguarded camera target writes: ${positive.unclassified.join(", ")}`);
 if (positiveStatic.length > 0) fail(positiveStatic.join("; "));
 
+const lineHits = ([name, pattern]) => sources[name].split("\n").flatMap((line, i) => (pattern.test(line) ? [`${name}:${i + 1}`] : []));
+const DEBUG_WRITERS = [
+  ["play.js", /window\.__ciFocus = .*renderer3d\.setCamera\(/],
+  ["play.js", /setCamera: \(opts = \{\}\) => \(renderer3d \? renderer3d\.setCamera\(opts\)/],
+  ["play.js", /return renderer3d \? renderer3d\.setCamera\(\{ target: \[x, groundAt\(x, z\), z\] \}\)/],
+  ["debug_api.js", /^\s*r\.setCamera\(patch\);$/],
+  ["debug_api.js", /^\s*r\.setCamera\(\{ target: \[u\.x, 0, u\.z\] \}\);$/],
+];
+const PRODUCTION_WRITERS = [
+  ["play.js", /renderer3d\.setCamera\(\{ target: cam\.target/],
+  ["play.js", /renderer3d\.setCamera\(flowCameraRestore\(\)\);/],
+  ["modui.js", /^\s*onCameraTake\(\);$/],
+  ["modui.js", /if \(dragging\) \{ move = null; onCameraTake\(\);/],
+];
+const debugHits = DEBUG_WRITERS.map(lineHits);
+debugHits.forEach((hits, i) => { if (hits.length !== 1) fail(`debug writer ${i} matches ${hits.length} lines, want 1: ${hits.join(", ")}`); });
+const productionHits = PRODUCTION_WRITERS.flatMap(lineHits);
+if (productionHits.length !== 5) fail(`production lock-release sites: ${productionHits.length}, want 5: ${productionHits.join(", ")}`);
+const leaked = debugHits.flat().filter((hit) => productionHits.includes(hit));
+if (leaked.length > 0) fail(`debug writers inside the five production sites: ${leaked.join(", ")}`);
+const debugClaim = debugHits.flat().join(", ");
+
 const mutate = (name, from, to) => ({ ...sources, [name]: sources[name].replace(from, to) });
 const controls = {
   minimapDragNoRelease: mutate("modui.js", "    onCameraTake();\n    r.setCamera({ target: [e.detail.x", "    r.setCamera({ target: [e.detail.x"),
@@ -76,4 +98,5 @@ for (const [label, mutated] of Object.entries(controls)) {
 
 console.log(`lock release ok: sanctioned writes ${positive.sanctioned}, open (not covered by the rule, reported) ${positive.open.join(", ") || "none"}`);
 for (const [label, first] of Object.entries(controlReport)) console.log(`negative control ${label}: fails with "${first}"`);
+console.log(`debug hooks outside the five production sites: ${debugClaim}`);
 console.log(`movement lock release gate ok (5 explicit sites release the lock; ${Object.keys(controls).length} negative controls fail)`);
