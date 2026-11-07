@@ -128,6 +128,7 @@ No comments in source: durable facts live here, names carry intent.
 - Remaining HUD pieces: minimap (ui_minimap.js is a canvas; move its pointer handling off DOM events; commands camera_to, pointer, moba:minimap-drag); portraits (widgets.js portraitGrid; draw icons, send each portrait's call); status, messages and recap text (canvas text layout); scoreboard (panels.lua rows); menus, shop and lobby forms (DOM; need a per-panel hit layer first).
 - DOM HUD commands (ui calls): cast, quickcast, skill_up, select, group_page, buyback, recap_close, toggle, talent, shop_category, quick_buy, buy, pin, build_toggle, shop_deselect, grab_all, stash_item, claim, release, remove, ready, pick, mode, fill, start; direct sends by name: camera_to (centre, minimap), pointer (minimap order), viewport and select and skill_up (moba_input).
 - Local-only HUD controls send nothing: #hero-lock (heroViewLock), #map-toggle (body data-map), minimap drag (window moba:minimap-drag).
+- `js/client/hero-trajectory-check.mjs` drives hero_run.js and hero_view_lock.js over a deterministic 60 Hz loop with a 16 Hz sim, no GL. Its 12 and 4 cells/s hero speeds are assumed test parameters, not game data: units.osd `speed_milli` is documented as "milli per tick" (docs/GAME.md:29), and its cells/s conversion is not derived in the repo. The gate proves the held-key cadence, per-frame caps and convergence at those speeds; it does not prove the live feel, which needs a browser run at a usable frame rate.
 
 ## Scripts, generators, assets
 
