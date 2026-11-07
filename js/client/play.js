@@ -14,7 +14,7 @@ import { AnimationPlayer, cycleSpeed, globalMatrices, jointMatrices, retargetLib
 import { parseGlb, parseGlbAnimations } from "./glb.js";
 import { resolveGlbExtensions } from "./glb_resolve.js";
 import { createHud } from "./hud.js";
-import { centredOnHero, createHeroViewLock, findHeroOf, followTarget, heroDirection } from "./hero_view_lock.js";
+import { approachTarget, centredOnHero, createHeroViewLock, findHeroOf, followTarget, heroDirection } from "./hero_view_lock.js";
 import { createHeroRun, enemiesInSight, stepHeroRun } from "./hero_run.js";
 import { teamOf } from "./moba_select.js";
 import { cameraDragAction, MIDDLE_BUTTON, pointerReleaseKinds } from "./camera_mouse.js";
@@ -205,6 +205,8 @@ let localTickAcc = 0;
 const keysDown = new Set();
 const heroViewLock = createHeroViewLock();
 let heroRun = createHeroRun();
+const LOCK_FOLLOW_RATE = 14;
+let lockedFocus = null;
 const seating = createSeating();
 const autoSeats = createAutoSeats(seating, MAX_PLAYERS);
 let seatsExplicit = false;
@@ -1262,7 +1264,11 @@ function isHostile(player) {
 function driveLockedHero(dtS) {
   const units = currentUnits();
   const hero = localHeroUnit(units);
-  if (hero) renderer3d.setCamera({ target: followTarget(hero, groundAt) });
+  if (hero) {
+    const shown = drawnPosition(hero);
+    lockedFocus = approachTarget(lockedFocus, followTarget(shown, groundAt), 1 - Math.exp(-dtS * LOCK_FOLLOW_RATE));
+    renderer3d.setCamera({ target: lockedFocus });
+  }
   const step = stepHeroRun(heroRun, {
     hero: hero ? { id: hero.id, x: hero.x, z: hero.z } : null,
     direction: heroDirection(keysDown, renderer3d.camera.yaw),
@@ -1285,6 +1291,7 @@ function panByKeys(dtS) {
     return;
   }
   heroRun = createHeroRun();
+  lockedFocus = null;
   let dx = 0;
   let dz = 0;
   if (keysDown.has("ArrowLeft")) dx -= 1;
@@ -1510,7 +1517,7 @@ function bindInput() {
     keysDown.clear();
     forwardKey("up", { key: "Shift", shiftKey: false, ctrlKey: false, altKey: false, metaKey: false });
   });
-  installGameFocusGuard({ onArrow: (key) => keysDown.add(key) });
+  installGameFocusGuard({ onArrow: (key) => keysDown.add(key), onArrowUp: (key) => keysDown.delete(key) });
   window.addEventListener("pointermove", (e) => { pointer = { x: e.clientX, y: e.clientY, over: e.target }; });
   document.documentElement.addEventListener("pointerleave", () => { pointer = null; });
   canvas.addEventListener("wheel", (e) => {
@@ -3500,7 +3507,7 @@ async function main() {
     const dtS = lastFrameMs ? Math.min(0.1, (now - lastFrameMs) / 1000) : 0;
     lastFrameMs = now;
     panByKeys(dtS);
-    modUi.step(dtS);
+    modUi.step(dtS, heroViewLock.isLocked());
     if (!netState && localGame && !hosting && gate.live && !decided()) {
       localTickAcc += dtS;
       while (localTickAcc >= SIM_TICK_S && localGame && !decided()) {

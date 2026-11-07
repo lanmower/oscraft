@@ -46,6 +46,12 @@ export function followTarget(hero, groundAt) {
   return [hero.x, groundAt(hero.x, hero.z), hero.z];
 }
 
+export function approachTarget(current, goal, alpha) {
+  if (!current) return [...goal];
+  const k = Math.min(1, Math.max(0, alpha));
+  return goal.map((v, i) => current[i] + (v - current[i]) * k);
+}
+
 export function centredOnHero(view, hero, groundAt) {
   return hero ? { ...view, target: followTarget(hero, groundAt) } : view;
 }

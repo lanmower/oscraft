@@ -25,11 +25,19 @@ let state = createHeroRun();
 let r = frame(state, { held: true, direction: NORTH });
 expectCommands(r, orderTo(100, 100 - RUN_CELLS), "press issues one order to a far point");
 state = r.state;
+let reorders = 0;
 for (let i = 0; i < 30; i++) {
   r = frame(state, { held: true, direction: NORTH });
-  expectCommands(r, NONE, "a held key re-issues an order");
+  if (r.commands.length > 0) {
+    expectCommands(r, orderTo(100, 100 - RUN_CELLS), "a held key re-issued a different order");
+    reorders += 1;
+  }
   state = r.state;
 }
+if (reorders !== 1) fail(`a held key re-ordered ${reorders} times in 30 frames, want 1`);
+r = frame(state, { held: true, direction: NORTH, hero: { id: 3, x: 110, z: 100 }, dtS: 0.3 });
+expectCommands(r, orderTo(110, 100 - RUN_CELLS), "a held key re-ordered from the hero's old position");
+state = r.state;
 r = frame(state, { held: true, direction: EAST });
 expectCommands(r, orderTo(100 + RUN_CELLS, 100), "a direction change issues one order");
 state = r.state;

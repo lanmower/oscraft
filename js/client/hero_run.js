@@ -3,10 +3,11 @@ import { heroOrderPoint } from "./hero_view_lock.js";
 export const RUN_CELLS = 64;
 export const TAP_MAX_S = 0.2;
 export const HERO_SIGHT_CELLS = 28.125;
+export const REORDER_S = 0.25;
 const ARRIVE_CELLS = 1;
 
 export function createHeroRun() {
-  return { pressing: false, pressedS: 0, heading: null, target: null, ordered: false, seenEnemies: null, run: null };
+  return { pressing: false, pressedS: 0, sinceOrderS: 0, heading: null, target: null, ordered: false, seenEnemies: null, run: null };
 }
 
 export function enemiesInSight(hero, units, isHostile) {
@@ -25,12 +26,12 @@ export function stepHeroRun(state, input) {
 }
 
 function holding(state, input) {
-  const next = { ...state, pressedS: state.pressedS + input.dtS };
-  if (input.direction === null || sameDirection(input.direction, state.heading)) {
-    return { state: next, commands: [] };
-  }
+  const next = { ...state, pressedS: state.pressedS + input.dtS, sinceOrderS: state.sinceOrderS + input.dtS };
+  if (input.direction === null) return { state: next, commands: [] };
+  const turned = !sameDirection(input.direction, state.heading);
+  if (!turned && next.sinceOrderS < REORDER_S) return { state: next, commands: [] };
   const target = clampToMap(heroOrderPoint(input.hero, input.direction, RUN_CELLS), input.bounds);
-  return { state: { ...next, heading: input.direction, target, ordered: true }, commands: [order(target)] };
+  return { state: { ...next, heading: input.direction, target, ordered: true, sinceOrderS: 0 }, commands: [order(target)] };
 }
 
 function released(state, input) {

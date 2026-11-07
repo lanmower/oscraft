@@ -1,4 +1,5 @@
 import {
+  approachTarget,
   centredOnHero,
   createHeroViewLock,
   findHeroOf,
@@ -57,6 +58,16 @@ if (findHeroOf(units, flags, 0)?.id !== 1) fail("local hero not found");
 if (findHeroOf(units, flags, 1)?.id !== 2) fail("other player's hero not found");
 if (findHeroOf(units, flags, 2) !== null) fail("a player without a hero found one");
 if (findHeroOf(units, [], 0) !== null) fail("no flags still found a hero");
+
+const goal = [10, 4, -6];
+const from = [0, 0, 0];
+same({ x: approachTarget(from, goal, 0)[0], z: approachTarget(from, goal, 0)[2] }, { x: 0, z: 0 }, "alpha 0 moved the focus");
+same({ x: approachTarget(from, goal, 1)[0], z: approachTarget(from, goal, 1)[2] }, { x: 10, z: -6 }, "alpha 1 did not reach the goal");
+same({ x: approachTarget(from, goal, 0.5)[0], z: approachTarget(from, goal, 0.5)[2] }, { x: 5, z: -3 }, "alpha 0.5 is not halfway");
+if (approachTarget(from, goal, 2)[0] !== 10) fail("alpha above 1 overshot the goal");
+if (approachTarget(from, goal, -1)[0] !== 0) fail("negative alpha moved the focus");
+if (approachTarget(null, goal, 0.1)[0] !== 10 || approachTarget(null, goal, 0.1) === goal) fail("first focus did not snap to a copy of the goal");
+if (approachTarget(from, goal, 1) === goal) fail("approach returned the goal array itself");
 
 const lock = createHeroViewLock();
 if (lock.isLocked()) fail("lock starts on");

@@ -17,7 +17,7 @@ function removeKeyboardFocus() {
   }
 }
 
-export function installGameFocusGuard({ onArrow }) {
+export function installGameFocusGuard({ onArrow, onArrowUp }) {
   const sweep = () => {
     if (isLive()) removeKeyboardFocus();
   };
@@ -29,12 +29,26 @@ export function installGameFocusGuard({ onArrow }) {
   });
   sweep();
 
+  const capturedArrows = new Set();
+
   window.addEventListener("keydown", (e) => {
     if (!isLive() || !e.key.startsWith("Arrow") || isTextEntry(e.target)) return;
     e.preventDefault();
     e.stopPropagation();
+    capturedArrows.add(e.key);
     onArrow(e.key);
   }, true);
+
+  window.addEventListener("keyup", (e) => {
+    if (!capturedArrows.delete(e.key)) return;
+    e.stopPropagation();
+    onArrowUp(e.key);
+  }, true);
+
+  window.addEventListener("blur", () => {
+    for (const key of capturedArrows) onArrowUp(key);
+    capturedArrows.clear();
+  });
 
   window.addEventListener("mousedown", (e) => {
     if (isLive() && !isTextEntry(e.target)) e.preventDefault();

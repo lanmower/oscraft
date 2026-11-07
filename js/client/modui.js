@@ -206,10 +206,10 @@ export function createModUi(opts) {
   };
   doc.defaultView.addEventListener("moba:minimap-centre", onMinimapCentre);
 
-  function step(dtS) {
+  function step(dtS, locked = false) {
     if (!move) return;
     const r = renderer();
-    if (!r) { move = null; return; }
+    if (!r || locked) { move = null; return; }
     move.elapsed += dtS;
     const t = move.seconds > 0 ? Math.min(1, move.elapsed / move.seconds) : 1;
     const k = easeInOut(t);
