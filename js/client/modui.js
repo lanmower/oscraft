@@ -183,7 +183,7 @@ export function createModUi(opts) {
       const cam = r.camera;
       const to = { target: [...cam.target], distance: Math.min(cam.maxDistance, Math.max(cam.minDistance, defaultDistance() / ev.zoom)) };
       move = { from: { target: [...cam.target], distance: cam.distance }, to, elapsed: 0, seconds: ev.seconds };
-      if (!(ev.seconds > 0)) step(0);
+      if (!(ev.seconds > 0)) step(0, isLocked());
     },
     camera_lock(ev) {
       const r = renderer();

@@ -195,9 +195,18 @@ async function sequence(mode, { panSource = extract(PAN_HEADER), releaseAfterWri
       clock.t += 0.05 - DT;
       modUi.push({ kind: "camera", player: 0, x: CAMERA_DRAG.x, y: CAMERA_DRAG.y, zoom: 1, seconds: 1 });
       await Promise.resolve();
+    } else if (mode === "centre") {
+      trace.phase = "centre";
+      win.dispatchEvent({ type: "moba:minimap-centre", detail: { x: 300, z: 300, seconds: 0 } });
+      clock.t += 0.2;
+      win.dispatchEvent({ type: "moba:minimap-centre", detail: { x: 300, z: 300, seconds: 1 } });
+      trace.phase = "centreFrame";
+      frame();
     } else {
       trace.phase = "instant";
-      modUi.push({ kind: "camera", player: 0, x: CAMERA_DRAG.x, y: CAMERA_DRAG.y, zoom: 1, seconds: 0 });
+      modUi.push(mode === "distance"
+        ? { kind: "camera_distance", player: 0, zoom: 2, seconds: 0 }
+        : { kind: "camera", player: 0, x: CAMERA_DRAG.x, y: CAMERA_DRAG.y, zoom: 1, seconds: 0 });
       trace.phase = "instantFrame";
       frame();
     }
@@ -243,6 +252,10 @@ function instantViolations(trace) {
     .map((w) => `zero-second mod camera event wrote ${w.target} while the hero lock was engaged`);
 }
 
+function lockedWriteViolations(trace, phase, label) {
+  return trace.writes.filter((w) => w.phase === phase).map((w) => `${label} wrote ${w.target} while the hero lock was engaged`);
+}
+
 const minimapRun = await sequence("minimap");
 const cameraRun = await sequence("camera");
 const positiveFound = [...violations(minimapRun, "minimap"), ...violations(cameraRun, "camera")];
@@ -261,10 +274,20 @@ const instantFound = instantViolations(await sequence("instant"));
 if (instantFound.length > 0) fail(instantFound.join("; "));
 const instantControl = instantViolations(await sequence("instant", { wireLock: false }));
 if (instantControl.length === 0) fail("negative control zero-second write while locked did not fail the gate");
+const distanceFound = instantViolations(await sequence("distance"));
+if (distanceFound.length > 0) fail(distanceFound.join("; "));
+const distanceControl = instantViolations(await sequence("distance", { wireLock: false }));
+if (distanceControl.length === 0) fail("negative control zero-second camera_distance write while locked did not fail the gate");
+const centreWrites = lockedWriteViolations(await sequence("centre"), "centre", "minimap-centre");
+if (centreWrites.length > 0) fail(centreWrites.join("; "));
+const centreControl = lockedWriteViolations(await sequence("centre", { wireLock: false }), "centre", "minimap-centre");
+if (centreControl.length === 0) fail("negative control minimap-centre write while locked did not fail the gate");
 
 const heldOrders = minimapRun.orders.filter((o) => o.phase === "held").length;
 console.log(`movement sequence ok: ${heldOrders} held ArrowUp orders at uninterrupted cadence, minimap and camera drags release before their write, no write on the following frame`);
 console.log(`negative control release-after-write: fails with "${releaseAfter[0]}"`);
 console.log(`negative control snap-back: fails with "${snapBack[0]}"`);
 console.log(`negative control zero-second write while locked (lock state not passed to modui): fails with "${instantControl[0]}"`);
+console.log(`negative control zero-second camera_distance while locked (lock state not passed): fails with "${distanceControl[0]}"`);
+console.log(`minimap-centre claim: writes nothing while locked (seconds 0 and seconds 1); unwired control fails with "${centreControl[0]}"`);
 
