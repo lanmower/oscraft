@@ -124,7 +124,7 @@ function findByClass(node, cls) {
   return null;
 }
 
-async function sequence(mode, { panSource = extract(PAN_HEADER), releaseAfterWrite = false } = {}) {
+async function sequence(mode, { panSource = extract(PAN_HEADER), releaseAfterWrite = false, wireLock = true } = {}) {
   const trace = { phase: "start", writes: [], orders: [] };
   const clock = { t: 0 };
   const restoreNow = installNow(clock);
@@ -146,6 +146,7 @@ async function sequence(mode, { panSource = extract(PAN_HEADER), releaseAfterWri
       localPlayer: () => 0,
       defaultDistance: () => 1000,
       onCameraTake,
+      isLocked: wireLock ? () => lock.isLocked() : undefined,
     });
     const driver = buildDriver(panSource)({
       heroViewLock: lock,
@@ -197,6 +198,7 @@ async function sequence(mode, { panSource = extract(PAN_HEADER), releaseAfterWri
     } else {
       trace.phase = "instant";
       modUi.push({ kind: "camera", player: 0, x: CAMERA_DRAG.x, y: CAMERA_DRAG.y, zoom: 1, seconds: 0 });
+      trace.phase = "instantFrame";
       frame();
     }
 
@@ -235,6 +237,12 @@ function violations(trace, mode) {
   return out;
 }
 
+function instantViolations(trace) {
+  return trace.writes
+    .filter((w) => w.phase === "instant" && w.lockedAtWrite)
+    .map((w) => `zero-second mod camera event wrote ${w.target} while the hero lock was engaged`);
+}
+
 const minimapRun = await sequence("minimap");
 const cameraRun = await sequence("camera");
 const positiveFound = [...violations(minimapRun, "minimap"), ...violations(cameraRun, "camera")];
@@ -249,13 +257,14 @@ if (snapSource === panSource) fail("negative control snap-back: the panByKeys co
 const snapBack = violations(await sequence("minimap", { panSource: snapSource }), "minimap");
 if (!snapBack.some((v) => v.startsWith("snap-back"))) fail("negative control snap-back did not fail the gate");
 
-const instant = await sequence("instant");
-const openInstant = instant.writes.filter((w) => w.phase === "instant" && w.lockedAtWrite);
-if (openInstant.length === 0) fail("open record stale: a zero-second mod camera event while locked no longer writes; update AGENTS.md and this gate");
+const instantFound = instantViolations(await sequence("instant"));
+if (instantFound.length > 0) fail(instantFound.join("; "));
+const instantControl = instantViolations(await sequence("instant", { wireLock: false }));
+if (instantControl.length === 0) fail("negative control zero-second write while locked did not fail the gate");
 
 const heldOrders = minimapRun.orders.filter((o) => o.phase === "held").length;
 console.log(`movement sequence ok: ${heldOrders} held ArrowUp orders at uninterrupted cadence, minimap and camera drags release before their write, no write on the following frame`);
 console.log(`negative control release-after-write: fails with "${releaseAfter[0]}"`);
 console.log(`negative control snap-back: fails with "${snapBack[0]}"`);
-console.log(`open witness (reported, not fixed): zero-second mod camera event while locked writes at ${openInstant[0].target} with the lock engaged (modui.js step(0) defaults locked=false)`);
+console.log(`negative control zero-second write while locked (lock state not passed to modui): fails with "${instantControl[0]}"`);
 

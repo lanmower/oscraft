@@ -3490,6 +3490,7 @@ async function main() {
     onBind: (bind) => sendInput("bind", bind),
     onSound: manifest.assets?.sounds ? ((name) => sfx.play(name)) : undefined,
     onCameraTake: () => heroViewLock.release(),
+    isLocked: () => heroViewLock.isLocked(),
   });
   window.__modUi = modUi;
   createChat({

@@ -82,7 +82,7 @@ export function watchMatchStart(onChange) {
 }
 
 export function createModUi(opts) {
-  const { root, renderer, localPlayer, defaultDistance, baseUrl, onSound, onBind, onCameraTake = () => {} } = opts;
+  const { root, renderer, localPlayer, defaultDistance, baseUrl, onSound, onBind, onCameraTake = () => {}, isLocked = () => false } = opts;
   const doc = root.ownerDocument;
   const style = doc.createElement("style");
   style.textContent = STYLE;
@@ -175,7 +175,7 @@ export function createModUi(opts) {
       lastCameraAt = now;
       if (dragging) { move = null; onCameraTake(); r.setCamera(to); return; }
       move = { from: { target: [...cam.target], distance: cam.distance }, to, elapsed: 0, seconds: ev.seconds };
-      if (!(ev.seconds > 0)) step(0);
+      if (!(ev.seconds > 0)) step(0, isLocked());
     },
     camera_distance(ev) {
       const r = renderer();
