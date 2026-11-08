@@ -227,6 +227,9 @@ Each row is one change, committed on its own. The review compared docs/CONTROLS.
 - E3-7 (locked walk and strike flag): docs/CONTROLS.md, the two walking bullets of the lock section. Cause: the doc said the arrows and stick walk the hero, without the run model. hero_run.js sets a run to a point RUN_CELLS (64) ahead, a tap under TAP_MAX_S (0.2 s) keeps it running, a hold of 0.2 s or more issues a hold (line 39), and a hostile within HERO_SIGHT_CELLS (28.125, line 5) stops the run. The strike-on-move flag is synced every tick for each player's own hero (controls.lua 523-527, 532), not only the local hero. Witness: js/client/hero-trajectory-check.mjs drives hero_run.js through press, release and re-press. It does not assert the 0.2 s tap and hold threshold or the hostile stop, so both are open for a Phase B run.
 - Status: committed locally; not run in Phase A.
 
+- E3-8 (best unit): docs/CONTROLS.md, the cast bullet of the lock section. Cause: the doc said "the best unit in reach" without defining it. scenarios/moba/targeting.lua best_in_reach sorts by class (class_order, with the aggro target as a class factor), then by distance squared, then by the lower unit id. Witness: none in the repo asserts the full tie order in a pad or key cast; the definition rests on targeting.lua lines 141-155.
+- Status: committed locally; not run in Phase A.
+
 ## Notes for Phase B (observations, not validation)
 
 - A hero walks about 4.7 cells per second on the live map. Reads taken one second apart can look like a stalled hero; use the position log over several seconds.
