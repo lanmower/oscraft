@@ -74,6 +74,24 @@ Phase A changes (owner rule, 2026-11-08, recorded in AGENTS.md) are written and 
 - Committed in a15ca5da. `node scenarios/moba/tools/check-pillar-coverage.mjs` reported `ok (56 of 56 impassable slope cells decorated, one prop each)` on 2026-11-08, and map.osd has 56 pillar-rock prop lines. No A-phase change touches the pillars.
 - Validation in B1 only, through the gate.
 
+## C1. Twin-stick pure-logic check (code only)
+
+- Files: js/client/twin-stick-check.mjs (new). It checks `twin_stick.js`: deadzone edge and scaling, the sign of the left stick's y and of the right stick's y, the first connected pad, button down edges (a held button does not repeat), and `aimPoint` at yaw 0 and 90 degrees.
+- Item: rank 2 below. No check covered `twin_stick.js` before this.
+- Not in the gate (check-all keeps 73 entries). Phase B runs it by hand; adding it to the gate is a separate decision because it changes the baseline.
+- Validation: `node js/client/twin-stick-check.mjs` prints `twin stick checks ok (...)`.
+- Status: written, not run.
+
+## D. Remaining work, twin-stick walking and one-hand lock mode (ranked, 2026-11-08)
+
+1. Live witness that a walking hero strikes while the lock is on (one-hand on), and does not in the red leg. Status: code done (A4, 62c5038b); run is Phase B (B2 explains the invalid earlier attempt).
+2. Pure-logic check for `twin_stick.js`. Status: coded now (C1); run is Phase B.
+3. Lua tests for `cast_at` and one-handed targeting (`one_hand_fire`, `targeting.best_in_range`, controls.lua). Status: open, not coded. The ui dispatch is covered only by the Rust test of `one_hand` (A1); no test covers the cast path, and it needs ability names from the pack.
+4. The lock sequence gate runs without the pad: js/client/movement-sequence-check.mjs stubs `pollPad` and `syncOneHand` as no-ops and passes `padMove` as null. No gate runs a stick-driven locked walk or the one-hand edge. Status: open, not coded.
+5. The control scheme is undocumented: no file in docs/ lists the keys, the pad buttons (0 to 3 cast slots), the stick roles (left walks in lock, right aims a cast), or that the unlocked pad only pans the camera. Status: open, not coded.
+6. Decision: `forwardKey` takes its world point from the pad aim when the right stick is held (play.js, `padAimWorld() ?? pointer`), so keyboard keys carry a pad aim. Confirm this is wanted before documenting it. Status: open, decision.
+- Done and committed, not yet run: strike-on-move flag and sim tests (A2), the one-hand Rust test (A1), the strike-target hook (A3), the witness and verdict (A4, A7), the spec (A5).
+
 ## Notes for Phase B (observations, not validation)
 
 - A hero walks about 4.7 cells per second on the live map. Reads taken one second apart can look like a stalled hero; use the position log over several seconds.
