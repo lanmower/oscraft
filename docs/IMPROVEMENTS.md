@@ -143,7 +143,7 @@ Held and not in this list: GP-CHT-15 repick window (docs/GAMEPLAY_PARITY.md) and
 
 | rank | item | status | witness |
 | --- | --- | --- | --- |
-| 1 | Hero area abilities run their effects: Hoof Stomp (aoe, damage, stun) and Reverse Polarity (aoe, damage, stun, displace toward the caster) | started: witness tests in rust/crates/sim/tests/hero_area_abilities.rs; CI run pending | local cargo test -p sim --test hero_area_abilities: 2 passed; negative control (enemy moved outside the radius) fails |
+| 1 | Hero area abilities run their effects: Hoof Stomp (aoe, damage, stun) and Reverse Polarity (aoe, damage, stun, displace toward the caster) | landed as witnesses: rust/crates/sim/tests/hero_area_abilities.rs | CI https://github.com/lanmower/oscraft/actions/runs/42476198386 (sim-witness.yml): 2 passed; local negative control (enemy moved outside the radius) fails |
 | 2 | Reincarnation Leoric's own passive is unwitnessed (gates 6, 11, 16) | planned | aegis.lua revives on its own timer; the ability itself is not tested |
 | 3 | aoe excluded-filter mask (Hoof Stomp) | planned, needs the 6.88g filter fact | no native or effect field carries it; the Hoof Stomp aoe line has p3=0 |
 | 4 | Aggro attack-move-back and visibility (yU) not ported | planned; war3map.j lines named in AGENTS | AGENTS Not ported line |
