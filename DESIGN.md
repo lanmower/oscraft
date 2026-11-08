@@ -89,3 +89,18 @@ This adds to the cf884aa section above, which stays the authoritative record of 
 - Lag (nocache=16, lock engaged, ArrowUp held 3 s): hero 127 moved 7.5 cells over 163 frames; the camera focus was a median 0.33 cells behind the hero (p95 0.51, max 0.61). The released control was not re-run.
 - Not checked: the 3-cell margin against terrain height (`visibleGroundBounds` assumes ground at y = 0), and the feel by eye.
 - Gate: `node scripts/check-all.mjs` RESULT gates=73 ok=73 failed=0 drift=0 skipped=6 strict=false.
+
+## Phase B for the 2026-11-09 defect pass
+
+Commits under test: 74248dd4, 432dfad7, 4a91f2b8, 7fa39cb8, d4ae1a1e, f7706860 (Phase A). Phase B fixes are listed at the end.
+
+- F1/F2, melee attribution and kinds (live witness, lock on and lock on again): kinds is {melee_hit: 4} and {melee_hit: 6}, all hero-sourced (effect.source === heroId). Lock off is {}, as the control leg requires.
+- F5, first-hit latency (Rust): cargo test -p mod-host --test strike_first_hit_latency passes with the fix. With set_strike_target_now reverted it fails: 'the hero came into reach at advance 0 and launched its first swing at advance 6, more than 1 advance later'. Live first-hit timing is not measured (see PENDING F5).
+- F3, neutral heroes (Rust): cargo test -p mod-host --test neutral_attributed_is_not_a_hero passes with the fix (2 passed). With the bounty.lua change reverted, the first test fails: 'a neutral attributed unit reached a player call: [courier:on_tick: lua error: invalid_player: 255 is outside 0..16, kill_gold:on_tick: lua error: invalid_player: 255 is outside 0..16]'.
+- F4, lobby order (live): the order recorded in PENDING F4 reached data-phase=live: mode chip, claim seat 0 via window.oscraft.lobby('claim', {slot: 0}), Fill with bots (both sides 5/5 READY), hero PUD, Ready, Start match. Join The Sentinel was disabled before Fill (the negotiated() rule).
+- Live witness (strike while walking, three legs, lock on / off / on, stage 78.5,82, startHp 625): verdict {ok: true, reasons: []}. Lock on: strikeSamplesWhileMoving 2, inReachMoving 20, kinds melee_hit 4. Lock off: strikeSamplesWhileMoving 0, inReachMoving 30. Lock on again: strikeSamplesWhileMoving 4, inReachMoving 30, kinds melee_hit 6.
+- Synthetic verdict check: strike-while-walking verdict checks ok (8 cases).
+- Twin-stick check (C1): twin stick checks ok (deadzone, scaling, y sign, pad choice, button edges, aim point).
+- Rust suites, full: cargo test -p sim and cargo test -p mod-host report 34 'test result: ok' lines and no FAILED, panicked or compile error.
+- Gate: node scripts/check-all.mjs prints RESULT gates=73 ok=73 failed=0 drift=0 skipped=6 strict=false. check-moba-image is ok: moba.osdt (SHA-256 3de8103c...) matches the committed image, so no refresh was needed (G2).
+- Staging: WASM=1 SKIP_PACKS=1 bash scripts/dev/stage.sh, with wasm-pack from $HOME/.cargo/bin; the site was laid out at f7706860.
