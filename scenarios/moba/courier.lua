@@ -16,7 +16,6 @@ local SPAWN_AFTER_TICK = 2
 local spawned = false
 local seed = 40503
 local PICKUP_REACH_MILLI = 20312
-local FOLLOW_MILLI = 46875
 local FOLLOW_BREAK_MILLI = 93750
 local ARRIVE_MILLI = 1000
 local TEND_EVERY = TPS // 4
@@ -187,7 +186,7 @@ end
 
 local function stalled(id)
   local kind, tx, ty = game.order_of(id)
-  if kind ~= ORDER_MOVE then
+  if kind ~= ORDER_MOVE or game.within(id, tx, ty, ARRIVE_MILLI) then
     move_marks[id] = false
     return false
   end
@@ -290,12 +289,7 @@ local function tend(id)
     if hero == nil or not game.within(hero, cx, cy, FOLLOW_BREAK_MILLI) then go_home(id) end
     return
   end
-  if not (stuck or idle(id)) then return end
-  if hero ~= nil and game.within(hero, cx, cy, FOLLOW_MILLI) then
-    game.cmd_follow(id, hero)
-  elseif not in_base(id) then
-    go_home(id)
-  end
+  if (stuck or idle(id)) and not in_base(id) then go_home(id) end
 end
 
 local function tend_couriers()

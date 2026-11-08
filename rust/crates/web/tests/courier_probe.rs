@@ -228,7 +228,7 @@ fn holds(game: &Game, unit: u32, item: u32) -> bool {
 }
 
 #[test]
-fn courier_follows_returns_delivers_and_revives_without_commands() {
+fn courier_returns_and_stays_at_base_then_delivers_and_revives_without_commands() {
     let dir = scenario_dir();
     let image = image_for(&dir);
     let (mut game, hero, _) = start_match(&dir, &image);
@@ -289,14 +289,18 @@ fn courier_follows_returns_delivers_and_revives_without_commands() {
         if arrived && home_tick.is_none() && kind == ORDER_MOVE && distance(target, far) > 1.0 {
             home_tick = Some(tick);
         }
-        if home_tick.is_some() && kind == ORDER_FOLLOW {
+        if home_tick.is_some() && kind == ORDER_FOLLOW && follow_tick.is_none() {
             follow_tick = Some(tick);
+        }
+        if home_tick.is_some_and(|h| tick >= h + 300) {
             break;
         }
     }
-    println!("probe return_home tick={home_tick:?} follow tick={follow_tick:?}");
+    let hero_gap = distance(place_of(&units_of(&game), courier), place_of(&units_of(&game), hero));
+    println!("probe return_home tick={home_tick:?} follow tick={follow_tick:?} hero_gap={hero_gap:.2}");
     assert!(home_tick.is_some(), "an idle courier far from its owner returns to base");
-    assert!(follow_tick.is_some_and(|t| home_tick.is_some_and(|h| t > h)), "an idle courier near its owner follows it");
+    assert!(hero_gap <= FOLLOW_CELLS, "the hero stays within the old follow range of the courier at base");
+    assert!(follow_tick.is_none(), "an idle courier at base stays there instead of following its hero nearby");
 
     let lifesteal = lifesteal_item(&game);
     assert!(game.give_item(courier, lifesteal, 1), "the courier takes the item");
@@ -386,15 +390,16 @@ fn courier_route_visits_secret_depot_before_owner_only_when_stop_is_set() {
     let (mut game, hero, _) = start_match(&dir, &image);
     let owner = 1u8;
     let courier = *couriers_of(&units_of(&game), owner).first().expect("the owner's courier");
+    let home = place_of(&units_of(&game), courier);
     let lifesteal = lifesteal_item(&game);
 
     let (direct_at, direct) = carry_trace(&mut game, courier, hero, lifesteal, 400, "stop_off");
     assert!(direct_at.is_some(), "with the stop off the courier hands the item to its owner");
-    assert!(!direct.iter().any(|step| step.kind == ORDER_MOVE), "with the stop off the route has no move order");
+    assert!(!direct.iter().any(|step| step.kind == ORDER_MOVE && distance(step.target, home) > 4.0), "with the stop off the courier never walks away from its base");
 
     chat(&mut game, "-secretstop");
     let (shop_at, shop) = carry_trace(&mut game, courier, hero, lifesteal, 800, "stop_on");
-    let first_move = shop.iter().position(|step| step.kind == ORDER_MOVE);
+    let first_move = shop.iter().position(|step| step.kind == ORDER_MOVE && distance(step.target, home) > 4.0);
     let last_follow = shop.iter().rposition(|step| step.kind == ORDER_FOLLOW);
     assert!(shop_at.is_some(), "with the stop on the item still reaches the owner");
     assert!(first_move.is_some(), "with the stop on the courier moves to the Secret Shop first");
@@ -446,11 +451,12 @@ fn walk_to(game: &mut Game, unit: u32, target: (f64, f64), ticks: usize) -> bool
     false
 }
 
-fn follows_still_hero_from_a_point_thirty_cells_away(owner: u8) {
+fn returns_home_from_a_point_thirty_cells_from_a_still_hero(owner: u8) {
     let dir = scenario_dir();
     let image = image_for(&dir);
     let (mut game, _, heroes) = start_match(&dir, &image);
     let courier = *couriers_of(&units_of(&game), owner).first().expect("the owner's courier spawns at match start");
+    let home = place_of(&units_of(&game), courier);
     let hero = seat_hero(&game, &heroes, owner as usize);
     let hero_start = place_of(&units_of(&game), hero);
     assert!(game.order_move(hero, hero_start.0 as f32, hero_start.1 as f32), "the hero holds still");
@@ -477,18 +483,11 @@ fn follows_still_hero_from_a_point_thirty_cells_away(owner: u8) {
         spot.0, spot.1, courier_at.0, courier_at.1
     );
 
-    let mut follow_tick = None;
-    for tick in 1..=128 {
-        advance(&mut game, 1);
-        if order_of(&game, courier).0 == ORDER_FOLLOW {
-            follow_tick = Some(tick);
-            break;
-        }
-    }
-    println!("probe still_hero follow_tick={follow_tick:?}");
-    assert!(follow_tick.is_some(), "an idle courier follows its still hero when the hero is 28 cells away");
+    let follows = follows_within(&mut game, courier, 128);
+    println!("probe still_hero owner={owner} follows_within_128={follows}");
+    assert!(!follows, "an idle courier 28 cells from its still hero does not follow it");
 
-    let mut closed = f64::MAX;
+    let mut last = courier_at;
     for step in 1..=30 {
         for _ in 0..10 {
             game.order_move(hero, hero_at.0 as f32, hero_at.1 as f32);
@@ -496,7 +495,8 @@ fn follows_still_hero_from_a_point_thirty_cells_away(owner: u8) {
         }
         let now = units_of(&game);
         let (courier_now, hero_now) = (place_of(&now, courier), place_of(&now, hero));
-        closed = distance(courier_now, hero_now);
+        last = courier_now;
+        let closed = distance(courier_now, hero_now);
         let (kind, target) = order_of(&game, courier);
         println!(
             "probe still_hero owner={owner} trace tick={} courier=({:.2},{:.2}) order={kind} target=({:.2},{:.2}) hero=({:.2},{:.2}) gap={closed:.2}",
@@ -522,7 +522,9 @@ fn follows_still_hero_from_a_point_thirty_cells_away(owner: u8) {
             }
         }
     }
-    assert!(closed <= 3.0, "a courier that follows its hero walks up to it");
+    let (before, after) = (distance(spot, home), distance(last, home));
+    println!("probe still_hero owner={owner} home=({:.2},{:.2}) to_home_before={before:.2} to_home_after={after:.2}", home.0, home.1);
+    assert!(after < before, "an idle courier away from base walks back toward its team rect");
 }
 
 fn item_id(game: &Game, name: &str) -> u32 {
@@ -536,20 +538,21 @@ fn item_id(game: &Game, name: &str) -> u32 {
         .unwrap_or_else(|| panic!("item {name}")) as u32
 }
 
-fn follow_tick_within(game: &mut Game, courier: u32, ticks: usize) -> Option<usize> {
-    (1..=ticks).find(|_| {
+fn follows_within(game: &mut Game, courier: u32, ticks: usize) -> bool {
+    (0..ticks).any(|_| {
         advance(game, 1);
         order_of(game, courier).0 == ORDER_FOLLOW
     })
 }
 
 #[test]
-fn courier_follows_its_hero_again_after_an_off_hand_errand() {
+fn courier_returns_to_base_after_an_off_hand_errand() {
     let dir = scenario_dir();
     let image = image_for(&dir);
     let (mut game, hero, _) = start_match(&dir, &image);
     let owner = 1u8;
     let courier = *couriers_of(&units_of(&game), owner).first().expect("the owner's courier spawns at match start");
+    let home = place_of(&units_of(&game), courier);
     let branches = item_id(&game, "branches");
 
     assert!(walk_to(&mut game, hero, FAR_HERO, 1500), "the hero walks out of the home shop's reach");
@@ -560,7 +563,7 @@ fn courier_follows_its_hero_again_after_an_off_hand_errand() {
     println!(
         "probe errand buy gold {gold_before} -> {} feedback={:?}",
         game.gold(owner),
-        lines.iter().filter(|line| line["kind"] == "feedback").map(|line| line["data"].to_string()).collect::<Vec<_>>()
+        lines.iter().map(|line| line.to_string()).collect::<Vec<_>>()
     );
 
     let mut delivered = None;
@@ -582,13 +585,15 @@ fn courier_follows_its_hero_again_after_an_off_hand_errand() {
     );
     assert!(delivered.is_some(), "the courier fetches and delivers the off-hand purchase");
 
-    let follow = follow_tick_within(&mut game, courier, 2000);
-    println!("probe errand follow_tick={follow:?}");
-    assert!(follow.is_some(), "after the errand the courier follows its hero again");
+    let follows = follows_within(&mut game, courier, 2000);
+    let to_home = distance(place_of(&units_of(&game), courier), home);
+    println!("probe errand follows_within_2000={follows} to_home={to_home:.2}");
+    assert!(!follows, "after the errand the courier does not follow its hero");
+    assert!(to_home <= 4.0, "after the errand the courier returns to its team rect");
 }
 
 #[test]
-fn courier_stopped_mid_walk_at_thirty_cells_follows_its_hero() {
+fn courier_stopped_mid_walk_at_thirty_cells_returns_to_base() {
     let dir = scenario_dir();
     let image = image_for(&dir);
     let (mut game, hero, _) = start_match(&dir, &image);
@@ -621,53 +626,65 @@ fn courier_stopped_mid_walk_at_thirty_cells_follows_its_hero() {
     let (tick, gap) = stop_at.expect("the courier walks through a point 28 to 33 cells from its hero");
     println!("probe mid_walk stop_tick={tick} gap={gap:.2} order={} hero_moved={:.2}", order_of(&game, courier).0, distance(hero_at, place_of(&units_of(&game), hero)));
 
+    let stopped = place_of(&units_of(&game), courier);
     call(&mut game, "key", json!({ "key": "s", "phase": "down", "player": LOCAL, "pubkey": OWNER }));
-    let follow = follow_tick_within(&mut game, courier, 300);
+    let follows = follows_within(&mut game, courier, 300);
     let after = place_of(&units_of(&game), courier);
     println!(
-        "probe mid_walk follow_tick={follow:?} order_after_stop={} courier=({:.2},{:.2}) gap={:.2}",
+        "probe mid_walk follows_within_300={follows} order_after_stop={} stopped=({:.2},{:.2}) courier=({:.2},{:.2}) gap={:.2}",
         order_of(&game, courier).0,
+        stopped.0,
+        stopped.1,
         after.0,
         after.1,
         distance(after, place_of(&units_of(&game), hero))
     );
-    assert!(follow.is_some(), "a courier stopped at 28 to 33 cells from its hero follows it");
+    assert!(!follows, "a courier stopped at 28 to 33 cells from its hero does not follow it");
+    assert!(distance(after, courier_at) < distance(stopped, courier_at), "a courier stopped away from base walks back to it");
 }
 
 #[test]
-fn courier_of_team0_follows_still_hero_from_thirty_cells() {
-    follows_still_hero_from_a_point_thirty_cells_away(0);
+fn courier_of_team0_returns_home_from_thirty_cells_of_a_still_hero() {
+    returns_home_from_a_point_thirty_cells_from_a_still_hero(0);
 }
 
 #[test]
-fn courier_of_team1_follows_still_hero_from_thirty_cells() {
-    follows_still_hero_from_a_point_thirty_cells_away(1);
+fn courier_of_team1_returns_home_from_thirty_cells_of_a_still_hero() {
+    returns_home_from_a_point_thirty_cells_from_a_still_hero(1);
+}
+
+const TEAM1_BASE: (f64, f64, f64, f64) = (249.0, 284.0, 51.5, 82.0);
+
+fn in_team1_base(at: (f64, f64)) -> bool {
+    at.0 >= TEAM1_BASE.0 && at.0 <= TEAM1_BASE.1 && at.1 >= TEAM1_BASE.2 && at.1 <= TEAM1_BASE.3
 }
 
 const POCKET_RING: [(i32, i32); 8] = [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)];
-const POCKET_OFFSETS: [(f64, f64); 8] = [(14.0, 0.0), (-14.0, 0.0), (0.0, 14.0), (0.0, -14.0), (10.0, 10.0), (-10.0, -10.0), (10.0, -10.0), (-10.0, 10.0)];
-
-fn wall_pocket(game: &mut Game, courier_at: (f64, f64)) -> (f64, f64) {
-    let map = game.map_size();
-    let (width, height) = (f64::from(map[0]), f64::from(map[1]));
-    let centre = POCKET_OFFSETS
-        .iter()
-        .map(|(dx, dy)| (courier_at.0 + dx, courier_at.1 + dy))
-        .find(|&(x, y)| x > 2.0 && y > 2.0 && x < width - 2.0 && y < height - 2.0)
-        .map(|(x, y)| (x.floor() as i32, y.floor() as i32))
-        .expect("a pocket fits on the map");
-    for (dx, dy) in POCKET_RING {
-        assert!(game.set_cell_blocked(centre.0 + dx, centre.1 + dy, true), "the pocket cell is on the map");
-    }
-    (f64::from(centre.0) + 0.5, f64::from(centre.1) + 0.5)
-}
+const POCKET_OFFSETS: [(f64, f64); 8] = [(40.0, 0.0), (-40.0, 0.0), (0.0, 40.0), (0.0, -40.0), (28.0, 28.0), (-28.0, -28.0), (28.0, -28.0), (-28.0, 28.0)];
 
 fn order_into_pocket(game: &mut Game, courier: u32) -> (f64, f64) {
     let courier_at = place_of(&units_of(game), courier);
-    let pocket = wall_pocket(game, courier_at);
-    assert!(game.order_move(courier, pocket.0 as f32, pocket.1 as f32), "the order point is accepted");
-    println!("probe pocket ordered courier=({:.2},{:.2}) pocket=({:.2},{:.2})", courier_at.0, courier_at.1, pocket.0, pocket.1);
-    pocket
+    let map = game.map_size();
+    let (width, height) = (f64::from(map[0]), f64::from(map[1]));
+    for (dx, dy) in POCKET_OFFSETS {
+        let (x, y) = (courier_at.0 + dx, courier_at.1 + dy);
+        if !(x > 2.0 && y > 2.0 && x < width - 2.0 && y < height - 2.0) {
+            continue;
+        }
+        let centre = (x.floor() as i32, y.floor() as i32);
+        let pocket = (f64::from(centre.0) + 0.5, f64::from(centre.1) + 0.5);
+        for (rx, ry) in POCKET_RING {
+            assert!(game.set_cell_blocked(centre.0 + rx, centre.1 + ry, true), "the pocket cell is on the map");
+        }
+        if game.order_move(courier, pocket.0 as f32, pocket.1 as f32) {
+            println!("probe pocket ordered courier=({:.2},{:.2}) pocket=({:.2},{:.2})", courier_at.0, courier_at.1, pocket.0, pocket.1);
+            return pocket;
+        }
+        for (rx, ry) in POCKET_RING {
+            game.set_cell_blocked(centre.0 + rx, centre.1 + ry, false);
+        }
+    }
+    panic!("a pocket outside the base accepts an order from the courier");
 }
 
 fn hero_walks_thirty_cells_from(game: &mut Game, hero: u32, courier: u32) -> (f64, f64) {
@@ -688,32 +705,43 @@ fn hero_walks_thirty_cells_from(game: &mut Game, hero: u32, courier: u32) -> (f6
 }
 
 #[test]
-fn courier_held_by_an_unreachable_order_point_follows_its_hero_thirty_cells_away() {
+fn courier_held_by_an_unreachable_order_point_stays_in_base_with_its_hero_thirty_cells_away() {
     let dir = scenario_dir();
     let image = image_for(&dir);
     let (mut game, hero, _) = start_match(&dir, &image);
     let courier = *couriers_of(&units_of(&game), 1).first().expect("the owner's courier");
+    let home = place_of(&units_of(&game), courier);
 
     order_into_pocket(&mut game, courier);
     hero_walks_thirty_cells_from(&mut game, hero, courier);
-    let follow = follow_tick_within(&mut game, courier, 300);
-    println!("probe pocket follow_tick={follow:?} order={}", order_of(&game, courier).0);
-    assert!(follow.is_some(), "a courier held by an unreachable order point follows its hero 30 cells away");
+    let follows = follows_within(&mut game, courier, 600);
+    let to_home = distance(place_of(&units_of(&game), courier), home);
+    let (kind, target) = order_of(&game, courier);
+    let at = place_of(&units_of(&game), courier);
+    println!("probe pocket follows_within_600={follows} to_home={to_home:.2} order={kind} target=({:.2},{:.2}) at=({:.2},{:.2}) home=({:.2},{:.2})", target.0, target.1, at.0, at.1, home.0, home.1);
+    assert!(!follows, "a courier held by an unreachable order point does not follow its hero 30 cells away");
+    assert!(in_team1_base(place_of(&units_of(&game), courier)), "a courier held by an unreachable order point stays in its base");
 }
 
 #[test]
-fn courier_held_by_an_unreachable_order_point_follows_after_a_stop() {
+fn courier_held_by_an_unreachable_order_point_stays_in_base_after_a_stop() {
     let dir = scenario_dir();
     let image = image_for(&dir);
     let (mut game, hero, _) = start_match(&dir, &image);
     let courier = *couriers_of(&units_of(&game), 1).first().expect("the owner's courier");
+    let home = place_of(&units_of(&game), courier);
 
     order_into_pocket(&mut game, courier);
     hero_walks_thirty_cells_from(&mut game, hero, courier);
     call(&mut game, "select", json!({ "ids": [courier], "player": LOCAL, "pubkey": OWNER }));
     call(&mut game, "selection", json!({ "ids": [courier], "player": LOCAL, "pubkey": OWNER }));
     call(&mut game, "key", json!({ "key": "s", "phase": "down", "player": LOCAL, "pubkey": OWNER }));
-    let follow = follow_tick_within(&mut game, courier, 300);
-    println!("probe pocket_stop follow_tick={follow:?} order={}", order_of(&game, courier).0);
-    assert!(follow.is_some(), "a courier stopped after an unreachable order point follows its hero 30 cells away");
+    let follows = follows_within(&mut game, courier, 600);
+    let to_home = distance(place_of(&units_of(&game), courier), home);
+    let (kind, target) = order_of(&game, courier);
+    let at = place_of(&units_of(&game), courier);
+    println!("probe pocket_stop follows_within_600={follows} to_home={to_home:.2} order={kind} target=({:.2},{:.2}) at=({:.2},{:.2}) home=({:.2},{:.2})", target.0, target.1, at.0, at.1, home.0, home.1);
+    assert!(!follows, "a courier stopped after an unreachable order point does not follow its hero");
+    assert!(in_team1_base(place_of(&units_of(&game), courier)), "a courier stopped after an unreachable order point stays in its base");
 }
+

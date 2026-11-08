@@ -7,7 +7,6 @@ const PLAYER: u8 = 0;
 const HERO: &str = "antimage";
 const COURIER: &str = "courier";
 const GROUND: &str = "sentinel_creep";
-const ORDER_STOP: u8 = 1;
 const ORDER_FOLLOW: u8 = 5;
 const HERO_CELL: (i32, i32) = (88, 232);
 const COURIER_CELL: (i32, i32) = (92, 232);
@@ -104,10 +103,6 @@ fn order_kind(host: &ModHost, unit: usize) -> u8 {
     host.sim().order_of(unit).0
 }
 
-fn stop(host: &mut ModHost, unit: usize) {
-    host.sim_mut().issue_order_kind(unit, ORDER_STOP, 0, 0).expect("the stop order is accepted");
-}
-
 fn regrow_mod() -> String {
     format!(
         r#"
@@ -140,10 +135,11 @@ return {{
 }
 
 #[test]
-fn a_courier_still_follows_its_hero_after_its_tables_are_cleared_and_regrown() {
+fn a_courier_keeps_its_follow_order_after_its_tables_are_cleared_and_regrown() {
     let mut host = pack_host_with(vec![(REGROW_MOD.to_owned(), regrow_mod())]);
-    spawn(&mut host, PLAYER, HERO, true, HERO_CELL);
+    let hero = spawn(&mut host, PLAYER, HERO, true, HERO_CELL);
     let courier = spawn(&mut host, PLAYER, COURIER, false, COURIER_CELL);
+    host.sim_mut().issue_follow(courier, hero).expect("the follow order is accepted");
     let mut crowd = 0;
     for column in 0..CROWD_COLUMNS {
         for row in 0..CROWD_ROWS {
@@ -154,13 +150,10 @@ fn a_courier_still_follows_its_hero_after_its_tables_are_cleared_and_regrown() {
     }
     assert!(crowd >= CROWD_MIN, "the crowd places at least {CROWD_MIN} units so the courier tables grow (placed {crowd})");
 
-    advance(&mut host, SETTLE_TICKS);
-    stop(&mut host, courier);
-    advance(&mut host, SETTLE_TICKS);
+    advance(&mut host, 2 * SETTLE_TICKS);
     let follows_before = order_kind(&host, courier) == ORDER_FOLLOW;
 
     advance(&mut host, REGROW_TICK - 2 * SETTLE_TICKS + 1);
-    stop(&mut host, courier);
     advance(&mut host, SETTLE_TICKS);
     let follows_after = order_kind(&host, courier) == ORDER_FOLLOW;
     let hook_errors = host.hook_errors().to_vec();
