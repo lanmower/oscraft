@@ -223,3 +223,51 @@ fn a_hostile_creep_that_no_lane_player_owns_is_not_redirected() {
         "6.88g SME (war3map.j 31391) redirects only creeps and towers that players 0 and 1 own"
     );
 }
+
+const SIEGE_CREEP: &str = "creep_siege";
+const IMAGE_LIFE_TICKS: i32 = 60 * 16;
+const IMAGE_PERCENT: i32 = 100;
+
+fn spawn_kind(host: &mut ModHost, kind_name: &str, player: u8, cell_x: i32, cell_y: i32) -> usize {
+    let mut sim = host.sim_mut();
+    let kind = sim.catalog().unit_index(kind_name).expect("the kind is in the moba catalog");
+    let x = fixed::from_int(cell_x) + HALF;
+    let y = fixed::from_int(cell_y) + HALF;
+    sim.spawn_for(player, kind as u32, x, y).expect("the unit fits on the map")
+}
+
+fn enemy_image(host: &mut ModHost, caster: usize, cell_x: i32, cell_y: i32) -> usize {
+    let mut sim = host.sim_mut();
+    let x = fixed::from_int(cell_x) + HALF;
+    let y = fixed::from_int(cell_y) + HALF;
+    sim.spawn_image(caster, x, y, IMAGE_LIFE_TICKS, IMAGE_PERCENT, IMAGE_PERCENT).expect("the enemy hero makes an image")
+}
+
+#[test]
+fn a_right_click_on_an_enemy_illusion_does_not_redirect_the_lane_creep() {
+    let mut host = pack_host();
+    let attacker = hero(&mut host, ATTACKER, ATTACKER_PLAYER, ORIGIN_X, ORIGIN_Y);
+    let enemy = hero(&mut host, ENEMY, ENEMY_PLAYER, ORIGIN_X + FAR_ENEMY_GAP_CELLS, ORIGIN_Y);
+    let image = enemy_image(&mut host, enemy, ORIGIN_X + ENEMY_GAP_CELLS, ORIGIN_Y);
+    let (image_x, image_y) = host.sim().position_fixed(image);
+    host.sim_mut().enroll_attributed(image, image_x, image_y);
+    let lane_creep = lane_creep_beside_attacker(&mut host);
+    host.sim_mut().order_attack_or_approach(attacker, image).expect("the attack order on the illusion is accepted");
+    advance(&mut host, 2);
+    assert_eq!(host.sim().attack_order_of(attacker), image as i32, "the attacker's order lands on the illusion");
+    assert_eq!(
+        aggro_of(&host, lane_creep),
+        -1,
+        "6.88g SUE (war3map.j 31437) redirects only a hero that is not an illusion: IsUnitIllusion(mS)==false"
+    );
+}
+
+#[test]
+fn a_right_click_on_an_enemy_hero_does_not_redirect_a_siege_creep() {
+    let mut f = field();
+    let attacker = f.attacker;
+    let siege = spawn_kind(&mut f.host, SIEGE_CREEP, LANE_CREEP_PLAYER, ORIGIN_X + CREEP_OFFSET_X, ORIGIN_Y + 3);
+    f.host.sim_mut().order_attack_or_approach(attacker, f.enemy).expect("the attack order on the enemy hero is accepted");
+    advance(&mut f.host, 2);
+    assert_eq!(aggro_of(&f.host, siege), -1, "6.88g SME (war3map.j 31391) excludes Aw, the siege units");
+}

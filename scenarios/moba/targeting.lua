@@ -88,7 +88,7 @@ local function note_attack_order(hero)
   local previous = seen_attack_order[hero] or NO_UNIT
   seen_attack_order[hero] = ordered
   if ordered < 0 or ordered == previous or ordered == auto_attack_target[hero] then return end
-  if units.is_hero(ordered) and units.hostile(unit_player(hero), unit_player(ordered)) and game.visible_to(ordered, hero) then
+  if units.is_hero(ordered) and not game.is_illusion(ordered) and units.hostile(unit_player(hero), unit_player(ordered)) and game.visible_to(ordered, hero) then
     targeting.aggro_redirect(hero, ordered)
   end
 end

@@ -1201,7 +1201,7 @@ impl Sim {
         Some(j)
     }
 
-    pub(crate) fn is_illusion(&self, j: usize) -> bool {
+    pub fn is_illusion(&self, j: usize) -> bool {
         self.spell.ill_out.get(j).is_some_and(|&v| v != 0)
     }
 

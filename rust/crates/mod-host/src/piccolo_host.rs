@@ -2362,6 +2362,12 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         s.replace(c, sh.sim.visible(sh.sim.player(u), t));
         Ok(CallbackReturn::Return)
     });
+    native!(ctx, game, "is_illusion", [sh], |c, s| {
+        let sh = sh.borrow();
+        let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
+        s.replace(c, sh.sim.is_illusion(u));
+        Ok(CallbackReturn::Return)
+    });
     native!(ctx, game, "meets_filter", [sh], |c, s| {
         let sh = sh.borrow();
         let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
