@@ -4,6 +4,7 @@ local PENALTY_PCT = 40
 local RELIABLE = "reliable_gold"
 local PENALTY = "buyback_penalty_until"
 local EARNED = "st_gold_earned"
+local NEUTRAL = 255
 
 local hero_ids, hero_by_player, hero_count = {}, {}, -1
 local window = nil
@@ -34,9 +35,9 @@ local function refresh()
   hero_count = count
   hero_ids, hero_by_player = {}, {}
   for i = 0, count - 1 do
-    if game.is_attributed(i) then
+    local player = game.is_attributed(i) and unit_player(i) or NEUTRAL
+    if player ~= NEUTRAL then
       hero_ids[#hero_ids + 1] = i
-      local player = unit_player(i)
       if hero_by_player[player] == nil then hero_by_player[player] = i end
     end
   end
