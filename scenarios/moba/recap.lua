@@ -10,6 +10,8 @@ local MIN_DEATHS = 2
 local FIGHT_TICKS = FIGHT_SECONDS * TICKS
 local SHOW_TICKS = SHOW_SECONDS * TICKS
 local DAMAGE_TICKS = config.rule("kill_window_s") * TICKS
+local HITS_KEPT = 64
+local SOURCES_SHOWN = 3
 
 local recap = { FIGHT_SECONDS = FIGHT_SECONDS }
 
@@ -18,6 +20,7 @@ local fight = nil
 local visible = nil
 local fights = 0
 local closed = nil
+local hit_rings = {}
 
 local function describe(unit)
   if unit == nil then return { class = "unknown" } end
@@ -37,6 +40,48 @@ local function killer_of(victim, killer)
   return describe(killer)
 end
 
+function recap.on_hit(attacker, victim, dealt)
+  local ring = hit_rings[victim]
+  if ring == nil then
+    ring = { next = 1, items = {} }
+    hit_rings[victim] = ring
+  end
+  ring.items[ring.next] = { attacker = attacker, dealt = dealt, tick = game.ticks() }
+  ring.next = ring.next % HITS_KEPT + 1
+end
+
+local function damage_sources(victim)
+  local ring = hit_rings[victim]
+  if ring == nil then return {} end
+  local now = game.ticks()
+  local by_source = {}
+  local order = {}
+  for i = 1, HITS_KEPT do
+    local hit = ring.items[i]
+    if hit ~= nil and now - hit.tick <= DAMAGE_TICKS then
+      local key = hit.attacker >= 0 and hit.attacker or -1
+      local entry = by_source[key]
+      if entry == nil then
+        entry = { who = describe(key >= 0 and key or nil), raw = 0 }
+        by_source[key] = entry
+        order[#order + 1] = entry
+      end
+      entry.raw = entry.raw + hit.dealt
+    end
+  end
+  local out = {}
+  for _ = 1, SOURCES_SHOWN do
+    local best = nil
+    for _, entry in ipairs(order) do
+      if not entry.taken and (best == nil or entry.raw > best.raw) then best = entry end
+    end
+    if best == nil then break end
+    best.taken = true
+    out[#out + 1] = { who = best.who, amount = best.raw // config.FIX }
+  end
+  return out
+end
+
 function recap.hero_died(victim, killer, killer_player, victim_player, flow)
   local now = game.ticks()
   local hitters = {}
@@ -51,6 +96,7 @@ function recap.hero_died(victim, killer, killer_player, victim_player, flow)
     victim = describe(victim),
     killer = killer_of(victim, killer),
     hitters = hitters,
+    sources = damage_sources(victim),
     lost = own and own.lost or 0,
   }
   last_death[victim] = death

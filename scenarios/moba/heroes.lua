@@ -243,7 +243,7 @@ local function pay_kill(unit, killer, killer_player, victim_player)
     bounty.open_window()
     kill_gold.hero_died(unit, killer, killer_player, victim_player)
     local flow = bounty.close_window()
-    if not aegis.reincarnating(unit) then recap.hero_died(unit, killer, killer_player, victim_player, flow) end
+    if not aegis.reincarnating(unit) then recap.hero_died(unit, kill_gold.owner_hero(killer, killer_player), killer_player, victim_player, flow) end
   end
   if killer == nil or killer == unit or aegis.reincarnating(unit) then return end
   local credit = units.is_hero(unit) and kill_gold.owner_hero(killer, killer_player) or killer

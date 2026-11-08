@@ -963,6 +963,13 @@ local function hitters_text(death)
   return join(names, ", ")
 end
 
+local function sources_text(death)
+  if #death.sources == 0 then return TEXT.recap.death.sourceNone end
+  local parts = {}
+  for _, source in ipairs(death.sources) do parts[#parts + 1] = killer_text(source.who) .. " " .. tostring(source.amount) end
+  return join(parts, ", ")
+end
+
 local function death_recap(hero)
   local death = recap.last_death(hero)
   if death == nil then return {} end
@@ -970,7 +977,7 @@ local function death_recap(hero)
   return {
     label(T.title, "accent"),
     label(T.killedBy .. " " .. killer_text(death.killer), "warn"),
-    label(T.source .. ": " .. T.sourceUnknown, "muted"),
+    label(T.source .. ": " .. sources_text(death), "muted"),
     label(T.hitBy .. " " .. hitters_text(death), "muted"),
     label(T.goldLost .. " " .. tostring(death.lost) .. TEXT.costSuffix, "warn"),
     label(T.diedAt .. " " .. recap_clock(death.tick), "muted"),

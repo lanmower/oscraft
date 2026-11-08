@@ -196,7 +196,7 @@
         "title": "You died",
         "killedBy": "Killed by",
         "source": "Damage by source",
-        "sourceUnknown": "not recorded: the sim keeps no per-source totals",
+        "sourceNone": "nothing in the damage window",
         "hitBy": "Hit by",
         "hitByNone": "nobody",
         "goldLost": "Gold lost",

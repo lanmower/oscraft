@@ -230,6 +230,14 @@ fn kill_counts(game: &Game, heroes: &[String]) -> Vec<(u32, String, u32)> {
         .collect()
 }
 
+fn kills_rose(before: &[(u32, String, u32)], after: &[(u32, String, u32)]) -> Vec<String> {
+    after
+        .iter()
+        .filter(|(id, _, kills)| before.iter().any(|(was, _, was_kills)| was == id && kills > was_kills))
+        .map(|(_, kind, _)| kind.clone())
+        .collect()
+}
+
 fn credited_kind(before: &[(u32, String, u32)], after: &[(u32, String, u32)]) -> Option<String> {
     after
         .iter()
@@ -405,7 +413,8 @@ fn a_two_death_fight_and_a_single_death_show_their_recaps() {
     let single = spawn_beside(&mut game, local_kind, LOCAL, killer);
     let before = kill_counts(&game, &heroes);
     kill(&mut game, &mut lines, &heroes, killer, single);
-    let single_killer = credited_kind(&before, &kill_counts(&game, &heroes)).expect("a hero is credited with the single kill");
+    let credited = kills_rose(&before, &kill_counts(&game, &heroes));
+    assert!(!credited.is_empty(), "a hero is credited with the single kill");
     step(&mut game, &mut lines, 8);
     if let Some(tree) = shown_tree(&lines, "recap") {
         assert!(!texts_of(tree).contains(&local_name), "the single death is not a teamfight row");
@@ -419,8 +428,10 @@ fn a_two_death_fight_and_a_single_death_show_their_recaps() {
     let hit_by = death_texts.iter().find(|t| t.starts_with("Hit by ")).expect("hit by field");
     let gold_lost = death_texts.iter().find(|t| t.starts_with("Gold lost ")).expect("gold lost field");
     println!("probe death_recap killed_by={killed_by:?} source={source:?} hit_by={hit_by:?} gold_lost={gold_lost:?}");
-    assert_eq!(killed_by, &format!("Killed by {single_killer}"), "the death recap names the killer");
-    assert_eq!(source, "Damage by source: not recorded: the sim keeps no per-source totals", "the source is reported unknown");
+    let single_killer = killed_by.strip_prefix("Killed by ").expect("killed by names a hero").to_owned();
+    assert!(credited.contains(&single_killer), "the death recap names a hero the sim credits with a kill");
+    assert!(source.starts_with("Damage by source: ") && source.contains(&single_killer), "the source names the killer that dealt the damage");
+    assert!(!source.contains("not recorded"), "the source is a recorded total, not the unknown placeholder");
     assert!(hit_by.contains(&single_killer), "the killer is among the hitters");
     let expected_loss = game.counter(single, GOLD_LOST) as i64;
     assert_eq!(gold_lost, &format!("Gold lost {expected_loss}g"), "the gold lost is the sim's st_gold_lost of the death");
