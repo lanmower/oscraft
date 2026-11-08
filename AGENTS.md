@@ -160,6 +160,7 @@ No comments in source: durable facts live here, names carry intent.
 
 ## Facts found by troubleshooting
 
+- The lobby starts a match only in this order: a mode chip (`All Pick`), then `Fill with bots` or every seat held, then `Start match`. Before a mode is chosen or the seats are filled, the lobby refuses with `Negotiate the lobby first.`, and that line stays until the next call. `?ci=1` only installs the `__ci` debug hooks; a page without it reaches live the same way. A browser run drives the lobby through the DOM buttons by their text, and `window.oscraft.lobby(call, args)` sends the same ui calls.
 - Dated troubleshooting receipts and their witnesses live in DESIGN.md and commit bodies; AGENTS.md holds durable facts.
 - Re-stage `.dev-site` from HEAD with SKIP_PACKS=1 before browser witnesses; a stale snapshot holds a bot-filled host at tick 0.
 - `node scripts/check-all.mjs` is the one local validation entry point: 59 gates, one soft drift check and 5 external-input dependencies reported with reasons (`--strict` fails on drift). The owner approved reconciling ability_fx.lua, turn_rates.lua and routes.osd to their generators; those outputs are now current and drift is zero. DESIGN.md 2026-11-06 records the survey, the drift and the reconciliation.
