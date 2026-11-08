@@ -86,7 +86,7 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 | `data-generators-current-drift` | high | Regenerate three shipped outputs that already fail their own checks | landed: owner approved hy3d's patch; all three --check now pass |
 | `data-generators-external-input-contract` | medium | Pin external hy3d inputs instead of relying on a machine path or local checkout | landed: unit.ini and ability.ini pinned by sha256 in scenarios/moba/tools/external-688g.tsv; scripts/check-external-inputs.mjs fails on a mismatch |
 | `data-generators-temp-copy-no-check` | medium | Compare no-check generators through a temp copy rather than adding 25 ad hoc flags | landed: check-generators-temp-copy.mjs (3 regenerations identical; tamper control caught) |
-| `data-generators-osdt-exclusion` | low | Exclude the committed stale .osdt snapshot from source-drift checks | planned |
+| `data-generators-osdt-exclusion` | low | Exclude the committed stale .osdt snapshot from source-drift checks | resolved differently: the image was stale by 4,086 bytes, so it is refreshed from mapexport and compared by the manual gate `scripts/check-moba-image.mjs`, not excluded. Witness: the gate exited 1 on the stale image and passes after the refresh (`moba image ok: 944977 bytes sha256 aea61d47...`) |
 | `data-generators-hero-model-completeness` | high | Assert nonempty hero models in the same gate that checks hero bodies | landed |
 
 ### Rust crates and sim

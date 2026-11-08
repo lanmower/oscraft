@@ -46,6 +46,7 @@ const GATE_CHECKS = [
   "scripts/check-pack-allow-list.mjs",
   "scripts/check-staged-secrets.mjs",
   "scripts/check-hero-models.mjs",
+  "scripts/check-moba-image.mjs",
   "scenarios/moba/tools/check-camp-placement.mjs",
   "scenarios/moba/tools/check-mode-hud.mjs",
   "js/client/camera-mouse-check.mjs",
