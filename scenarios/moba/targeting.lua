@@ -77,6 +77,18 @@ function targeting.aggro_redirect(attacker, victim)
   end
 end
 
+local seen_attack_order, auto_attack_target = {}, {}
+
+local function note_attack_order(hero)
+  local ordered = game.attack_order(hero)
+  local previous = seen_attack_order[hero] or NO_UNIT
+  seen_attack_order[hero] = ordered
+  if ordered < 0 or ordered == previous or ordered == auto_attack_target[hero] then return end
+  if units.is_hero(ordered) and units.hostile(unit_player(hero), unit_player(ordered)) then
+    targeting.aggro_redirect(hero, ordered)
+  end
+end
+
 function targeting.nearest_enemy(unit)
   local _, range = game.weapon(unit)
   local x, y = unit_position(unit)
@@ -146,6 +158,7 @@ function targeting.on_tick()
   end
   for u = 0, get_unit_count() - 1 do
     if unit_alive(u) then
+      if units.is_hero(u) then note_attack_order(u) end
       local target = targeting.strike_choice(u)
       local order = game.order_of(u)
       if order == ORDER_ATTACK_MOVE or order == ORDER_PATROL then
@@ -159,12 +172,14 @@ end
 
 function targeting.on_died(unit)
   died_at_tick[unit] = game.ticks()
+  seen_attack_order[unit] = NO_UNIT
 end
 
 function targeting.on_state_replaced()
   cache_tick = -1
   aggro_holds = {}
   died_at_tick, picked_at_tick = {}, {}
+  seen_attack_order, auto_attack_target = {}, {}
 end
 
 function targeting.on_hit(attacker, victim)
@@ -177,7 +192,10 @@ function targeting.on_attacked(unit)
   local dx, dy = tx - ux, ty - uy
   if kind == ORDER_MOVE and dx * dx + dy * dy > config.FIX * config.FIX then return end
   local target = targeting.nearest_enemy(unit)
-  if target ~= nil then game.cmd_attack(unit, target) end
+  if target ~= nil then
+    auto_attack_target[unit] = target
+    game.cmd_attack(unit, target)
+  end
 end
 
 function targeting.on_behaviour(unit, trigger, action, ability, slot, target_kind)
