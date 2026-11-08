@@ -14,7 +14,7 @@ Engaging the lock sends `one_hand` on to the match. While it is on:
 
 The lock is released by the `#hero-lock` button again, or by any explicit camera move that takes the camera off the hero: a minimap drag, a right-button drag pan, a mod camera drag, a podium or flow camera restore, and the `window.oscraft.centreOn` debug hook. Each release sends `one_hand` off. A minimap centre click does nothing while the lock is on. A targeted cast from the keyboard then arms a target. With quick-cast on for that slot, the arm fires on key release at the pointer's world point, and a unit-target ability with no unit there is refused (noTarget). Otherwise the next click places the target. Quick-cast is toggled per slot by the `quickcast` ui call. A pad cast uses the right stick's aim point.
 
-Without the lock, the arrow keys and the left stick pan the camera.
+Without the lock, the arrow keys and the left stick pan the camera, and so does the pointer at the screen edge. With the lock on, the screen edge does nothing.
 
 ## Gamepad
 

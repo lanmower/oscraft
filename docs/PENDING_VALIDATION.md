@@ -230,6 +230,9 @@ Each row is one change, committed on its own. The review compared docs/CONTROLS.
 - E3-8 (best unit): docs/CONTROLS.md, the cast bullet of the lock section. Cause: the doc said "the best unit in reach" without defining it. scenarios/moba/targeting.lua best_in_reach sorts by class (class_order, with the aggro target as a class factor), then by distance squared, then by the lower unit id. Witness: none in the repo asserts the full tie order in a pad or key cast; the definition rests on targeting.lua lines 141-155.
 - Status: committed locally; not run in Phase A.
 
+- E3-9 (edge pan): docs/CONTROLS.md, the unlocked-camera paragraph of the lock section. Cause: the doc listed only the arrows and the left stick as camera pan. play.js edge-of-screen pan (lines 1344-1350) runs only when unlocked; the locked branch returns early (lines 1332-1335). Witness: js/client/movement-sequence-check.mjs runs the locked camera path against a fake DOM, but it does not drive a pointer at the screen edge; the edge rule rests on the play.js lines above.
+- Status: committed locally; not run in Phase A.
+
 ## Notes for Phase B (observations, not validation)
 
 - A hero walks about 4.7 cells per second on the live map. Reads taken one second apart can look like a stalled hero; use the position log over several seconds.
