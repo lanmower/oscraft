@@ -11,6 +11,7 @@ local KINDS = 5
 
 local cfg = nil
 local held = {}
+local regen_ended = {}
 
 local runes = {}
 
@@ -111,6 +112,10 @@ local function take_back_bonuses_of_ended_effects(u, st)
   end
 end
 
+function runes.on_regen_end(hook)
+  regen_ended[#regen_ended + 1] = hook
+end
+
 function runes.tick(now)
   for u, st in pairs(held) do
     local alive = unit_alive(u)
@@ -126,8 +131,12 @@ function runes.tick(now)
       if st.regen ~= nil then
         local hp = unit_hp(u)
         local full = hp >= game.max_hp(u) and game.mana(u) >= game.max_mana(u)
-        if now >= st.regen.due or hp < st.regen.hp or full then
+        local expired = now >= st.regen.due
+        if expired or full or hp < st.regen.hp then
           st.regen = nil
+          if expired or full then
+            for _, hook in ipairs(regen_ended) do hook(u, now) end
+          end
         else
           st.regen.hp = hp
         end

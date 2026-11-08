@@ -1,6 +1,7 @@
 local config = require("config")
 local bounty = require("bounty")
 local protection = require("protection")
+local runes = require("runes")
 local units = require("units")
 
 local TPS = config.TICKS_PER_SECOND
@@ -107,6 +108,14 @@ local function start_regen(unit, now)
   game.set_counter(unit, REGEN_UNTIL, now + settings().sip_ticks)
   apply_regen(unit, now)
 end
+
+local function end_regen(unit, now)
+  if game.counter(unit, REGEN_UNTIL) == 0 then return end
+  game.set_counter(unit, REGEN_UNTIL, 0)
+  apply_regen(unit, now)
+end
+
+runes.on_regen_end(end_regen)
 
 local function drink_water(caster, now)
   local list = rows_where(caster, function(name) return name == FULL or name == LOAN_FULL end)
@@ -339,9 +348,7 @@ bottle.on_tick = function()
 end
 
 bottle.on_died = function(unit)
-  if game.counter(unit, REGEN_UNTIL) == 0 then return end
-  game.set_counter(unit, REGEN_UNTIL, 0)
-  apply_regen(unit, game.time())
+  end_regen(unit, game.time())
 end
 
 bottle.on_action = function(name, args)
