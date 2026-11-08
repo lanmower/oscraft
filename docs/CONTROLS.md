@@ -76,3 +76,9 @@ The right stick's aim point is also the world point that a keyboard key carries 
 ## The unlocked pad
 
 With the lock off the left stick pans the camera, but the pad is not limited to that. The buttons cast, and the right stick sets the aim for those casts.
+
+## Casting, range and refusals
+
+A targeted cast whose target is out of reach walks the hero to 90 percent of the cast range and fires when it arrives. The walk waits up to 10 seconds; after that the cast is refused (`range`). This applies with the lock on and off.
+
+With the lock on, a unit-or-point ability with no unit in reach fires at the hero's own position. A plain unit ability with no unit in reach is refused (`noTarget`). Other refusals: `noHero` when no hero casts, `noAbility` when the slot holds no ability, and `cooldown` while the slot is cooling down.

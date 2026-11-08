@@ -221,6 +221,9 @@ Each row is one change, committed on its own. The review compared docs/CONTROLS.
 - E3-5 (keyboard order): docs/CONTROLS.md, keyboard rule 0. Cause: the doc put custom keys before courier keys, but controls.lua handles a quick-cast release and Escape, then courier home and the courier keys (lines 655-667), and only then resolve_key, which reads CFG.custom (line 594). So a custom key bound to a courier letter never reaches the custom table while a courier is selected. The doc now states the code's order. Choice made: the doc follows the code, because the courier keys replace the hero action while a courier is selected (table row D A W R F G) and the custom table is documented as overriding defaults, not courier keys. Owner may redirect: moving the custom lookup above the courier block is a one-line change in controls.lua, and this row would then need to flip. Witness: none in the repo covers custom and courier keys together; not run in Phase A.
 - Status: committed locally; not run in Phase A. Decision recorded for the owner.
 
+- E3-6 (casting omissions): docs/CONTROLS.md, a new "Casting, range and refusals" section at the end. Cause: the doc did not describe the walk into range (controls.lua walk_then_fire, move_into_reach at 90 percent of the range, CFG.walkSeconds = 10 at line 29, the `range` refusal at lines 539-541), the lock-on fallback of a unit-or-point ability to the hero's position (one_hand_fire, lines 421-422), or the refusals noHero, noAbility, cooldown, noTarget (cast_key, cast_at). Witness: rust/crates/mod-host/tests/pad_cast_at.rs covers the pad no-target cases; the walk and the range refusal have no test in the repo, so they rest on the code lines above.
+- Status: committed locally; not run in Phase A.
+
 ## Notes for Phase B (observations, not validation)
 
 - A hero walks about 4.7 cells per second on the live map. Reads taken one second apart can look like a stalled hero; use the position log over several seconds.
