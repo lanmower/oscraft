@@ -125,7 +125,8 @@ function runes.tick(now)
       if st.double ~= nil and now >= st.double.due then st.double = nil end
       if st.regen ~= nil then
         local hp = unit_hp(u)
-        if now >= st.regen.due or hp < st.regen.hp then
+        local full = hp >= game.max_hp(u) and game.mana(u) >= game.max_mana(u)
+        if now >= st.regen.due or hp < st.regen.hp or full then
           st.regen = nil
         else
           st.regen.hp = hp
