@@ -206,6 +206,13 @@ Phase A changes (owner rule, 2026-11-08, recorded in AGENTS.md) are written and 
 - Not wired into scripts/check-all.mjs: the existing strike-while-walking-check.mjs is not wired either, so this is a manual witness like it.
 - Status: written, not run.
 
+## E3. Control scheme doc review against the code (Phase A pass 2026-11-09, item 2)
+
+Each row is one change, committed on its own. The review compared docs/CONTROLS.md with scenarios/moba/controls.lua, js/client/play.js, twin_stick.js, hero_view_lock.js, hero_run.js and targeting.lua, read-only.
+
+- E3-1 (pad no-target and aim at rest): docs/CONTROLS.md, the pad table (buttons 0 to 3, lock off cell) and a new keyboard paragraph. Cause: the doc said buttons 0 to 3 cast at the aim point for every slot, but controls.lua cast_at sends no-target abilities to cast_key with no point, so they fire at the hero (controls.lua 439-441, 454). With the stick at rest the aim is the hero's own position (play.js 1317). Witness: rust/crates/mod-host/tests/pad_cast_at.rs (a no-target cast is not cast at the aim point, lines 184-200). Keyboard no-target fire point: controls.lua 443-444.
+- Status: committed locally; the witness is not run in Phase A.
+
 ## Notes for Phase B (observations, not validation)
 
 - A hero walks about 4.7 cells per second on the live map. Reads taken one second apart can look like a stalled hero; use the position log over several seconds.

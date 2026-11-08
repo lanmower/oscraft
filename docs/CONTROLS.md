@@ -24,7 +24,7 @@ The pad is read through the Gamepad API. The layout below is the standard mappin
 | --- | --- | --- |
 | Left stick | Walks the hero, forward is away from the camera | Pans the camera |
 | Right stick | Sets an aim point; ignored by casts, still used for the key world point (see below) | Sets the aim point for a cast, 8 cells from the hero in the camera direction |
-| Buttons 0 to 3 (A, B, X, Y) | Cast slots 0 to 3, the same as Q, W, E, R, at the best unit in reach | Cast slots 0 to 3, at the right-stick aim point |
+| Buttons 0 to 3 (A, B, X, Y) | Cast slots 0 to 3, the same as Q, W, E, R, at the best unit in reach. The aim is ignored | Cast slots 0 to 3. A targeted cast goes to the right-stick aim point (the hero's own position while the stick is at rest). A no-target ability fires at the hero, whatever the aim |
 | Other buttons | Not bound | Not bound |
 
 The sticks have a deadzone of 0.2. Values past it are rescaled so the stick reaches full speed at full deflection. The y axis is inverted so pushing a stick up is forward. A button cast fires once per press, not once per frame it is held.
@@ -66,6 +66,8 @@ Keys are forwarded to the match, which decides what they do. For each key, the f
 | Shift M | Toggle mute |
 
 Arrow keys: in the lock they walk the hero, without it they pan the camera.
+
+A no-target ability (no unit or point target) has nothing to pick. From the keyboard it fires at the pointer's world point, or at the hero when the key carries none. From the pad it fires at the hero, with the lock on or off.
 
 ## Right stick and keyboard together
 
