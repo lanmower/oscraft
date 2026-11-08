@@ -27,7 +27,7 @@ The pad is read through the Gamepad API. The layout below is the standard mappin
 | Buttons 0 to 3 (A, B, X, Y) | Cast slots 0 to 3, the same as Q, W, E, R, at the best unit in reach. The aim is ignored | Cast slots 0 to 3. A targeted cast goes to the right-stick aim point (the hero's own position while the stick is at rest). A no-target ability fires at the hero, whatever the aim |
 | Other buttons | Not bound | Not bound |
 
-The sticks have a deadzone of 0.2. Values past it are rescaled so the stick reaches full speed at full deflection. The y axis is inverted so pushing a stick up is forward. A button cast fires once per press, not once per frame it is held.
+The sticks have a deadzone of 0.2, applied to each axis. Past it the value is rescaled to 0 to 1. With the lock off that scales the camera pan speed. With the lock on the left stick sets only a direction: the hero is ordered to a point 64 cells ahead in that direction, so deflection does not change its walk speed. The y axis is inverted so pushing a stick up is forward. A button cast fires once per press, not once per frame it is held.
 
 Buttons 0 to 3 cast whether or not the lock is engaged, because the pad is polled every frame. Only the stick roles change with the lock.
 
