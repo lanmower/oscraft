@@ -5019,7 +5019,7 @@ impl ModHost {
                     let _ = sim.set_hold_override(unit, hold);
                 }
                 Cmd::SetStrike { unit, target } => {
-                    let _ = sim.set_strike_target(unit, target);
+                    let _ = sim.set_strike_target_now(unit, target);
                 }
                 Cmd::SkillUp { unit, slot } if sim.alive(unit) => {
                     let _ = sim.rank_up(unit, slot);

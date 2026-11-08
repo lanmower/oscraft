@@ -218,6 +218,14 @@ impl Sim {
         Ok(())
     }
 
+    pub fn set_strike_target_now(&mut self, i: usize, target: i32) -> Result<(), &'static str> {
+        self.set_strike_target(i, target)?;
+        if self.alive(i) && self.channel_left[i] == 0 && self.cooldown[i] == 0 {
+            self.attack(i);
+        }
+        Ok(())
+    }
+
     pub fn order_attack(&mut self, i: usize, target: usize) -> Result<(), crate::rules::Refusal> {
         use crate::rules::Refusal;
         if i >= self.n || self.alive[i] == 0 || target >= self.n || self.alive[target] == 0 {
