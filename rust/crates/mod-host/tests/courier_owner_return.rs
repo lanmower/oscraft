@@ -167,17 +167,26 @@ fn a_loan_copy_of_a_rune_stays_on_the_courier_when_it_is_dropped() {
     assert!(holds(&host, courier, "bottle_illusion_loan"), "the courier still holds the loan copy");
 }
 
+fn owners_basic_courier(host: &ModHost, player: u8) -> usize {
+    let sim = host.sim();
+    (0..sim.count())
+        .find(|&u| sim.alive(u) && sim.player(u) == player && sim.kind_name(u) == Some("courier"))
+        .expect("the map gives the owner a basic courier at its home point")
+}
+
 #[test]
-fn a_pickup_takes_only_the_callers_owned_items_from_couriers_in_reach() {
+fn a_pickup_moves_the_callers_owned_items_onto_the_owners_basic_courier() {
     let mut host = probe_host();
     let hero = spawn_unit(&mut host, "antimage", 1, SPOT.0, SPOT.1);
-    let courier = spawn_unit(&mut host, "courier", 1, SPOT.0, SPOT.1);
-    give(&mut host, courier, "ring_of_regen", 1);
-    give(&mut host, courier, "enchanted_mango", 2);
-    dispatch(&mut host, "probe_pickup", courier, 1);
-    advance(&mut host, 4);
-    assert!(holds(&host, hero, "ring_of_regen"), "the caller's item reaches the hero");
-    assert!(!holds(&host, courier, "ring_of_regen"), "the caller's item leaves the courier");
-    assert!(holds(&host, courier, "enchanted_mango"), "another player's item stays on the courier");
-    assert!(!holds(&host, hero, "enchanted_mango"), "another player's item never reaches the caller's hero");
+    let basic = owners_basic_courier(&host, 1);
+    let flying = spawn_unit(&mut host, "courier_flying", 1, SPOT.0, SPOT.1);
+    give(&mut host, flying, "ring_of_regen", 1);
+    give(&mut host, flying, "enchanted_mango", 2);
+    dispatch(&mut host, "probe_pickup", flying, 1);
+    advance(&mut host, 3);
+    assert!(holds(&host, basic, "ring_of_regen"), "6.88g SKV (19315) puts the caller's item on the owner's basic courier Md, not the caller");
+    assert!(!holds(&host, flying, "ring_of_regen"), "the item leaves the courier that was asked to pick up");
+    assert!(!holds(&host, hero, "ring_of_regen"), "the item does not reach the hero by the pickup itself");
+    assert!(holds(&host, flying, "enchanted_mango"), "another player's item stays on the courier");
+    assert!(!holds(&host, basic, "enchanted_mango"), "another player's item never reaches the owner's basic courier");
 }

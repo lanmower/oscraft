@@ -102,6 +102,7 @@ local function repick(player, args)
   local i = seat_index(args)
   local s = i ~= nil and slots()[i] or nil
   if s == nil or s.hero == nil then return end
+  if draft.repick_closed() then return core.say(player, text.repickLate, 10) end
   s.hero = nil
   s.ready = false
   add_cost(s.owner, REPICK_COST)

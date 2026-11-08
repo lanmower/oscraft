@@ -155,14 +155,23 @@ local function drop_rows(courier, rows, x, y)
   return ids
 end
 
-local function schedule_pickup(hero, ids)
-  if #ids > 0 then pending_pickups[#pending_pickups + 1] = { hero = hero, ids = ids, at = game.ticks() + PICKUP_DELAY_TICKS } end
+local function schedule_pickup(unit, ids)
+  if #ids > 0 then pending_pickups[#pending_pickups + 1] = { unit = unit, ids = ids, at = game.ticks() + PICKUP_DELAY_TICKS } end
+end
+
+local function owner_courier(who)
+  for _, id in ipairs(game.units(who)) do
+    if is_courier(id) and ground_courier(id) then return id end
+  end
+  return nil
 end
 
 local function pickup_items(id, who)
   local hero = bounty.hero_of(who)
   local home = courier_homes[who]
   if hero == nil or not unit_alive(hero) or home == nil then return false, "noHero" end
+  local base = owner_courier(who)
+  if base == nil then return false, "noCourier" end
   local hx, hy = unit_position(hero)
   local dropped = {}
   for _, courier in ipairs(game.units(nil)) do
@@ -174,7 +183,7 @@ local function pickup_items(id, who)
       for _, gid in ipairs(drop_rows(courier, rows, config.milli(home.x), config.milli(home.y))) do dropped[#dropped + 1] = gid end
     end
   end
-  schedule_pickup(hero, dropped)
+  schedule_pickup(base, dropped)
   return true
 end
 
@@ -183,8 +192,8 @@ local function collect_pickups(now)
   for _, job in ipairs(pending_pickups) do
     if now < job.at then
       left[#left + 1] = job
-    elseif unit_alive(job.hero) then
-      for _, gid in ipairs(job.ids) do game.cmd_pickup_item(job.hero, gid) end
+    elseif unit_alive(job.unit) then
+      for _, gid in ipairs(job.ids) do game.cmd_pickup_item(job.unit, gid) end
     end
   end
   pending_pickups = left

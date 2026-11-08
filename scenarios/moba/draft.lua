@@ -18,6 +18,7 @@ local CD_RESERVE = 150
 local CD_RESERVE_X = 180
 local CD_POOL = 28
 local CD_POOL_X = 42
+local REPICK_WINDOW_TICKS = 20 * TPS
 local RD_POOL = 24
 local RD_STAGE = 20
 local RV_CLOSE = 57
@@ -206,6 +207,7 @@ end
 local function finish()
   D.done = true
   D.phase = "done"
+  D.finished_tick = game.ticks()
   for i = 1, SEATS do
     local s = slots()[i]
     if s.owner ~= nil then s.ready = true end
@@ -963,6 +965,10 @@ function draft.pending()
 end
 
 function draft.mode() return D ~= nil and D.mode or nil end
+
+function draft.repick_closed()
+  return D ~= nil and D.finished_tick ~= nil and game.ticks() - D.finished_tick >= REPICK_WINDOW_TICKS
+end
 
 function draft.begin()
   local code = active_code()
