@@ -548,6 +548,7 @@ return {
   ["marci_guardian"] = { school = "holy", form = "orbit", size = 1175, speed = 928, dur = 2730, hits = 5 },
   ["marci_special_delivery"] = { school = "shadow", form = "nova", size = 900, speed = 900, dur = 665, hits = 1 },
   ["marci_unleash"] = { school = "fire", form = "beam", size = 1124, speed = 948, dur = 918, hits = 1 },
+  ["marker"] = { school = "poison", form = "aura", size = 1009, speed = 952, dur = 2900, hits = 1 },
   ["mars_arena_of_blood"] = { school = "blood", form = "zone", size = 1033, speed = 969, dur = 2725, hits = 1 },
   ["mars_bulwark"] = { school = "physical", form = "orbit", size = 1110, speed = 1112, dur = 3180, hits = 5 },
   ["mars_dauntless"] = { school = "arcane", form = "aura", size = 1254, speed = 1062, dur = 2450, hits = 1 },

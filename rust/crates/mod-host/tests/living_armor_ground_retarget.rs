@@ -7,6 +7,12 @@ const TREANT: &str = "treant";
 const LIVING_ARMOR: &str = "treant_living_armor";
 const TOWER: &str = "tower";
 const FOUNTAIN: &str = "fountain";
+const MARKER: &str = "marker";
+const FOE_PLAYER: u8 = 1;
+const KILL_DAMAGE: i32 = 30000;
+const MARKED_TOWER_CELL: (i32, i32) = (100, 240);
+const PLAIN_TOWER_CELL: (i32, i32) = (104, 236);
+const FAR_CASTER_CELL: (i32, i32) = (84, 240);
 const CASTER_PLAYER: u8 = 0;
 const CASTER_CELL: (i32, i32) = (92, 240);
 const TOWER_CELL: (i32, i32) = (100, 240);
@@ -152,3 +158,51 @@ fn living_armor_cast_on_the_ground_skips_an_allied_structure_outside_the_xz_list
     );
 }
 
+
+fn kill(host: &mut ModHost, unit: usize) {
+    host.sim_mut().damage_target(-1, FOE_PLAYER, fixed::from_int(KILL_DAMAGE), unit as i32);
+    host.advance().expect("advance the match");
+    assert!(!host.sim().alive(unit), "the tower dies from the damage");
+}
+
+#[test]
+fn living_armor_cast_on_the_ground_skips_an_allied_xz_structure_that_carries_the_marker() {
+    let mut host = pack_host();
+    let caster = treant(&mut host, FAR_CASTER_CELL);
+    let marked = spawn_kind(&mut host, TOWER, CASTER_PLAYER, MARKED_TOWER_CELL);
+    let plain = spawn_kind(&mut host, TOWER, CASTER_PLAYER, PLAIN_TOWER_CELL);
+    assert!(host.sim_mut().give_ability(marked, 0, MARKER), "the marker ability is granted to the tower");
+    learn_living_armor(&mut host, caster);
+    settle(&mut host);
+    let marked_before = regen(&host, marked);
+    let plain_before = regen(&host, plain);
+    cast_living_armor_at(&mut host, caster, marked);
+    assert_eq!(
+        regen(&host, marked),
+        marked_before,
+        "6.88g O_V (war3map.j 6023) excludes a unit with ability A04R (Marker) from the Living Armor target"
+    );
+    assert!(
+        regen(&host, plain) > plain_before,
+        "with the marked tower excluded, the nearest xZ tower takes the armour"
+    );
+}
+
+#[test]
+fn living_armor_cast_on_the_ground_skips_a_dead_allied_xz_structure() {
+    let mut host = pack_host();
+    let caster = treant(&mut host, FAR_CASTER_CELL);
+    let dead = spawn_kind(&mut host, TOWER, CASTER_PLAYER, MARKED_TOWER_CELL);
+    let plain = spawn_kind(&mut host, TOWER, CASTER_PLAYER, PLAIN_TOWER_CELL);
+    learn_living_armor(&mut host, caster);
+    settle(&mut host);
+    kill(&mut host, dead);
+    let dead_before = regen(&host, dead);
+    let plain_before = regen(&host, plain);
+    cast_living_armor_at(&mut host, caster, dead);
+    assert_eq!(regen(&host, dead), dead_before, "6.88g Ty (war3map.j 4894) excludes a dead unit from the target");
+    assert!(
+        regen(&host, plain) > plain_before,
+        "with the dead tower excluded, the nearest live xZ tower takes the armour"
+    );
+}

@@ -53,3 +53,4 @@ behaviour("creep_thunder_clap_furbolg_ai", trigger="attacked", action="use_abili
 behaviour("creep_shockwave_ai", trigger="attacked", action="use_ability", ability="creep_shockwave")
 behaviour("creep_frenzy_ai", trigger="attacked", action="use_ability", ability="creep_frenzy")
 behaviour("creep_roshan_slam_ai", trigger="attacked", action="use_ability", ability="creep_roshan_slam")
+ability("marker", 0, 0, "none", [])

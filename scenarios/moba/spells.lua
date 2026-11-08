@@ -213,10 +213,19 @@ local LIVING_ARMOR_STRUCTURE_KINDS = {
 }
 local GROUND_RETARGET = {
   zuus_lightning_bolt = { radius = 350, enemy = true, hero = true },
-  treant_living_armor = { radius = 9999, enemy = false, hero = true, kinds = LIVING_ARMOR_STRUCTURE_KINDS },
+  treant_living_armor = { radius = 9999, enemy = false, hero = true, kinds = LIVING_ARMOR_STRUCTURE_KINDS, excludes_marked = true },
   abyssal_underlord_dark_rift = { radius = 4000, enemy = false, structure = true },
 }
 local REFERENCE_UNITS_PER_CELL = 64
+
+local MARKER_ABILITY = "marker"
+
+local function has_ability(unit, name)
+  for _, row in ipairs(game.unit_abilities(unit)) do
+    if row.name == name then return true end
+  end
+  return false
+end
 
 local function ground_retarget(caster, rule, x, y)
   local caster_player = unit_player(caster)
@@ -224,7 +233,8 @@ local function ground_retarget(caster, rule, x, y)
   for _, u in ipairs(units.units_near(x, y, rule.radius * config.FIX // REFERENCE_UNITS_PER_CELL)) do
     local enemy = units.hostile(caster_player, unit_player(u)) and true or false
     local fits = (rule.hero and units.is_hero(u)) or (rule.structure and units.is_structure(u)) or (rule.kinds ~= nil and rule.kinds[game.unit_kind(u)] == true)
-    if unit_alive(u) and enemy == rule.enemy and fits and (not enemy or game.visible_to(caster, u)) then
+    local marked = rule.excludes_marked and has_ability(u, MARKER_ABILITY)
+    if unit_alive(u) and enemy == rule.enemy and fits and not marked and (not enemy or game.visible_to(caster, u)) then
       local ux, uy = unit_position(u)
       local dx, dy = ux - x, uy - y
       local distance = dx * dx + dy * dy
