@@ -18,21 +18,43 @@ for _, g in ipairs(GROUPS) do
   end
 end
 
+local RESERVE_SPEND = "upg_reserve"
+local RESERVE_TICK = "upg_reserve_tick"
+
+local function reserved_spend(player)
+  local now = game.ticks()
+  local total = 0
+  for _, u in ipairs(game.units(player)) do
+    if game.counter(u, RESERVE_TICK) == now then total = total + game.counter(u, RESERVE_SPEND) end
+  end
+  return total
+end
+
+local function reserve(unit, cost)
+  local now = game.ticks()
+  local spent = 0
+  if game.counter(unit, RESERVE_TICK) == now then spent = game.counter(unit, RESERVE_SPEND) end
+  game.set_counter(unit, RESERVE_TICK, now)
+  game.set_counter(unit, RESERVE_SPEND, spent + cost)
+end
+
 function upgrade_request(player, unit, group)
   local g
   for _, candidate in ipairs(GROUPS) do
     if candidate.name == group then g = candidate end
   end
   if g == nil then return false end
+  if not game.alive(unit) or unit_player(unit) ~= player then return false end
   local key = "upg:" .. group
   local done = game.counter(unit, key)
   if g.stacking == "once" and done > 0 then return false end
   if done >= g.levels then return false end
   local level = done + 1
   local cost = level * g.cost_per_level
-  if game.gold(player) < cost then return false end
+  if game.gold(player) - reserved_spend(player) < cost then return false end
   game.cmd_add_gold(player, -cost)
   game.set_counter(unit, key, level)
+  reserve(unit, cost)
   local name = group .. "_" .. level
   game.set_research_bit(player, name, true)
   for _, u in ipairs(game.units(player)) do
