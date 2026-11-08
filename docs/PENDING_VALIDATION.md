@@ -86,11 +86,41 @@ Phase A changes (owner rule, 2026-11-08, recorded in AGENTS.md) are written and 
 
 1. Live witness that a walking hero strikes while the lock is on (one-hand on), and does not in the red leg. Status: code done (A4, 62c5038b); run is Phase B (B2 explains the invalid earlier attempt).
 2. Pure-logic check for `twin_stick.js`. Status: coded now (C1); run is Phase B.
-3. Lua tests for `cast_at` and one-handed targeting (`one_hand_fire`, `targeting.best_in_range`, controls.lua). Status: open, not coded. The ui dispatch is covered only by the Rust test of `one_hand` (A1); no test covers the cast path, and it needs ability names from the pack.
-4. The lock sequence gate runs without the pad: js/client/movement-sequence-check.mjs stubs `pollPad` and `syncOneHand` as no-ops and passes `padMove` as null. No gate runs a stick-driven locked walk or the one-hand edge. Status: open, not coded.
-5. The control scheme is undocumented: no file in docs/ lists the keys, the pad buttons (0 to 3 cast slots), the stick roles (left walks in lock, right aims a cast), or that the unlocked pad only pans the camera. Status: open, not coded.
-6. Decision: `forwardKey` takes its world point from the pad aim when the right stick is held (play.js, `padAimWorld() ?? pointer`), so keyboard keys carry a pad aim. Confirm this is wanted before documenting it. Status: open, decision.
+3. Lua tests for `cast_at` and one-handed targeting. Status: coded (E1, 9f0b6d87); run is Phase B.
+4. The lock sequence gate ran without the pad (stubbed pollPad and syncOneHand). Status: coded (E2, 117ead67); run is Phase B.
+5. The control scheme was undocumented. Status: coded (E3, d427d88b); review is Phase B.
+6. Keyboard keys carry the pad aim while the right stick is held. Status: decided to keep and document (E4); no code change.
 - Done and committed, not yet run: strike-on-move flag and sim tests (A2), the one-hand Rust test (A1), the strike-target hook (A3), the witness and verdict (A4, A7), the spec (A5).
+
+## E1. Lua cast_at and one-hand targeting tests (ranked 3)
+
+- Files: rust/crates/mod-host/tests/pad_cast_at.rs (new, six tests): one-hand off casts the unit under the aim; one-hand on ignores the aim and takes the best unit in reach; one-hand on with nothing in reach refuses noTarget and casts nothing; one-hand off with nothing under the aim refuses noTarget; a no-target ability casts at the caster whatever the aim; an empty slot refuses noAbility. Commit 9f0b6d87.
+- Validation: `cargo test -p mod-host --test pad_cast_at`. The tests read `last_cast` (target, x, y) and the refusal lines from `take_ui`.
+- Things to check when it runs: `cast_range` for Hellfire Blast (8203 read as milli-cells, enemy placed 4 cells away); whether the Vampiric Aura cast is accepted (it has no target and no cooldown, so the no-target test depends on it); the `position_fixed` tuple type matching `last_cast`.
+- Not in the gate; cargo test runs by hand in Phase B.
+- Status: written, not run.
+
+## E2. Sequence gate with the real pad path (ranked 4)
+
+- Files: js/client/movement-sequence-check.mjs. `pollPad`, `padAimWorld`, `castAtAim` and `syncOneHand` are extracted from play.js and run against an injected gamepad list; `padMove` is a local of the driver. A new `pad` mode walks the hero with the left stick in lock, checks one `one_hand` send on lock and one off on release, and checks button 1 casts once at the right-stick aim (108, 100) while button 4 casts nothing. A `stubPad` negative control (no-op pollPad and syncOneHand) must fail. Commit 117ead67.
+- Validation: `node js/client/movement-sequence-check.mjs`. This file IS a gate entry (check-all line 58), so Phase B's gate run covers it. The existing controls still run first, so a failure in the new pad mode shows after their lines.
+- Things to check when it runs: the extraction headers (`function pollPad() {`, `function padAimWorld() {`, `function castAtAim(slot) {`, `function syncOneHand() {`) still match play.js; the stick forward order has z below the start (forward is -z at yaw 0); `navigator` and `sendInput` injected under the same names.
+- Status: written, not run. Changes gate behaviour, so it counts toward B1.
+
+## E3. Control scheme doc (ranked 5)
+
+- Files: docs/CONTROLS.md (new). Lists the lock's effect on the arrows and sticks, the pad buttons 0 to 3 as cast slots 0 to 3 (Q, W, E, R), the stick roles with and without the lock, the keyboard in resolution order (courier keys first when a courier is selected; ability hotkeys; Ctrl groups; the key table from moba_ui.json), and the ping wheel on G and V. Commit d427d88b.
+- Differs from the ranked item as written: item 5 said the unlocked pad only pans the camera. The code also casts with the buttons and aims casts with the right stick while the lock is off. The doc says what the code does.
+- Things to check in Phase B by reading against the code again: the courier letter keys (D A W R F G) replace the hero keys only while a courier is selected; Shift M is mute, and plain M is the move command; the ping-wheel release rule. These were read from the code, not run.
+- Validation: review, no gate. The check-doc-claims checker covers a fixed list of docs that does not include this file.
+- Status: written, not reviewed against a running client.
+
+## E4. Decision on keyboard keys carrying the pad aim (ranked 6)
+
+- Decision: keep the current behaviour and document it. `forwardKey` takes its world point from `padAimWorld()` when the right stick is held, otherwise from the pointer, and this applies with the lock on and off. No code change.
+- Recorded in docs/CONTROLS.md under "Right stick and keyboard together".
+- Validation: none beyond E3's review.
+- Status: decided; documented.
 
 ## Notes for Phase B (observations, not validation)
 
