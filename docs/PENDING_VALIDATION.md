@@ -216,6 +216,8 @@ Each row is one change, committed on its own. The review compared docs/CONTROLS.
 - Status: committed locally; not run in Phase A.
 - E3-3 (stick speed): docs/CONTROLS.md, the gamepad paragraph after the table. Cause: the doc said deflection sets full speed, but with the lock on hero_view_lock.js (lines 35-38) normalises the stick vector and hero_run.js (RUN_CELLS 64, line 3) orders a point 64 cells ahead, so only the direction changes. Only the unlocked pan scales with magnitude (play.js 1338-1339, 1352). The deadzone rescale matches twin_stick.js (lines 9-10) and is per axis. Witness: none in the repo asserts the ordered point. js/client/hero-trajectory-check.mjs checks order gaps and speed, not the point's distance, so the claim rests on the code lines above. A Phase B browser run would have to show the locked hero's order is 64 cells ahead.
 - Status: committed locally; not run in Phase A.
+- E3-4 (lock release): docs/CONTROLS.md, the lock section's release paragraph. Cause: the doc named only the button as the release, but the code also releases on any explicit camera write: the right-button drag pan (play.js 1505-1511; camera_mouse.js maps the right button to pan), the podium and flow camera restores (play.js 1225-1229, 1726-1731, 2145-2150), a mod camera take (play.js 3564, modui.js onCameraTake), the minimap drag, and window.oscraft.centreOn (play.js 3792-3794). Every release goes through syncOneHand (play.js 1321-1326), which sends `one_hand` off. A minimap centre click writes nothing while locked. Witness: js/client/movement-lock-release-check.mjs and js/client/movement-sequence-check.mjs, both to run in Phase B.
+- Status: committed locally; not run in Phase A.
 
 ## Notes for Phase B (observations, not validation)
 
