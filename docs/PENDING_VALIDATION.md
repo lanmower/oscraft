@@ -188,6 +188,13 @@ Phase A changes (owner rule, 2026-11-08, recorded in AGENTS.md) are written and 
 - Command (Phase B): `cargo test -p mod-host` (includes the pack-loading tests that load every module, so a Lua syntax or require error in effects.lua or bounty.lua shows there), and `cargo test -p sim`.
 - Status: not run.
 
+## H1. Live timing hooks: swing point and sim tick (Phase A pass 2026-11-09, open item 1)
+
+- Files: rust/crates/sim/src/swing.rs (`swing_point`, the remaining attack point of a unit's swing); rust/crates/web/src/lib.rs (`unit_swing_point`, bounds-checked like `unit_strike_of`); js/client/play.js (`window.__ciSwingPoint`, `window.__ciTicks`, next to `__ciStrikeOf`).
+- Cause: the live witness had no sim tick and no remaining attack point, so it could not time a first hit in ticks. `localGame.ticks()` already existed in the wasm; the point did not.
+- Validation (Phase B): `WASM=1 SKIP_PACKS=1 bash scripts/dev/stage.sh` must build the new export (wasm-bindgen fails if a missing export is called from play.js only at runtime, so the timed witness in H2 is the check that it exists: `__ciSwingPoint` must return a number, not null, for the hero).
+- Status: written, not run.
+
 ## Notes for Phase B (observations, not validation)
 
 - A hero walks about 4.7 cells per second on the live map. Reads taken one second apart can look like a stalled hero; use the position log over several seconds.

@@ -73,6 +73,10 @@ impl Sim {
         self.swing.recover.get(i).copied().unwrap_or(0)
     }
 
+    pub fn swing_point(&self, i: usize) -> i32 {
+        self.swing.point.get(i).copied().unwrap_or(0)
+    }
+
     pub fn weapon_missile(&self, i: usize) -> Option<(i32, i32)> {
         (self.swing_left.get(i).copied().unwrap_or(0) > 0 && self.swing.point[i] == 0).then(|| (self.swing.mx[i], self.swing.my[i]))
     }

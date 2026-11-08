@@ -187,6 +187,15 @@ impl Game {
         }
     }
 
+    pub fn unit_swing_point(&self, unit: u32) -> i32 {
+        let i = unit as usize;
+        if i < self.host.sim().count() {
+            self.host.sim().swing_point(i)
+        } else {
+            -1
+        }
+    }
+
     pub fn unit_periods(&self) -> Vec<i32> {
         (0..self.host.sim().count())
             .filter(|&i| self.host.sim().alive(i))

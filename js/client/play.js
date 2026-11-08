@@ -3766,6 +3766,8 @@ if (params.get("ci") === "1") {
   window.__ciHp = (unitId) => (localGame ? localGame.unit_hp(unitId) : null);
   window.__ciRecentFx = () => (fx ? fx.recentEffects() : []);
   window.__ciStrikeOf = (unitId) => (localGame ? localGame.unit_strike_of(unitId) : null);
+  window.__ciSwingPoint = (unitId) => (localGame ? localGame.unit_swing_point(unitId) : null);
+  window.__ciTicks = () => (localGame ? localGame.ticks() : null);
   window.__ciFocus = (x, z) => { if (renderer3d) renderer3d.setCamera({ target: [x, groundAt(x, z), z] }); };
   window.__ciToScreen = (x, z) => worldToScreen(x, z, groundAt(x, z));
   window.__ciKillSide = (player) => {
