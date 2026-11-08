@@ -72,11 +72,11 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 
 | id | risk | finding | status |
 | --- | --- | --- | --- |
-| `firstdraw-stale-modulepreloads` | medium | The deployed bundled page still preloads 39 unbundled local modules and loads rooms.js loose | planned, needs a named test |
+| `firstdraw-stale-modulepreloads` | medium | The deployed bundled page still preloads 39 unbundled local modules and loads rooms.js loose | planned: at HEAD the count is 64 and rooms.js loads loose at play.html:228; the fix (scripts/bundle-client.mjs, check-site-bundle.mjs bundled-page check) is held outside the tree because it needs the pages.yml bundle step replaced, which only a real Pages deploy can prove |
 | `firstdraw-probe-median-worldbuilt-request-unit` | low | The first-draw probe reports the slower sample as the median, calls distinct paths requests, and measures worldBuilt rather than a frame | planned, needs a named test |
 | `firstdraw-boot-critical-path` | medium | loadSim starts 99 Lua fetches and the 944 KB image alongside the 601 KB wasm, and the Pages Lua bundle is dead output | planned, needs a named test |
-| `firstdraw-cold-warm-cache-probe` | low | The first-draw probe is cold-only and uses different headers and MIME types from the pack-cache probe, so cache reuse is never measured | planned, needs a named test |
-| `firstdraw-shipped-asset-prune-check` | medium | layout-site.sh ships the whole 113 MB scenarios tree while a measured first draw transfers 3 MB, with no check of which loose files are actually requested | planned, needs a named test |
+| `firstdraw-cold-warm-cache-probe` | low | The first-draw probe is cold-only and uses different headers and MIME types from the pack-cache probe, so cache reuse is never measured | landed: scripts/check-first-draw-median.mjs (5 fixtures) |
+| `firstdraw-shipped-asset-prune-check` | medium | layout-site.sh ships the whole 113 MB scenarios tree while a measured first draw transfers 3 MB, with no check of which loose files are actually requested | landed as a report gate: scripts/check-shipped-assets.mjs (38.7% of 113.1 MB unreferenced; deletes nothing) |
 
 ### Generators and committed data
 
