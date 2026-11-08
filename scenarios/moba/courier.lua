@@ -1,5 +1,6 @@
 local config = require("config")
 local bounty = require("bounty")
+local courier_homes = require("courier_homes_688g")
 local kinds = require("courier_kinds")
 local M = {}
 
@@ -110,7 +111,10 @@ end
 
 local DROP_EXEMPT = {
   bottle_illusion = true, bottle_haste = true, bottle_double_damage = true,
-  bottle_regeneration = true, bottle_invisibility = true, bottle_bounty = true, aegis = true,
+  bottle_regeneration = true, bottle_invisibility = true, bottle_bounty = true,
+  bottle_illusion_loan = true, bottle_haste_loan = true, bottle_double_damage_loan = true,
+  bottle_regeneration_loan = true, bottle_invisibility_loan = true, bottle_bounty_loan = true,
+  aegis = true,
 }
 local PICKUP_DELAY_TICKS = 2
 local pending_pickups = {}
@@ -124,14 +128,22 @@ local function in_base(id)
   return x >= config.milli(rect.x0) and x <= config.milli(rect.x1) and y >= config.milli(rect.y0) and y <= config.milli(rect.y1)
 end
 
+local function ground_courier(id)
+  return not kinds.flying[game.unit_kind(id)]
+end
+
+local function drop_point(id, owner)
+  local home = owner ~= nil and courier_homes[owner] or nil
+  if home ~= nil and not game.hostile(unit_player(id), owner) and (ground_courier(id) or in_base(id)) then
+    return config.milli(home.x), config.milli(home.y)
+  end
+  return unit_position(id)
+end
+
 local function drop_items(id)
-  local x, y = unit_position(id)
-  local home = in_base(id)
   for _, row in ipairs(game.unit_items(id)) do
     if not DROP_EXEMPT[row.name] then
-      local owner = row.owner
-      local start = home and owner ~= nil and not game.hostile(unit_player(id), owner) and game.seat_start(owner) or nil
-      game.cmd_drop_item(id, row.slot, start and start.x or x, start and start.y or y)
+      game.cmd_drop_item(id, row.slot, drop_point(id, row.owner))
     end
   end
   return true
@@ -149,8 +161,8 @@ end
 
 local function pickup_items(id, who)
   local hero = bounty.hero_of(who)
-  local start = game.seat_start(who)
-  if hero == nil or not unit_alive(hero) or start == nil then return false, "noHero" end
+  local home = courier_homes[who]
+  if hero == nil or not unit_alive(hero) or home == nil then return false, "noHero" end
   local hx, hy = unit_position(hero)
   local dropped = {}
   for _, courier in ipairs(game.units(nil)) do
@@ -159,7 +171,7 @@ local function pickup_items(id, who)
       for _, row in ipairs(game.unit_items(courier)) do
         if row.owner == who then rows[#rows + 1] = row end
       end
-      for _, gid in ipairs(drop_rows(courier, rows, start.x, start.y)) do dropped[#dropped + 1] = gid end
+      for _, gid in ipairs(drop_rows(courier, rows, config.milli(home.x), config.milli(home.y))) do dropped[#dropped + 1] = gid end
     end
   end
   schedule_pickup(hero, dropped)

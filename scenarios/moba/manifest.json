@@ -70,6 +70,7 @@
     "draft_data": "draft_data.lua",
     "courier": "courier.lua",
     "courier_kinds": "courier_kinds.lua",
+    "courier_homes_688g": "courier_homes_688g.lua",
     "counter": "core/counter.lua",
     "effects": "effects.lua",
     "glyph": "glyph.lua",
