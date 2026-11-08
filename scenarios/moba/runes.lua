@@ -85,7 +85,6 @@ function runes.apply(u, kind, now)
       st.regen = {}
     end
     st.regen.due = now + cfg.regen_ticks
-    st.regen.hp = unit_hp(u)
   elseif kind == INVISIBILITY then
     record(u).invisible = now + cfg.invisibility_ticks
     game.apply_status(u, "invisibility", cfg.invisibility_ticks)
@@ -116,6 +115,13 @@ function runes.on_regen_end(hook)
   regen_ended[#regen_ended + 1] = hook
 end
 
+local function end_regen_rune(u, now)
+  local st = held[u]
+  if st == nil or st.regen == nil then return end
+  st.regen = nil
+  for _, hook in ipairs(regen_ended) do hook(u, now) end
+end
+
 function runes.tick(now)
   for u, st in pairs(held) do
     local alive = unit_alive(u)
@@ -129,17 +135,8 @@ function runes.tick(now)
       if st.haste ~= nil and now >= st.haste then st.haste = nil end
       if st.double ~= nil and now >= st.double.due then st.double = nil end
       if st.regen ~= nil then
-        local hp = unit_hp(u)
-        local full = hp >= game.max_hp(u) and game.mana(u) >= game.max_mana(u)
-        local expired = now >= st.regen.due
-        if expired or full or hp < st.regen.hp then
-          st.regen = nil
-          if expired or full then
-            for _, hook in ipairs(regen_ended) do hook(u, now) end
-          end
-        else
-          st.regen.hp = hp
-        end
+        local full = unit_hp(u) >= game.max_hp(u) and game.mana(u) >= game.max_mana(u)
+        if full or now >= st.regen.due then end_regen_rune(u, now) end
       end
       take_back_bonuses_of_ended_effects(u, st)
       if st.haste == nil and st.double == nil and st.regen == nil and st.invisible == nil then held[u] = nil end
@@ -156,8 +153,9 @@ end
 
 runes.on_cast = function(unit) end_invisibility_rune(unit) end
 
-runes.on_hit = function(attacker)
+runes.on_hit = function(attacker, victim, dealt, state, attack)
   if attacker ~= nil and attacker >= 0 then end_invisibility_rune(attacker) end
+  if attack and victim ~= nil and victim >= 0 then end_regen_rune(victim, game.ticks()) end
 end
 
 return runes
