@@ -212,6 +212,8 @@ Each row is one change, committed on its own. The review compared docs/CONTROLS.
 
 - E3-1 (pad no-target and aim at rest): docs/CONTROLS.md, the pad table (buttons 0 to 3, lock off cell) and a new keyboard paragraph. Cause: the doc said buttons 0 to 3 cast at the aim point for every slot, but controls.lua cast_at sends no-target abilities to cast_key with no point, so they fire at the hero (controls.lua 439-441, 454). With the stick at rest the aim is the hero's own position (play.js 1317). Witness: rust/crates/mod-host/tests/pad_cast_at.rs (a no-target cast is not cast at the aim point, lines 184-200). Keyboard no-target fire point: controls.lua 443-444.
 - Status: committed locally; the witness is not run in Phase A.
+- E3-2 (keyboard quick-cast): docs/CONTROLS.md, the lock section's release paragraph. Cause: the doc said a keyboard targeted cast always arms for the next click. controls.lua cast_key marks the arm `quick` when the slot's quick-cast setting is on (quick_cast_on, controls.lua 396, used at 434), and release_quick_cast (controls.lua 496-508) fires it on key release at the pointer point, refusing noTarget for a unit target with no unit there. The setting is toggled by toggle_quick_cast (controls.lua 400) through the `quickcast` ui call. Witness: the controls.lua code above; no test is run in Phase A.
+- Status: committed locally; not run in Phase A.
 
 ## Notes for Phase B (observations, not validation)
 

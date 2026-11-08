@@ -12,7 +12,7 @@ Engaging the lock sends `one_hand` on to the match. While it is on:
 - Casting a targeted ability (Q, W, E, R, the item keys, or a pad button) fires at the best unit in reach. The aim is ignored, so a right-stick aim does not change the target. A unit-target ability with no unit in reach is refused (noTarget). A point-target ability with no unit in reach fires at the hero's own position.
 - A walking hero strikes its target in reach, because one-hand sets the strike-on-move flag.
 
-Releasing the lock sends `one_hand` off. A targeted cast from the keyboard then arms a target that the next click places, and a pad cast uses the right stick's aim point.
+Releasing the lock sends `one_hand` off. A targeted cast from the keyboard then arms a target. With quick-cast on for that slot, the arm fires on key release at the pointer's world point, and a unit-target ability with no unit there is refused (noTarget). Otherwise the next click places the target. Quick-cast is toggled per slot by the `quickcast` ui call. A pad cast uses the right stick's aim point.
 
 Without the lock, the arrow keys and the left stick pan the camera.
 
