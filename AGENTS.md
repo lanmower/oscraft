@@ -10,6 +10,7 @@ No comments in source: durable facts live here, names carry intent.
 - **ENGINE_DEFAULT is the Custom ruleset** (6.88g w3i game_data_setting=0): a value 6.88g leaves to the engine takes the Custom value, not Melee.
 - Generator output is never hand-edited: edit the generator.
 - A PRD row closes only when its commit body has `Row:`, `Witness:` and `Status: resolved|stale`.
+- Two-phase work (owner rule, 2026-11-08). Phase A: write code and tests only, no builds, tests, gates, witnesses or browser runs, and record each change in docs/PENDING_VALIDATION.md. Phase B: build, witness, fix and push in one pass. Do not push during Phase A.
 
 ## Build, CI, Pages, dev loop
 
