@@ -15,15 +15,33 @@ export const CONFIG = {
   abortHp: 100,
   targetOwner: 255,
   reachCells: 10,
+  attackCells: 2.5,
+  arriveCells: 0.8,
+  oscillateCells: 1.6,
 };
 
 export async function strikeWhileWalkingLeg(config) {
+  const ATTACK_KINDS = new Set(["melee_hit", "attack_arrow"]);
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const me = window.__ciLocalPlayer();
   const roster = () => window.__ciRoster();
   const heroUnit = () => roster().find((u) => u.player === me && window.__ciIsHero(u.id));
   const unitById = (id) => roster().find((u) => u.id === id);
   const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+  function overlapLength(previous, now) {
+    for (let k = Math.min(previous.length, now.length); k > 0; k -= 1) {
+      let same = true;
+      for (let j = 0; j < k && same; j += 1) same = previous[previous.length - k + j] === now[j];
+      if (same) return k;
+    }
+    return 0;
+  }
+  function pointToward(target, from, cells) {
+    const dx = from.x - target.x;
+    const dz = from.z - target.z;
+    const length = Math.hypot(dx, dz) || 1;
+    return { x: target.x + (dx / length) * cells, z: target.z + (dz / length) * cells };
+  }
 
   const emptyLeg = (aborted) => ({
     ready: false,
@@ -59,7 +77,7 @@ export async function strikeWhileWalkingLeg(config) {
   if (!ready) return { ...emptyLeg("hero did not reach the stage at start hp"), heroHp: window.__ciHp(heroId) };
 
   const startHp = window.__ciHp(heroId);
-  const seenEffects = new Set(window.__ciRecentFx().map((effect) => JSON.stringify(effect)));
+  let previousFx = window.__ciRecentFx().map((effect) => JSON.stringify(effect));
   const targetsSeen = new Set();
   const kinds = {};
   let samples = 0;
@@ -72,6 +90,8 @@ export async function strikeWhileWalkingLeg(config) {
   let previousTarget = -1;
   let previousTargetHp = null;
   let lastOrderAt = 0;
+  let creep = null;
+  let toward = null;
   let aborted = null;
 
   const legStart = Date.now();
@@ -85,19 +105,23 @@ export async function strikeWhileWalkingLeg(config) {
       aborted = "hero below abort hp";
       break;
     }
-    let nearest = null;
-    let nearestDistance = Infinity;
-    for (const u of roster()) {
-      if (u.id === heroId || u.player === me || u.player !== config.targetOwner || window.__ciHp(u.id) <= 0) continue;
-      if (!window.__ciHostile(me, u.player)) continue;
-      const d = distance(u, h);
-      if (d < nearestDistance) {
-        nearestDistance = d;
-        nearest = u;
+    if (!creep || window.__ciHp(creep.id) <= 0) {
+      creep = null;
+      let nearestDistance = Infinity;
+      for (const u of roster()) {
+        if (u.id === heroId || u.player === me || u.player !== config.targetOwner || window.__ciHp(u.id) <= 0) continue;
+        if (!window.__ciHostile(me, u.player)) continue;
+        const d = distance(u, config.stage);
+        if (d < nearestDistance) {
+          nearestDistance = d;
+          creep = u;
+        }
       }
     }
-    if (nearest && Date.now() - lastOrderAt > config.orderEveryMs) {
-      window.__ciMove(heroId, nearest.x, nearest.z);
+    if (creep && Date.now() - lastOrderAt > config.orderEveryMs) {
+      const stations = { a: { x: creep.x, z: creep.z }, b: pointToward(creep, config.stage, config.oscillateCells) };
+      if (toward === null || distance(h, stations[toward]) < config.arriveCells) toward = toward === "a" ? "b" : "a";
+      window.__ciMove(heroId, stations[toward].x, stations[toward].z);
       lastOrderAt = Date.now();
     }
     await sleep(config.sampleMs);
@@ -118,10 +142,16 @@ export async function strikeWhileWalkingLeg(config) {
     const targetLostHp = strikeTarget >= 0 && strikeTarget === previousTarget && previousTargetHp !== null && targetHp < previousTargetHp;
 
     let heroEffects = 0;
-    for (const effect of window.__ciRecentFx()) {
-      const key = JSON.stringify(effect);
-      if (seenEffects.has(key)) continue;
-      seenEffects.add(key);
+    let targetHits = 0;
+    const nowFx = window.__ciRecentFx();
+    const nowKeys = nowFx.map((effect) => JSON.stringify(effect));
+    const fresh = nowFx.slice(overlapLength(previousFx, nowKeys));
+    previousFx = nowKeys;
+    for (const effect of fresh) {
+      if (ATTACK_KINDS.has(effect.kind) && effect.target >= 0 && (effect.target === strikeTarget || effect.target === previousTarget)) {
+        const struck = unitById(effect.target);
+        if (struck && distance(struck, now) < config.attackCells) targetHits += 1;
+      }
       if (effect.source === heroId) {
         heroEffects += 1;
         kinds[effect.kind] = (kinds[effect.kind] || 0) + 1;
@@ -129,7 +159,7 @@ export async function strikeWhileWalkingLeg(config) {
     }
 
     if (moved) heroEffectsWhileMoving += heroEffects;
-    if (heroEffects > 0 || targetLostHp) {
+    if (heroEffects > 0 || targetLostHp || targetHits > 0) {
       if (moved) strikeSamplesWhileMoving += 1;
       else strikeSamplesWhileStopped += 1;
     }

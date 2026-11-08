@@ -123,7 +123,7 @@ impl Sim {
                 self.vel_y[i] = 0;
                 continue;
             }
-            if self.order_kind[i] == ORDER_HOLD || self.engaged(i) || self.swing_busy(i) {
+            if self.order_kind[i] == ORDER_HOLD || self.engaged(i) || (self.swing_busy(i) && !self.strikes_on_move(i)) {
                 self.separate(i);
             } else {
                 self.attack_chase(i);

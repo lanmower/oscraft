@@ -533,7 +533,7 @@ impl Sim {
                 rewarm = self.needs_route(i, x, y);
             }
         }
-        if matches!(kind, ORDER_MOVE | ORDER_STOP | ORDER_PATROL) {
+        if matches!(kind, ORDER_STOP | ORDER_PATROL) || (kind == ORDER_MOVE && !self.strikes_on_move(i)) {
             self.interrupt_for_move(i);
         }
         self.order_kind[i] = kind;
