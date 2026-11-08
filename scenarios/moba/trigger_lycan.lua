@@ -15,6 +15,7 @@ local SHAPESHIFT = {
 }
 
 local shifted = lib.registry()
+local reverting = lib.registry()
 
 local function shapeshift_cast(caster)
   if lib.rank_of(caster, SHAPESHIFT.ability) == 0 then return end
@@ -39,8 +40,16 @@ local function shapeshift_step(caster)
   end
 end
 
+local function revert_step(caster)
+  if not game.alive(caster) then return end
+  game.morph(caster, SHAPESHIFT.home)
+  game.set_counter(caster, "shapeshift_revert", 0)
+  reverting.remove(caster)
+end
+
 local function rebuild()
   shifted.reset(lib.counted("shapeshift_due"))
+  reverting.reset(lib.counted("shapeshift_revert"))
 end
 
 return {
@@ -48,8 +57,18 @@ return {
     if ability_name == SHAPESHIFT.ability then shapeshift_cast(caster) end
   end,
 
+  on_died = function(unit)
+    if game.counter(unit, "shapeshift_due") == 0 then return end
+    game.set_counter(unit, "shapeshift_due", 0)
+    game.clear_timed_mods(unit, true)
+    shifted.remove(unit)
+    game.set_counter(unit, "shapeshift_revert", 1)
+    reverting.add(unit)
+  end,
+
   on_tick = function()
     for _, unit in ipairs(shifted.items()) do shapeshift_step(unit) end
+    for _, unit in ipairs(reverting.items()) do revert_step(unit) end
   end,
 
   on_state_replaced = rebuild,
