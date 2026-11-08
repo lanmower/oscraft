@@ -52,6 +52,7 @@ local AGGRO_KINDS = {
   creep_ranged = true, creep_ranged_super = true, creep_ranged_mega = true,
 }
 local aggro_holds = {}
+local redirected = {}
 
 local LANE_OWNER_COUNT = 2
 
@@ -73,6 +74,9 @@ function targeting.aggro_redirect(attacker, victim)
     if unit_alive(u) and AGGRO_KINDS[game.unit_kind(u)] and units.hostile(unit_player(u), attacker_side)
       and game.aggro_target(u) < 0 then
       game.set_aggro(u, attacker, hold_ticks)
+      local kind, ox, oy = game.order_of(u)
+      redirected[u] = { hero = attacker, kind = kind, x = ox, y = oy, engaged = false }
+      game.cmd_attack(u, attacker)
     end
   end
 end
@@ -84,9 +88,24 @@ local function note_attack_order(hero)
   local previous = seen_attack_order[hero] or NO_UNIT
   seen_attack_order[hero] = ordered
   if ordered < 0 or ordered == previous or ordered == auto_attack_target[hero] then return end
-  if units.is_hero(ordered) and units.hostile(unit_player(hero), unit_player(ordered)) then
+  if units.is_hero(ordered) and units.hostile(unit_player(hero), unit_player(ordered)) and game.visible_to(ordered, hero) then
     targeting.aggro_redirect(hero, ordered)
   end
+end
+
+local function settle_redirect(u)
+  local entry = redirected[u]
+  if entry == nil then return end
+  if not unit_alive(u) or not unit_alive(entry.hero) then
+    redirected[u] = nil
+    return
+  end
+  local ordered = game.attack_order(u)
+  if ordered == entry.hero then entry.engaged = true end
+  local idle_away = entry.engaged and ordered < 0 and not within(u, entry.hero, config.milli(game.acquire_of(u)))
+  if game.aggro_target(u) >= 0 and not idle_away then return end
+  redirected[u] = nil
+  game.issue_order(u, entry.kind, entry.x, entry.y)
 end
 
 function targeting.nearest_enemy(unit)
@@ -157,6 +176,9 @@ function targeting.on_tick()
     kind_cache = {}
   end
   for u = 0, get_unit_count() - 1 do
+    settle_redirect(u)
+  end
+  for u = 0, get_unit_count() - 1 do
     if unit_alive(u) then
       if units.is_hero(u) then note_attack_order(u) end
       local target = targeting.strike_choice(u)
@@ -178,6 +200,7 @@ end
 function targeting.on_state_replaced()
   cache_tick = -1
   aggro_holds = {}
+  redirected = {}
   died_at_tick, picked_at_tick = {}, {}
   seen_attack_order, auto_attack_target = {}, {}
 end

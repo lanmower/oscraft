@@ -295,6 +295,7 @@ local function nearest_creep_target(u, range)
 end
 
 local function wave_creep_step(u, range, now)
+  if game.aggro_target(u) >= 0 then return end
   local kind, dx, dy = game.order_of(u)
   local target, ret_kind, ret_x, ret_y = game.chase_get(u)
   if target >= 0 then

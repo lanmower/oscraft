@@ -9,12 +9,17 @@ const ENEMY: &str = "axe";
 const LANE_CREEP: &str = "creep";
 const ATTACKER_PLAYER: u8 = 0;
 const ENEMY_PLAYER: u8 = 1;
+const CREEP_PLAYER: u8 = 2;
+const CREEP_TEAM: u8 = 2;
 const ORIGIN_X: i32 = 92;
 const ORIGIN_Y: i32 = 240;
 const ENEMY_GAP_CELLS: i32 = 5;
+const VISIBLE_ENEMY_GAP_CELLS: i32 = -12;
+const FAR_ENEMY_GAP_CELLS: i32 = 40;
 const CREEP_OFFSET_X: i32 = 2;
 const CREEP_OFFSET_Y: i32 = 1;
 const SECOND_CREEP_OFFSET_Y: i32 = -2;
+const HOLD_TICKS: u32 = 2 * 16;
 
 fn pack_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba")
@@ -108,6 +113,12 @@ fn aggro_of(host: &ModHost, unit: usize) -> i32 {
     host.sim().aggro_target(unit)
 }
 
+fn advance(host: &mut ModHost, ticks: u32) {
+    for _ in 0..ticks {
+        host.advance().expect("advance the match");
+    }
+}
+
 #[test]
 fn a_right_click_on_an_enemy_hero_hands_the_nearby_lane_creep_to_the_attacker() {
     let mut f = field();
@@ -124,9 +135,7 @@ fn a_move_order_towards_an_enemy_hero_does_not_redirect_the_lane_creep() {
     let attacker = f.attacker;
     let (x, y) = f.host.sim().position_fixed(f.enemy);
     f.host.sim_mut().issue_order_kind(attacker, ORDER_MOVE, x, y).expect("the move order is accepted");
-    for _ in 0..4 {
-        f.host.advance().expect("advance the match");
-    }
+    advance(&mut f.host, 4);
     assert_eq!(aggro_of(&f.host, f.lane_creep), -1, "a move order does not redirect the lane creep");
 }
 
@@ -138,4 +147,58 @@ fn a_right_click_on_a_lane_creep_does_not_redirect_the_other_lane_creep() {
     f.host.sim_mut().order_attack_or_approach(attacker, target).expect("the attack order on the creep is accepted");
     f.host.advance().expect("advance the match");
     assert_eq!(aggro_of(&f.host, f.lane_creep), -1, "a right-click on a creep is not a hero hit");
+}
+
+fn fogged_arena(enemy_gap_cells: i32, spotter: bool) -> (ModHost, usize, usize) {
+    let mut host = pack_host();
+    host.sim_mut().set_fog(true);
+    host.sim_mut().set_team(CREEP_PLAYER, CREEP_TEAM).expect("the lane creep side has a team of its own");
+    let attacker = hero(&mut host, ATTACKER, ATTACKER_PLAYER, ORIGIN_X, ORIGIN_Y);
+    let enemy_x = ORIGIN_X + enemy_gap_cells;
+    let enemy = hero(&mut host, ENEMY, ENEMY_PLAYER, enemy_x, ORIGIN_Y);
+    if spotter {
+        creep(&mut host, ATTACKER_PLAYER, enemy_x - 1, ORIGIN_Y);
+    }
+    advance(&mut host, 1);
+    (host, attacker, enemy)
+}
+
+fn lane_creep_beside_attacker(host: &mut ModHost) -> usize {
+    creep(host, CREEP_PLAYER, ORIGIN_X + CREEP_OFFSET_X, ORIGIN_Y + CREEP_OFFSET_Y)
+}
+
+#[test]
+fn a_right_click_the_enemy_hero_can_see_redirects_the_lane_creep_under_fog() {
+    let (mut host, attacker, enemy) = fogged_arena(VISIBLE_ENEMY_GAP_CELLS, false);
+    assert!(host.sim().visible(ENEMY_PLAYER, attacker), "the enemy hero's owner sees the attacker 5 cells away");
+    let lane_creep = lane_creep_beside_attacker(&mut host);
+    host.sim_mut().order_attack_or_approach(attacker, enemy).expect("the attack order on the enemy hero is accepted");
+    advance(&mut host, 2);
+    assert_eq!(aggro_of(&host, lane_creep), attacker as i32, "a right-click the enemy can see redirects the lane creep");
+}
+
+#[test]
+fn a_right_click_the_enemy_hero_cannot_see_does_not_redirect_the_lane_creep() {
+    let (mut host, attacker, enemy) = fogged_arena(FAR_ENEMY_GAP_CELLS, true);
+    assert!(host.sim().visible(ATTACKER_PLAYER, enemy), "the attacker sees the enemy hero through its spotter");
+    assert!(!host.sim().visible(ENEMY_PLAYER, attacker), "the enemy hero's owner cannot see the attacker");
+    let lane_creep = lane_creep_beside_attacker(&mut host);
+    assert!(host.sim().hostile(CREEP_PLAYER, ATTACKER_PLAYER), "the lane creep is hostile to the attacker");
+    host.sim_mut().order_attack_or_approach(attacker, enemy).expect("the attack order on the enemy hero is accepted");
+    advance(&mut host, 2);
+    assert_eq!(aggro_of(&host, lane_creep), -1, "a right-click the enemy cannot see does not redirect the lane creep (yU)");
+}
+
+#[test]
+fn a_redirected_lane_creep_attacks_the_hero_for_the_hold_then_returns_to_its_order() {
+    let mut f = field();
+    let attacker = f.attacker;
+    let creep = f.lane_creep;
+    f.host.sim_mut().order_attack_or_approach(attacker, f.enemy).expect("the attack order on the enemy hero is accepted");
+    advance(&mut f.host, 2);
+    assert_eq!(aggro_of(&f.host, creep), attacker as i32, "the lane creep is redirected");
+    assert_eq!(f.host.sim().attack_order_of(creep), attacker as i32, "the redirected lane creep attacks the hero");
+    advance(&mut f.host, HOLD_TICKS);
+    assert_eq!(aggro_of(&f.host, creep), -1, "the redirect ends after the hold");
+    assert_eq!(f.host.sim().attack_order_of(creep), -1, "the lane creep stops attacking the hero when the hold ends");
 }
