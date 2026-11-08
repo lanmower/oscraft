@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { approachTarget, createHeroViewLock, followTarget, heroDirection } from "./hero_view_lock.js";
 import { REORDER_S, createHeroRun, enemiesInSight, stepHeroRun } from "./hero_run.js";
 import { createModUi } from "./modui.js";
+import { AIM_CELLS, PAD_CAST_SLOTS, aimPoint, pressedDownEdges, twinStick } from "./twin_stick.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const playSource = readFileSync(resolve(here, "play.js"), "utf8");
@@ -20,7 +21,7 @@ const NAMES = [
   "heroViewLock", "approachTarget", "followTarget", "stepHeroRun", "createHeroRun", "heroDirection",
   "enemiesInSight", "drawnPosition", "groundAt", "currentUnits", "localHeroUnit", "isHostile",
   "renderer3d", "keysDown", "commands", "PAN_RULES", "pointer", "drag", "canvas", "LOCK_FOLLOW_RATE", "W", "H",
-  "padMove", "pollPad", "syncOneHand",
+  "twinStick", "pressedDownEdges", "aimPoint", "PAD_CAST_SLOTS", "sendInput", "navigator",
 ];
 
 function extract(header) {
@@ -31,15 +32,36 @@ function extract(header) {
   return playSource.slice(start, end + 3);
 }
 
-function buildDriver(panSource) {
+function buildDriver(panSource, { stubPad = false } = {}) {
+  const padSource = stubPad
+    ? ["function pollPad() {}", "function syncOneHand() {}"]
+    : [
+      extract("function pollPad() {"),
+      extract("function padAimWorld() {"),
+      extract("function castAtAim(slot) {"),
+      extract("function syncOneHand() {"),
+    ];
   return new Function("deps", [
     `const { ${NAMES.join(", ")} } = deps;`,
     "let heroRun = createHeroRun();",
     "let lockedFocus = null;",
+    "let padMove = null;",
+    "let padAim = null;",
+    "let padPressed = [];",
+    "let oneHandSent = null;",
     extract(DRIVE_HEADER),
+    ...padSource,
     panSource,
     "return { driveLockedHero, panByKeys };",
   ].join("\n"));
+}
+
+function padFrame({ lx = 0, ly = 0, rx = 0, ry = 0, buttons = [] } = {}) {
+  return {
+    connected: true,
+    axes: [lx, ly, rx, ry],
+    buttons: Array.from({ length: 5 }, (_, index) => ({ pressed: buttons.includes(index) })),
+  };
 }
 
 function installNow(clock) {
@@ -125,13 +147,14 @@ function findByClass(node, cls) {
   return null;
 }
 
-async function sequence(mode, { panSource = extract(PAN_HEADER), releaseAfterWrite = false, wireLock = true } = {}) {
-  const trace = { phase: "start", writes: [], orders: [] };
+async function sequence(mode, { panSource = extract(PAN_HEADER), releaseAfterWrite = false, wireLock = true, stubPad = false } = {}) {
+  const trace = { phase: "start", writes: [], orders: [], sent: [] };
   const clock = { t: 0 };
   const restoreNow = installNow(clock);
   try {
     const lock = createHeroViewLock();
     const keysDown = new Set();
+    const pads = { current: [] };
     const units = [{ id: HERO_ID, player: 0, x: START[0], z: START[2] }];
     const renderer3d = makeRenderer(lock, trace);
     const win = makeWindow();
@@ -149,7 +172,7 @@ async function sequence(mode, { panSource = extract(PAN_HEADER), releaseAfterWri
       onCameraTake,
       isLocked: wireLock ? () => lock.isLocked() : undefined,
     });
-    const driver = buildDriver(panSource)({
+    const driver = buildDriver(panSource, { stubPad })({
       heroViewLock: lock,
       approachTarget,
       followTarget,
@@ -172,9 +195,12 @@ async function sequence(mode, { panSource = extract(PAN_HEADER), releaseAfterWri
       LOCK_FOLLOW_RATE,
       W: 2048,
       H: 2048,
-      padMove: null,
-      pollPad: () => {},
-      syncOneHand: () => {},
+      twinStick,
+      pressedDownEdges,
+      aimPoint,
+      PAD_CAST_SLOTS,
+      navigator: { getGamepads: () => pads.current },
+      sendInput: (channel, payload) => trace.sent.push({ channel, call: payload.call, args: payload.args }),
     });
     const frame = () => {
       driver.panByKeys(DT);
@@ -183,11 +209,30 @@ async function sequence(mode, { panSource = extract(PAN_HEADER), releaseAfterWri
     };
 
     lock.toggle();
-    keysDown.add("ArrowUp");
+    if (mode !== "pad") keysDown.add("ArrowUp");
     trace.phase = "held";
     for (let i = 0; i < 30; i += 1) frame();
 
-    if (mode === "minimap") {
+    if (mode === "pad") {
+      trace.phase = "stickUp";
+      pads.current = [padFrame({ ly: -1 })];
+      frame();
+      frame();
+      frame();
+      trace.phase = "stickRelease";
+      pads.current = [padFrame()];
+      frame();
+      trace.phase = "cast";
+      pads.current = [padFrame({ rx: 1, buttons: [1] })];
+      frame();
+      frame();
+      pads.current = [padFrame({ rx: 1, buttons: [4] })];
+      frame();
+      trace.phase = "unlock";
+      pads.current = [];
+      lock.release();
+      frame();
+    } else if (mode === "minimap") {
       trace.phase = "drag";
       win.dispatchEvent({ type: "moba:minimap-drag", detail: { x: DRAG.x, z: DRAG.z } });
       await Promise.resolve();
@@ -260,6 +305,22 @@ function lockedWriteViolations(trace, phase, label) {
   return trace.writes.filter((w) => w.phase === phase).map((w) => `${label} wrote ${w.target} while the hero lock was engaged`);
 }
 
+function padViolations(trace) {
+  const out = [];
+  const oneHand = trace.sent.filter((s) => s.call === "one_hand").map((s) => s.args.on);
+  if (JSON.stringify(oneHand) !== "[true,false]") out.push(`one-hand edge: sent ${JSON.stringify(oneHand)} for lock on then release, want [true,false]`);
+  const walk = trace.orders.filter((o) => o.phase === "stickUp");
+  if (walk.length === 0) out.push("stick walk: no order while the left stick was pushed up in lock");
+  if (walk.some((o) => o.z >= START[2])) out.push("stick walk: an order went to z at or past the start while the stick pushed forward (forward is -z at yaw 0)");
+  if (trace.orders.some((o) => o.kind === "hold" && o.phase === "stickUp")) out.push("stick walk: hold issued while the stick was held up");
+  const casts = trace.sent.filter((s) => s.call === "cast_at");
+  if (casts.length !== 1) out.push(`cast edge: ${casts.length} cast_at sends for one held press of button 1 and one press of button 4, want 1`);
+  if (casts.some((c) => c.args.slot !== 1)) out.push("cast edge: a cast went out for a button that is not a cast slot");
+  const aim = casts[0] ? casts[0].args : null;
+  if (aim && (aim.x !== START[0] + AIM_CELLS || aim.z !== START[2])) out.push(`cast aim: ${aim.x},${aim.z} from the right stick, want ${START[0] + AIM_CELLS},${START[2]}`);
+  return out;
+}
+
 const minimapRun = await sequence("minimap");
 const cameraRun = await sequence("camera");
 const positiveFound = [...violations(minimapRun, "minimap"), ...violations(cameraRun, "camera")];
@@ -286,6 +347,10 @@ const centreWrites = lockedWriteViolations(await sequence("centre"), "centre", "
 if (centreWrites.length > 0) fail(centreWrites.join("; "));
 const centreControl = lockedWriteViolations(await sequence("centre", { wireLock: false }), "centre", "minimap-centre");
 if (centreControl.length === 0) fail("negative control minimap-centre write while locked did not fail the gate");
+const padFound = padViolations(await sequence("pad"));
+if (padFound.length > 0) fail(padFound.join("; "));
+const padControl = padViolations(await sequence("pad", { stubPad: true }));
+if (padControl.length === 0) fail("negative control stubbed pollPad and syncOneHand did not fail the gate");
 
 const heldOrders = minimapRun.orders.filter((o) => o.phase === "held").length;
 console.log(`movement sequence ok: ${heldOrders} held ArrowUp orders at uninterrupted cadence, minimap and camera drags release before their write, no write on the following frame`);
@@ -294,4 +359,6 @@ console.log(`negative control snap-back: fails with "${snapBack[0]}"`);
 console.log(`negative control zero-second write while locked (lock state not passed to modui): fails with "${instantControl[0]}"`);
 console.log(`negative control zero-second camera_distance while locked (lock state not passed): fails with "${distanceControl[0]}"`);
 console.log(`minimap-centre claim: writes nothing while locked (seconds 0 and seconds 1); unwired control fails with "${centreControl[0]}"`);
+console.log(`pad walk ok: left stick walks the hero in lock forward, one-hand sends on then off, button 1 casts once at the right-stick aim (${START[0] + AIM_CELLS},${START[2]}), button 4 casts nothing`);
+console.log(`negative control stubbed pollPad and syncOneHand: fails with "${padControl[0]}"`);
 
