@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -88,18 +88,23 @@ const DRIFT = [
 const EXTERNAL = [
   { id: "js/client/editor-check.mjs", reason: "needs the built rust/target/debug/osdt-data binary" },
   { id: "gen-ability-keys.mjs", reason: "needs the hy3d g688-lni directory" },
-  { id: "gen-ability-text-688g.mjs", reason: "needs the hy3d 6.88g ability.ini; HEAD text is not reproducible (445 of 450 entries)" },
+  { id: "gen-ability-text-688g.mjs", reason: "needs G688_LNI set to the hy3d 6.88g lni directory holding ability.ini" },
   { id: "gen-neutral-688g.mjs", reason: "needs --src with the 6.88g war3map.j script" },
   { id: "gen-heroes.mjs", reason: "needs --src ref-heroes-src; without it --check attempts a SteamDatabase fetch" },
 ];
 
 const nodeEntry = (kind, id, state, argv, extra) => Object.assign({ kind: kind, id: id, state: state, argv: argv }, extra || {});
+const G688_LNI = process.env.G688_LNI || "";
+const abilityTextGate = G688_LNI
+  ? [nodeEntry("gen", "gen-ability-text-688g.mjs", "gate", ["scenarios/moba/tools/gen-ability-text-688g.mjs", "--check", join(G688_LNI, "ability.ini")])]
+  : [];
 const entries = [
   { kind: "check", id: "git diff --check", state: "gate", exe: "git", argv: ["diff", "--check"] },
   ...GATE_CHECKS.map((id) => nodeEntry("check", id, "gate", [id])),
   ...GATE_GENERATORS.map((id) => nodeEntry("gen", id, "gate", tools(id))),
   ...DRIFT.map((d) => nodeEntry("gen", d.id, "drift", tools(d.id), { output: d.output, reason: d.reason })),
-  ...EXTERNAL.map((e) => ({ kind: e.id.startsWith("js/") ? "check" : "gen", id: e.id, state: "external", reason: e.reason })),
+  ...abilityTextGate,
+  ...EXTERNAL.filter((e) => !(G688_LNI && e.id === "gen-ability-text-688g.mjs")).map((e) => ({ kind: e.id.startsWith("js/") ? "check" : "gen", id: e.id, state: "external", reason: e.reason })),
 ];
 
 if (listOnly) {

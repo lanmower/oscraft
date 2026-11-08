@@ -14,7 +14,7 @@ export function parseRecord(text) {
 }
 
 export function actualFigures() {
-  const list = spawnSync(process.execPath, ["scripts/check-all.mjs", "--list"], { cwd: root, encoding: "utf8" });
+  const list = spawnSync(process.execPath, ["scripts/check-all.mjs", "--list"], { cwd: root, encoding: "utf8", env: { ...process.env, G688_LNI: "" } });
   const gates = Number(/LIST gates=(\d+)/.exec(list.stdout)?.[1]);
   const checkAll = readFileSync(resolve(root, "scripts/check-all.mjs"), "utf8");
   const ids = [...checkAll.matchAll(/"((?:js|scripts|scenarios)\/[^"]+\.mjs)"/g)].map((m) => m[1]);
