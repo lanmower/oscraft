@@ -9,7 +9,7 @@ The lock makes the hero the thing the camera follows and the thing the arrow key
 Engaging the lock sends `one_hand` on to the match. While it is on:
 
 - The left stick and the arrow keys walk the hero. Movement is relative to the camera yaw.
-- Casting a targeted ability (Q, W, E, R, the item keys, or a pad button) fires at the best unit in reach. The aim is ignored, so a right-stick aim does not change the target.
+- Casting a targeted ability (Q, W, E, R, the item keys, or a pad button) fires at the best unit in reach. The aim is ignored, so a right-stick aim does not change the target. A unit-target ability with no unit in reach is refused (noTarget). A point-target ability with no unit in reach fires at the hero's own position.
 - A walking hero strikes its target in reach, because one-hand sets the strike-on-move flag.
 
 Releasing the lock sends `one_hand` off. A targeted cast from the keyboard then arms a target that the next click places, and a pad cast uses the right stick's aim point.
@@ -35,7 +35,7 @@ Buttons 0 to 3 cast whether or not the lock is engaged, because the pad is polle
 
 Keys are forwarded to the match, which decides what they do. For each key, the first matching rule wins, in this order.
 
-0. With a courier selected (not a hero), the courier keys come first, and E sends the courier home when it can.
+0. Custom keys from the pack's `custom` table come first (none by default). Then, with a courier selected (not a hero), the courier keys come first, and E sends the courier home when it can.
 1. An ability hotkey from the 6.88g ability table (`scenarios/moba/ability_keys.lua`) casts that ability, and Ctrl with it levels the skill.
 2. Ctrl plus 1 to 9 sets a control group. Plain 1 focuses the hero. Plain 2 to 9 recalls a group.
 3. The keys below.
