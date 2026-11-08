@@ -190,7 +190,7 @@ return {
     game.effect("hit_flash", 0, 0, { target = victim })
     if attacker < 0 or attacker == victim then return end
     if in_melee_reach(attacker, victim) then
-      game.effect("melee_hit", 0, 0, { target = victim, colour = "missile" })
+      game.effect("melee_hit", 0, 0, { source = attacker, target = victim, colour = "missile" })
     else
       game.effect("attack_arrow", 0, 0, { source = attacker, target = victim, colour = "missile" })
     end
