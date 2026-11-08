@@ -18,7 +18,7 @@ Without the lock, the arrow keys and the left stick pan the camera, and so does 
 
 ## Gamepad
 
-The pad is read through the Gamepad API. The layout below is the standard mapping.
+The pad is read through the Gamepad API, from the first connected gamepad. Its layout is not checked: the table below assumes the standard mapping.
 
 | Input | Lock on | Lock off |
 | --- | --- | --- |
@@ -29,7 +29,7 @@ The pad is read through the Gamepad API. The layout below is the standard mappin
 
 The sticks have a deadzone of 0.2, applied to each axis. Past it the value is rescaled to 0 to 1. With the lock off that scales the camera pan speed. With the lock on the left stick sets only a direction: the hero is ordered to a point 64 cells ahead in that direction, so deflection does not change its walk speed. The y axis is inverted so pushing a stick up is forward. A button cast fires once per press, not once per frame it is held.
 
-Buttons 0 to 3 cast whether or not the lock is engaged, because the pad is polled every frame. Only the stick roles change with the lock.
+Buttons 0 to 3 cast whether or not the lock is engaged, because the pad is polled every frame. Only the stick roles change with the lock. Pad polling and pad casts run only once the 3D renderer and the pan rules exist, so a press before then does nothing.
 
 ## Keyboard
 
