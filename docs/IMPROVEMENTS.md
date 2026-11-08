@@ -144,7 +144,7 @@ Held and not in this list: GP-CHT-15 repick window (docs/GAMEPLAY_PARITY.md) and
 | rank | item | status | witness |
 | --- | --- | --- | --- |
 | 1 | Hero area abilities run their effects: Hoof Stomp (aoe, damage, stun) and Reverse Polarity (aoe, damage, stun, displace toward the caster) | landed as witnesses: rust/crates/sim/tests/hero_area_abilities.rs | CI https://github.com/lanmower/oscraft/actions/runs/42476198386 (sim-witness.yml): 2 passed; local negative control (enemy moved outside the radius) fails |
-| 2 | Reincarnation Leoric's own passive is unwitnessed (gates 6, 11, 16) | resolved | rust/crates/mod-host/tests/leoric_reincarnation.rs witnesses the revive after 48 ticks (±3), where he died, the 160 mana charge, the cooldown from the death and the 900-unit slow; mod-host witness workflow dispatch pending |
+| 2 | Reincarnation Leoric's own passive is unwitnessed (gates 6, 11, 16) | resolved | rust/crates/mod-host/tests/leoric_reincarnation.rs witnesses the revive after 48 ticks (±3), where he died, the 160 mana charge, the cooldown from the death and the 900-unit slow; CI run https://github.com/lanmower/oscraft/actions/runs/42477054117 passed (1 passed, 1.72 s) |
 | 3 | aoe excluded-filter mask (Hoof Stomp) | planned, needs the 6.88g filter fact | no native or effect field carries it; the Hoof Stomp aoe line has p3=0 |
 | 4 | Aggro attack-move-back and visibility (yU) not ported | planned; war3map.j lines named in AGENTS | AGENTS Not ported line |
 | 5 | Regeneration sources other than the rune are not checked for ending at full | planned; use the rune witness pattern | AGENTS regeneration line |
