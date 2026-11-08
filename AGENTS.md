@@ -113,6 +113,7 @@ No comments in source: durable facts live here, names carry intent.
 - The sim never reads display data (terrain heights, weight maps). Load gate (load_gate.js) never opens on a timeout. Older wasm lacks some exports (page degrades, never guesses). props.json alone names prop models.
 - `recoverGame`: all tick-path Game calls stay inside the try or the rAF chain dies.
 - `js/client/play.js`: the splat KTX2 path relies on `decoders.loadBasis()` warmed at module init.
+- `loadSim` (play.js) starts the map image fetch before the wasm import and awaits it after `mod.default()`; `js/client/boot-overlap-check.mjs` asserts that order and rejects a serial control.
 - Swaps: a peer without the image keeps its old Game.
 - Hot reload (hmr.js, `/__hmr` SSE): a module exports `hmrReload(mod)`, run on the NEW instance (inputs on `globalThis.__oscraftHot`); no hook reloads the page; the wasm path concatenates ".wasm" (the Pages check reads literal ".wasm" names as root files).
 - Packs: no code the page runs (.js .mjs .html .wasm .ts refused).

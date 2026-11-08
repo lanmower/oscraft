@@ -62,7 +62,8 @@ This supersedes the 2dad9b5 section above. The authoritative gm hash is cf884aa 
 - Lock engage order: `js/client/lock-engage-order-check.mjs` witnesses `single engage site hud.js:182 inside the hero-lock onclick; createHud installs it at play.js:3398 after the boot write at play.js:3391`. Negative control: an earlier createHud install fails. The dev-only hud hmrReload is outside the production order.
 - Live feel: still OPEN. The one bounded headless attempt never reached the live phase, so RAF_FRAMES, SAMPLES and frames_with_motion were not printed. The gates are logic proxies, not live verification.
 - Mod camera drag: still releases the lock, because shared.rs:118 ui_camera carries no origin field (modui.js:176).
-- Current tree figures: gates=71, gate path refs=60 with 0 missing, camera writes=24 with 0 unclassified.
+- Boot overlap (2026-11-08, dev site staged from 7879208c, own playwriter browser, network cache disabled, 3 loads, ms from navigation start): moba.osdt 144-164, attr_rules.txt 144-162, pkg/web.js 145-163, web_bg.wasm 159-209; each run's image response ends before its wasm response starts (gaps 10-23 ms). `js/client/boot-overlap-check.mjs` asserts the order in loadSim and rejects a serial control. One local browser, not a CI median. The page fetched 87 scenarios/moba Lua modules; the local dev server sent web_bg.wasm uncompressed (1,884,167 bytes), so the row's 601 KB figure is a compressed size this run did not measure.
+- Current tree figures: gates=72, gate path refs=61 with 0 missing, camera writes=24 with 0 unclassified.
 - The figures above track the tree; scripts/check-design-record.mjs fails when they drift.
 
 ## Four-repo pass: gm 7be1790 (2026-11-07)
