@@ -27,7 +27,7 @@ skill("centaur_retaliation", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], 
 ability_ext("centaur_retaliation", chance=100, passive=True, proc_attacked=True)
 ability_scaled("centaur_retaliation", 0, 0, [16,18,20,22])
 ability_scaled("centaur_retaliation", 0, 3, [30,42,54,66])
-ability("centaur_hoof_stomp", 208, 130, "none", [effect("aoe", p0=4922, p1=4, p2=2, p3=0), effect("damage", p0=100, p1=0, p2=38, p3=0), effect("stun", p0=32, p1=0, p2=0, p3=0)])
+ability("centaur_hoof_stomp", 208, 130, "none", [effect("aoe", p0=4922, p1=36, p2=2, p3=0), effect("damage", p0=100, p1=0, p2=38, p3=0), effect("stun", p0=32, p1=0, p2=0, p3=0)])
 skill("centaur_hoof_stomp", ultimate=False, gates=[1,3,5,7], damage=[0,0,0,0], cooldown=[208,208,208,208], energy=[130,130,130,130])
 ability_scaled("centaur_hoof_stomp", 1, 0, [100,150,200,250])
 ability_scaled("centaur_hoof_stomp", 2, 0, [32,36,40,44])

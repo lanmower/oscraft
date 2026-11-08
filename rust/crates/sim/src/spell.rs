@@ -108,6 +108,7 @@ const ZONE_PIN_TARGET: i32 = 1 << 29;
 const ZONE_FOLLOW_CASTER: i32 = 1 << 30;
 const AOE_OWNED_ONLY: u32 = 1 << 15;
 const AOE_NON_ATTRIBUTED_ONLY: u32 = 1 << 29;
+const AOE_LAND_ONLY: u32 = 1 << 5;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Scaled {
@@ -241,7 +242,7 @@ pub(crate) fn spell_effect_error(e: &Effect) -> Option<&'static str> {
         K_DOT => e.p0 >= 0 && e.p1 >= 1 && e.p2 >= 1 && spell_type_valid(e.p3),
         K_STATUS => (0..crate::status::STATUS_KINDS as i32).contains(&e.p0) && e.p1 >= 1,
         K_TIMED_STAT => (0..STAT_COUNT as i32).contains(&e.p0) && e.p2 >= 1 && (0..=1).contains(&e.p3),
-        K_AOE => e.p0 >= 0 && (0..=31).contains(&e.p1) && (0..=16).contains(&e.p2) && e.p3 >= 0,
+        K_AOE => e.p0 >= 0 && (0..=63).contains(&e.p1) && (0..=16).contains(&e.p2) && e.p3 >= 0,
         K_CHAIN => e.p0 >= 0 && e.p1 >= 0 && e.p2 >= 0 && spell_type_valid(e.p3 & CHAIN_TYPE_MASK),
         K_ZONE => e.p0 >= 0 && e.p1 >= 1 && e.p2 >= 1 && e.p3 >= 0,
         K_RESOURCE => e.p0 >= 0 && (0..=3).contains(&e.p1) && e.p2 >= 0 && (e.p2 == 0 || e.p1 == 1),
@@ -976,6 +977,7 @@ impl Sim {
             return;
         }
         let line = eff.p1 & 8 != 0;
+        let land_only = eff.p1 as u32 & AOE_LAND_ONLY != 0;
         let mut found = [0u32; AOE_CAP];
         let count = if line {
             self.collect(self.pos_x[caster], self.pos_y[caster], fixed::from_milli(self.cast_range_of(caster, ai) + self.ext_of(ai).line_extra), &mut found)
@@ -1011,10 +1013,12 @@ impl Sim {
                 _ => true,
             };
             let kind_ok = if wanted == 0 { self.filter[j] & structure == 0 } else { self.filter[j] & wanted == wanted };
+            let airborne = self.filter[j] & crate::loader::FILTER_AIR != 0;
             let ranged = self.is_ranged(j);
             let low_life = (self.hp[j] as i64) * AOE_LOW_LIFE_DIVISOR < self.hp_max[j] as i64;
             if !team_ok
                 || !kind_ok
+                || (land_only && airborne)
                 || (owned_only && self.player[j] != p)
                 || (non_attributed_only && self.is_attributed(j))
                 || self.turned_away(caster, j)

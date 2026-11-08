@@ -10,6 +10,7 @@ const REVERSE_POLARITY: &str = "magnataur_reverse_polarity";
 const STUN: usize = 0;
 const CAST_TICKS: usize = 120;
 const PULL_MIN_MILLI: f64 = 1000.0;
+const AIR_FOE: &str = "beastmaster_hawk_1";
 
 fn moba_field() -> Sim {
     let mut sim = open_field();
@@ -57,6 +58,22 @@ fn hoof_stomp_hurts_and_stuns_only_enemies_in_its_radius() {
     assert_eq!(sim.hp(far), far_hp, "the enemy 10 cells away is outside the radius and takes no damage");
     assert!(near_stunned, "the enemy in the radius is stunned");
     assert!(!far_stunned, "the enemy outside the radius is not stunned");
+}
+
+#[test]
+#[test]
+fn hoof_stomp_leaves_air_units_in_its_radius_alone() {
+    let mut sim = moba_field();
+    let caster = hero(&mut sim, CENTAUR, 4, 5);
+    let flyer = spawn_kind(&mut sim, FOE, AIR_FOE, 6, 5);
+    learn(&mut sim, caster, HOOF_STOMP);
+    let flyer_hp = sim.hp(flyer);
+
+    assert!(sim.cast_ability(caster, 0, -1, centre(4), centre(5)), "Hoof Stomp casts at the caster's feet");
+    let flyer_stunned = run_watching_stun(&mut sim, CAST_TICKS, flyer);
+
+    assert_eq!(sim.hp(flyer), flyer_hp, "Hoof Stomp hits enemy land units only, so the air unit 2 cells away takes no damage");
+    assert!(!flyer_stunned, "Hoof Stomp hits enemy land units only, so the air unit is not stunned");
 }
 
 #[test]
