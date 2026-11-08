@@ -8,6 +8,7 @@ const leg = (overrides) => ({
   aborted: null,
   strikeSamplesWhileMoving: 4,
   inReachMoving: 9,
+  kinds: { melee_hit: 3 },
   ...overrides,
 });
 
@@ -24,6 +25,8 @@ const cases = [
   { name: "a red leg never in reach fails, since zero proves nothing", legs: greenRedGreen({ inReachMoving: 0 }), ok: false },
   { name: "a leg that did not reach the stage at start hp fails", legs: greenRedGreen({}, { ready: false }), ok: false },
   { name: "an aborted leg fails", legs: greenRedGreen({ aborted: "hero dead" }), ok: false },
+  { name: "a green leg with no hero-sourced effect kinds fails", legs: greenRedGreen({}, { kinds: {} }), ok: false },
+  { name: "a red leg with no hero-sourced effect kinds still passes", legs: greenRedGreen({ kinds: {} }), ok: true },
 ];
 
 for (const c of cases) {

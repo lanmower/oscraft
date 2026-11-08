@@ -191,6 +191,7 @@ export function verdict(legs) {
     if (leg.aborted) reasons.push(`${leg.label}: the leg ended early (${leg.aborted})`);
     if (leg.inReachMoving === 0) reasons.push(`${leg.label}: the hero was never in reach while moving`);
     if (leg.lock === "true" && leg.strikeSamplesWhileMoving === 0) reasons.push(`${leg.label}: no strike while moving with one-hand on`);
+    if (leg.lock === "true" && Object.keys(leg.kinds ?? {}).length === 0) reasons.push(`${leg.label}: no hero-sourced effect kinds recorded`);
     if (leg.lock === "false" && leg.strikeSamplesWhileMoving !== 0) reasons.push(`${leg.label}: ${leg.strikeSamplesWhileMoving} strike samples while moving with one-hand off`);
   }
   return { ok: reasons.length === 0, reasons };
