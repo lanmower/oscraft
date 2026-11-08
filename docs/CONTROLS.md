@@ -8,9 +8,9 @@ The lock makes the hero the thing the camera follows and the thing the arrow key
 
 Engaging the lock sends `one_hand` on to the match. While it is on:
 
-- The left stick and the arrow keys walk the hero. Movement is relative to the camera yaw.
+- The left stick and the arrow keys walk the hero, relative to the camera yaw. The locked walk is a run order, not held movement: a tap under 0.2 s starts a run to a point 64 cells ahead that continues after release, and a hold of 0.2 s or more issues a hold, so the hero stops. A run stops when a hostile comes within 28.125 cells. The arrow keys and the stick are summed.
 - Casting a targeted ability (Q, W, E, R, the item keys, or a pad button) fires at the best unit in reach. The aim is ignored, so a right-stick aim does not change the target. A unit-target ability with no unit in reach is refused (noTarget). A point-target ability with no unit in reach fires at the hero's own position.
-- A walking hero strikes its target in reach, because one-hand sets the strike-on-move flag.
+- A walking hero strikes its target in reach. The strike-on-move flag follows the one-hand setting and is synced every tick for each player's own hero (controls.lua 523-527, 532).
 
 The lock is released by the `#hero-lock` button again, or by any explicit camera move that takes the camera off the hero: a minimap drag, a right-button drag pan, a mod camera drag, a podium or flow camera restore, and the `window.oscraft.centreOn` debug hook. Each release sends `one_hand` off. A minimap centre click does nothing while the lock is on. A targeted cast from the keyboard then arms a target. With quick-cast on for that slot, the arm fires on key release at the pointer's world point, and a unit-target ability with no unit there is refused (noTarget). Otherwise the next click places the target. Quick-cast is toggled per slot by the `quickcast` ui call. A pad cast uses the right stick's aim point.
 
