@@ -38,7 +38,7 @@ Phase A changes (owner rule, 2026-11-08, recorded in AGENTS.md) are written and 
 
 - Files: scripts/witness/strike-while-walking-check.mjs (new). It runs the pure `verdict` on synthetic legs: the green, red, green pass; a red leg with strikes fails; a green leg with none fails; a red leg never in reach fails; a leg not ready fails; an aborted leg fails.
 - Not in the gate (check-all keeps 73 entries), so Phase B runs it by hand.
-- Validation: `node scripts/witness/strike-while-walking-check.mjs` prints `strike-while-walking verdict checks ok (6 cases)`.
+- Validation: `node scripts/witness/strike-while-walking-check.mjs` prints `strike-while-walking verdict checks ok (8 cases)`. The count went from 6 to 8 with F2 (kinds rule).
 - Status: written, not run.
 
 ## A5. Browser witness spec, four witnesses
@@ -162,6 +162,26 @@ Phase A changes (owner rule, 2026-11-08, recorded in AGENTS.md) are written and 
 - Side effect to check in Phase B: this applies to every unit with a strike command, not only heroes. Sim hashes and replays change for the same inputs.
 - Validation (Phase B): `cargo test -p mod-host --test strike_first_hit_latency`, and the whole `cargo test -p sim` and `cargo test -p mod-host` suites, because strike timing is shared.
 - Status: written, not run.
+
+## G1. Audit of every Phase B item against the 2026-11-09 pass
+
+- A1 (one-hand tests): unchanged by this pass.
+- A2 (sim strikes, STATE_VERSION 68): combat.rs gained `set_strike_target_now` (F5). The `cargo test -p sim --test strikes` entry must now run after F5, because the strike start moved one tick earlier for every unit.
+- A3 (strike-target hook): unchanged.
+- A4 (live witness): the verdict gained the kinds rule (F2); the melee source fix (F1) is what lets that rule pass. Its lobby order is now the order F4 records. Its witness is not run.
+- A5 (browser witness spec): BROWSER_WITNESSES.md line 7 changed (F4). `scripts/check-browser-witnesses.mjs` asserts on witness names and rule counts only, not on that line (checked by grep for Fill, Join and lobby: no match).
+- A7 (verdict check): now 8 cases (F2). Its run command and expected output are updated in place.
+- B2 (invalid earlier attempt): superseded by A4; unchanged.
+- C1 (twin-stick check), D items, E1 to E4: unchanged by this pass. E2 and E3 files are not touched.
+- New rows: F1 (melee source), F2 (kinds rule), F3 (neutral heroes), F4 (lobby order doc), F5 (first-hit latency).
+- G2 (gate and suites, below): the Lua and Rust changes in this pass are not covered by a row before this one; G2 covers them.
+
+## G2. Gate and suites for the 2026-11-09 pass
+
+- Files touched: scenarios/moba/effects.lua, scenarios/moba/core/bounty.lua (Lua pack modules); rust/crates/sim/src/combat.rs; rust/crates/mod-host/src/piccolo_host.rs; new mod-host tests (neutral_attributed_is_not_a_hero, strike_first_hit_latency).
+- Command (Phase B): `node scripts/check-all.mjs`, expected baseline `RESULT gates=73 ok=73 failed=0 drift=0 skipped=6` as in B1. If `check-moba-image.mjs` reports the image differs, refresh with `cd rust && cargo run -p mapexport -- ../scenarios/moba ../scenarios/moba/moba.osdt` and check the diff. The image may or may not include Lua modules; the gate decides.
+- Command (Phase B): `cargo test -p mod-host` (includes the pack-loading tests that load every module, so a Lua syntax or require error in effects.lua or bounty.lua shows there), and `cargo test -p sim`.
+- Status: not run.
 
 ## Notes for Phase B (observations, not validation)
 
