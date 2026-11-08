@@ -8,7 +8,7 @@ export const CONFIG = {
   legMs: 25000,
   sampleMs: 5,
   orderEveryMs: 300,
-  resetMs: 120000,
+  resetMs: 600000,
   stage: { x: 78.5, z: 82 },
   stageArriveCells: 3,
   minStartHp: 200,

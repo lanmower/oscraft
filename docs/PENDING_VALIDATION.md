@@ -242,6 +242,15 @@ Each row is one change, committed on its own. The review compared docs/CONTROLS.
 - Commands (Phase B): `WASM=1 SKIP_PACKS=1 bash scripts/dev/stage.sh`; `cargo test -p sim` and `cargo test -p mod-host`; `node scripts/witness/first-hit-timing-check.mjs`; `node scripts/witness/strike-while-walking-check.mjs`; the live timed witness (H2); `node scripts/check-all.mjs`.
 - Status: not run.
 
+## H2 run record (Phase B, 2026-11-09)
+
+- Run 1 (arrival window 120 s): lobby reached `live` (`LOBBY {"claim":true,"heroTileCount":1,"phase":"live"}`), but the stopped and walking legs ended with `hero did not reach the stage at start hp`. The verdict was `ok:false`, with 8 reasons, all of them the stage arrival, reach and first hit.
+- Run 2 (arrival window 330 s, output in /tmp/witness-driver/run1.out, `RUN_EXIT 0`): the same two legs aborted with `hero did not reach the stage at start hp` again. The lock-off control arrived (`ready: true`, `targetId 87`, `samples 10`), so the arrival was slow, not blocked.
+- Cause, measured: a probe after the same lobby order (/tmp/witness-driver/probe3.mjs) sampled the hero every 10 s after a move order to the stage. The hero moved steadily (z 269 to 226 over 120 s, with x held at 61.28 for stretches around the path), and the sim ran at about 1.3 to 1.5 ticks per second. At 16 Hz the hero covers about 4.7 cells per second, so the 190-cell trip is a few minutes of sim time at this rate. The arrival window was too short for the headless tick rate. It is not a sim defect: the hero is not stuck.
+- A smaller viewport (640x400, /tmp/witness-driver/probe4.mjs) gave about 1.5 ticks per second too, so the viewport is not the lever and stays at 1280x800.
+- Fix (this pass): `resetMs` is 600000 in scripts/witness/first-hit-timing.mjs. Latency is measured in sim ticks, so the slow wall clock does not change the numbers. The stopped and walking legs run after the arrival, so the window is spent once.
+- Status: run 3 with this window is in progress; its output is recorded below when it finishes.
+
 ## Notes for Phase B (observations, not validation)
 
 - A hero walks about 4.7 cells per second on the live map. Reads taken one second apart can look like a stalled hero; use the position log over several seconds.
