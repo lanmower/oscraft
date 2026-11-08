@@ -195,6 +195,16 @@ Phase A changes (owner rule, 2026-11-08, recorded in AGENTS.md) are written and 
 - Validation (Phase B): `WASM=1 SKIP_PACKS=1 bash scripts/dev/stage.sh` must build the new export (wasm-bindgen fails if a missing export is called from play.js only at runtime, so the timed witness in H2 is the check that it exists: `__ciSwingPoint` must return a number, not null, for the hero).
 - Status: written, not run.
 
+## H2. Timed live witness: first hit latency, stopped and walking (Phase A pass 2026-11-09, open item 1)
+
+- Files: scripts/witness/first-hit-timing.mjs (new: `firstHitLeg` page-side, `verdictFirstHit` pure, `runFirstHitTiming` runner over the lobby-run page); scripts/witness/first-hit-timing-check.mjs (new: 11 synthetic verdict cases). docs/BROWSER_WITNESSES.md is not changed, because scripts/check-browser-witnesses.mjs counts witness names.
+- Measure: latency = sim tick of the first hit minus sim tick of the first sample with the enemy creep in reach (2 cells). Ticks come from `__ciTicks` (H1), the attack point from `__ciSwingPoint` (max observed while the swing is in flight), the hit from the creep's hp dropping below its hp at reach. Legs: stopped with lock on (judged), walking with lock on (judged, oscillates between the creep and a point 1.6 cells toward the stage), walking with lock off (control, recorded, not judged).
+- Verdict: fails when a judged leg has no reach, no hit, no attack point, the lock not engaged, an abort, or a first hit later than the attack point plus 1 tick. Latency counts reach to hit, so the launch delay is inside the threshold; that is the defect F5 found (6 advances to launch).
+- Threshold source: the attack point is the value the live swing reports, not a number from the data (the 7 ticks in F5 is the 6.88g data and is only a reference).
+- Validation (Phase B): `node scripts/witness/first-hit-timing-check.mjs` prints `first-hit-timing verdict checks ok (11 cases)`. Then the live run through gm.playwriter_execute in the BROWSER_WITNESSES.md lobby order, with the page served from the staged `.dev-site` on port 8831. The quoted output must include the three legs' reachTick, launchTick, hitTick, attackPoint, latencyTicks and the verdict. A run where the stopped leg's latency is over attackPoint + 1 is a defect to fix, not a closure.
+- Not wired into scripts/check-all.mjs: the existing strike-while-walking-check.mjs is not wired either, so this is a manual witness like it.
+- Status: written, not run.
+
 ## Notes for Phase B (observations, not validation)
 
 - A hero walks about 4.7 cells per second on the live map. Reads taken one second apart can look like a stalled hero; use the position log over several seconds.
