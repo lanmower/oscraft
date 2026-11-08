@@ -75,7 +75,7 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 | `firstdraw-stale-modulepreloads` | medium | The deployed bundled page still preloads 39 unbundled local modules and loads rooms.js loose | planned: at HEAD the count is 64 and rooms.js loads loose at play.html:228; the fix (scripts/bundle-client.mjs, check-site-bundle.mjs bundled-page check) is held outside the tree because it needs the pages.yml bundle step replaced, which only a real Pages deploy can prove |
 | `firstdraw-probe-median-worldbuilt-request-unit` | low | The first-draw probe reports the slower sample as the median, calls distinct paths requests, and measures worldBuilt rather than a frame | landed: scripts/check-first-draw-median.mjs (5 fixtures) |
 | `firstdraw-boot-critical-path` | medium | loadSim starts 99 Lua fetches and the 944 KB image alongside the 601 KB wasm, and the Pages Lua bundle is dead output | landed: named overlap test (js/client/boot-overlap-check.mjs) and one bundle request for the Lua closure (scripts/check-lua-bundle.mjs; live counts in DESIGN.md). CI wire size (run 42475227556): live bundle 282,168 bytes vs 1,167,040 for the 99 .lua files; wasm 497,938 bytes on the wire (the 601 KB figure was a local build's gzip) |
-| `firstdraw-cold-warm-cache-probe` | low | The first-draw probe is cold-only and uses different headers and MIME types from the pack-cache probe, so cache reuse is never measured | planned, needs a named test |
+| `firstdraw-cold-warm-cache-probe` | low | The first-draw probe is cold-only and uses different headers and MIME types from the pack-cache probe, so cache reuse is never measured | landed: check-first-draw-passes.mjs (cold and warm passes; 17 MIME types match; negative controls rejected) |
 | `firstdraw-shipped-asset-prune-check` | medium | layout-site.sh ships the whole 113 MB scenarios tree while a measured first draw transfers 3 MB, with no check of which loose files are actually requested | landed as a report gate: scripts/check-shipped-assets.mjs (38.7% of 113.1 MB unreferenced; deletes nothing) |
 
 ### Generators and committed data
@@ -85,7 +85,7 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 | `data-generators-offline-gate` | medium | Replace the generic generator-check idea with one manifest-driven offline gate | landed |
 | `data-generators-current-drift` | high | Regenerate three shipped outputs that already fail their own checks | landed: owner approved hy3d's patch; all three --check now pass |
 | `data-generators-external-input-contract` | medium | Pin external hy3d inputs instead of relying on a machine path or local checkout | landed: unit.ini and ability.ini pinned by sha256 in scenarios/moba/tools/external-688g.tsv; scripts/check-external-inputs.mjs fails on a mismatch |
-| `data-generators-temp-copy-no-check` | medium | Compare no-check generators through a temp copy rather than adding 25 ad hoc flags | planned |
+| `data-generators-temp-copy-no-check` | medium | Compare no-check generators through a temp copy rather than adding 25 ad hoc flags | landed: check-generators-temp-copy.mjs (3 regenerations identical; tamper control caught) |
 | `data-generators-osdt-exclusion` | low | Exclude the committed stale .osdt snapshot from source-drift checks | planned |
 | `data-generators-hero-model-completeness` | high | Assert nonempty hero models in the same gate that checks hero bodies | landed |
 
@@ -136,6 +136,25 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 ## Verification
 
 The adversarial vote was capped at six claims and started, but no verifier returned before the fan-out was stopped; the resumed pass re-ran the survey instead of reusing cached results. No claim is therefore reported as verified by vote. Instead, the claims this run acted on were checked by execution: `scripts/check-doc-claims.mjs` re-checks the retired-CI and stale-API phrases, `camera-mouse-check.mjs` checks the camera-drag decision, the native pointer probe checks the selection rule, and `check-all.mjs` runs every gate. The infra failure (a verification fan-out that did not complete) is separate from the research result (53 listed findings).
+
+## Remaining work, ranked (2026-11-08)
+
+Held and not in this list: GP-CHT-15 repick window (docs/GAMEPLAY_PARITY.md) and firstdraw-stale-modulepreloads (modulepreload fix).
+
+| rank | item | status | witness |
+| --- | --- | --- | --- |
+| 1 | Hero area abilities run their effects: Hoof Stomp (aoe, damage, stun) and Reverse Polarity (aoe, damage, stun, displace toward the caster) | started: witness tests in rust/crates/sim/tests/hero_area_abilities.rs; CI run pending | local cargo test -p sim --test hero_area_abilities: 2 passed; negative control (enemy moved outside the radius) fails |
+| 2 | Reincarnation Leoric's own passive is unwitnessed (gates 6, 11, 16) | planned | aegis.lua revives on its own timer; the ability itself is not tested |
+| 3 | aoe excluded-filter mask (Hoof Stomp) | planned, needs the 6.88g filter fact | no native or effect field carries it; the Hoof Stomp aoe line has p3=0 |
+| 4 | Aggro attack-move-back and visibility (yU) not ported | planned; war3map.j lines named in AGENTS | AGENTS Not ported line |
+| 5 | Regeneration sources other than the rune are not checked for ending at full | planned; use the rune witness pattern | AGENTS regeneration line |
+| 6 | Courier controls unchecked: item exclusions, owner-return point, per-owner filter, zoom and rotation-lock keys | planned | AGENTS courier lines |
+| 7 | Wolf form E015 not modelled | planned | AGENTS |
+| 8 | Live feel of the hero view lock at a usable frame rate | needs a bounded browser run | the lock gates are logic proxies |
+| 9 | rust-sim CI test job retired | blocked: owner decision | 9a17155e |
+| 10 | pages-scout post-deploy compare gate | deferred: max-age=600 makes it unsafe | row text above |
+
+Landed in this pass: data-generators-temp-copy-no-check (e02044a2, check-generators-temp-copy.mjs: 3 regenerations identical, tamper control caught) and firstdraw-cold-warm-cache-probe (46c85c32, check-first-draw-passes.mjs: cold and warm, 17 MIME types match, negative controls rejected). Both rows were stale as planned.
 
 ## Needs a decision
 

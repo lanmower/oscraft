@@ -1,0 +1,28 @@
+name: sim witness
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  witness:
+    name: run the hero area ability witnesses in the sim
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          submodules: recursive
+
+      - name: Install the pinned Rust toolchain
+        run: |
+          rustup toolchain install
+          rustc --version
+
+      - name: Run the hero area ability witnesses
+        run: cargo test -p sim --test hero_area_abilities -- --nocapture
