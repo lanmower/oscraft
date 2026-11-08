@@ -1,6 +1,8 @@
 # Browser witnesses
 
-Three witnesses remain scoped to a dev origin: HMR, finished match, and two-tab dispatch. Each is one bounded playwriter run.
+Four witnesses remain scoped to a dev origin: HMR, finished match, two-tab dispatch, and strike while walking. Each is one bounded playwriter run.
+
+Strike while walking runs three legs in one match (one-hand on, off, on) through scripts/witness/strike-while-walking.mjs (runWitness). Its red run is the one-hand-off leg, which matches attack() before the fix: a walking hero returns early there. A leg passes only when the hero is in reach while it moves, so a zero count in the red leg proves the flag and not the geometry.
 
 Open pages in the worker own context; keep at most two pages open at a time.
 Before each step, list the pages and act only on pages you opened yourself.
