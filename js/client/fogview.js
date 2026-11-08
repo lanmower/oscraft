@@ -8,8 +8,9 @@ const NEAR_W = 1e-3;
 const LAYER_DIV = 4;
 const EDGE_SIGMA_CELLS = 0.25;
 const FALLBACK_CELL_PX = 32;
+const RANGE_MARGIN_CELLS = 3;
 
-export function createFogView({ game, localPlayer, toClip, groundAt }) {
+export function createFogView({ game, localPlayer, toClip, groundAt, visibleGround }) {
   const supported = typeof game.vision === "function" && typeof game.vision_dims === "function";
   const versioned = typeof game.vision_generation === "function";
   const canvas = document.createElement("canvas");
@@ -152,6 +153,18 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
     }
   }
 
+  function cellRange(vw, vh, s) {
+    const bounds = visibleGround ? visibleGround() : null;
+    if (!bounds) return [0, vw, 0, vh];
+    const clampTo = (v, max) => Math.min(max, Math.max(0, v));
+    return [
+      clampTo(Math.floor(bounds[0] / s) - RANGE_MARGIN_CELLS, vw),
+      clampTo(Math.ceil(bounds[2] / s) + RANGE_MARGIN_CELLS, vw),
+      clampTo(Math.floor(bounds[1] / s) - RANGE_MARGIN_CELLS, vh),
+      clampTo(Math.ceil(bounds[3] / s) + RANGE_MARGIN_CELLS, vh),
+    ];
+  }
+
   function rebuildLayer(cssW, cssH) {
     const [vw, vh, s] = dims;
     const { stride, clip, sx, sy, known, onScreen, ring, quad, cut, px, py } = buffers;
@@ -190,8 +203,9 @@ export function createFogView({ game, localPlayer, toClip, groundAt }) {
     const unseenPath = new Path2D();
     const exploredPath = new Path2D();
     const tPath = performance.now();
-    for (let j = 0; j < vh; j++) {
-      for (let i = 0; i < vw; i++) {
+    const [i0, i1, j0, j1] = cellRange(vw, vh, s);
+    for (let j = j0; j < j1; j++) {
+      for (let i = i0; i < i1; i++) {
         const idx = j * vw + i;
         const k0 = corner(i, j);
         const k1 = corner(i + 1, j);

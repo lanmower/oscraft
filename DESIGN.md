@@ -80,3 +80,12 @@ This adds to the cf884aa section above, which stays the authoritative record of 
 - Fresh `ls-remote origin refs/heads/main` at 18:25 to 18:28: gm 7be1790, oscraft 413315e, bota 8e97019, hy3d 0c7e9ec. All four trees are clean.
 - Live feel is still OPEN, with no RAF_FRAMES, SAMPLES or frames_with_motion. The mod camera drag still releases the lock (shared.rs:118). The minimap centre stays gated and inert while locked.
 - Follow-up: gm 4de3d2a is a data-only change to work/tooling-fix-units.json (26 follow-ups). Its gate exited 0 (gate:true, failed: []), and its code is unchanged from 7be1790. The four-repo pass stays at 7be1790, and this section stays authoritative for it.
+
+## Hero view lock at a usable rate (2026-11-08)
+
+- Red, before the fog fix (fresh live page, `?ci=1&host=1`, lobby All Pick, Fill with bots, Start match; ArrowUp held 3 s): lock engaged 17.8 fps median in the earlier probe, lock off 13.6 fps, idle 59.5 fps. A CDP profile of the locked hold had `worldClip` at 23.7% self and two wasm functions at 17% and 10%.
+- Cache alone (the view-projection reused, but `worldClip` still built arrays per call): lock engaged 19.9 fps (p95 117 ms), lock off 19.9 fps. Removing the per-call allocations brought lock off to 59.5 fps; lock engaged stayed at 19.9 fps, and the profile showed the fog grid, since the camera moves every frame when locked and the grid rebuilt over every corner.
+- Green, the fog grid bounded to the visible ground with a 3-cell margin, and `worldClip` allocation-free (nocache=13): lock engaged 59.5 fps median (p95 34 ms), lock off 59.9 fps (p95 17 ms), idle 59.5 fps (p95 33 ms). The locked profile has `worldClip` at 2.4% self.
+- Lag (nocache=16, lock engaged, ArrowUp held 3 s): hero 127 moved 7.5 cells over 163 frames; the camera focus was a median 0.33 cells behind the hero (p95 0.51, max 0.61). The released control was not re-run.
+- Not checked: the 3-cell margin against terrain height (`visibleGroundBounds` assumes ground at y = 0), and the feel by eye.
+- Gate: `node scripts/check-all.mjs` RESULT gates=73 ok=73 failed=0 drift=0 skipped=6 strict=false.

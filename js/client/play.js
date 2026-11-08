@@ -24,7 +24,7 @@ import { pingKindOf } from "./moba_input.js";
 import { createPingWheel, WHEEL_KEYS } from "./ping_wheel.js";
 import { createWidgets, setImageSrcResolver, setPreviewRig } from "./widgets.js";
 import { createHudCanvas, hudCanvasRequested } from "./hud_canvas.js";
-import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection } from "./render3d.js";
+import { createCamera, createRenderer as createRenderer3d, eyeOf, MAX_JOINTS, meshReach, multiply, rotationY, scaling, translation, viewProjection, visibleGroundBounds } from "./render3d.js";
 import { buildTerrain, GROUND_UV_PER_CELL, readProps, readGrid, vertexNormals } from "./terrain.js";
 import { controlMap, fitModel, planarGroundUvs, rampLowCells, SPLAT_LAYERS, SPLAT_TEXTURES, setSplatTexel, TILE_TINTS, walkableBounds, waterMap, waterSurface } from "./tiles.js";
 import { loadBaseColorImage, uploadTexture } from "./texture.js";
@@ -1363,9 +1363,35 @@ function worldToScreen(x, z, y = 0) {
   };
 }
 
+const worldVpKey = new Float64Array(10);
+let worldVpKeyed = false;
+
+function worldViewProjection() {
+  const cam = renderer3d.camera;
+  const aspect = window.innerWidth / Math.max(1, window.innerHeight);
+  const k = worldVpKey;
+  const changed = !worldVpKeyed
+    || k[0] !== cam.target[0] || k[1] !== cam.target[1] || k[2] !== cam.target[2]
+    || k[3] !== cam.yaw || k[4] !== cam.pitch || k[5] !== cam.distance
+    || k[6] !== cam.fovY || k[7] !== cam.near || k[8] !== cam.far || k[9] !== aspect;
+  if (changed) {
+    k[0] = cam.target[0]; k[1] = cam.target[1]; k[2] = cam.target[2];
+    k[3] = cam.yaw; k[4] = cam.pitch; k[5] = cam.distance;
+    k[6] = cam.fovY; k[7] = cam.near; k[8] = cam.far; k[9] = aspect;
+    worldVpKeyed = true;
+    viewProjection(cam, aspect, worldVp);
+  }
+  return worldVp;
+}
+
 function worldClip(x, z, y = 0) {
-  const vp = viewProjection(renderer3d.camera, window.innerWidth / Math.max(1, window.innerHeight), worldVp);
-  return [0, 1, 2, 3].map((r) => vp[r] * x + vp[4 + r] * y + vp[8 + r] * z + vp[12 + r]);
+  const vp = worldViewProjection();
+  return [
+    vp[0] * x + vp[4] * y + vp[8] * z + vp[12],
+    vp[1] * x + vp[5] * y + vp[9] * z + vp[13],
+    vp[2] * x + vp[6] * y + vp[10] * z + vp[14],
+    vp[3] * x + vp[7] * y + vp[11] * z + vp[15],
+  ];
 }
 
 function noteLocalRefusal(ok, what) {
@@ -3392,7 +3418,13 @@ async function main() {
   renderer3d.setCamera({ target: orbitOrigin, distance: cameraDistance, maxDistance: cameraMaxDistance, far: cameraMaxDistance * CAMERA_FAR_PER_MAX, bounds: cameraBounds, pitch: 0.9, yawLocked: cameraYawLocked, ...(packCam ? { minDistance: packCam.min, fovY: packCam.fovY, pitch: packCam.pitch, far: packCam.far } : {}) });
   setStatus("loading world assets");
   const stalled = setTimeout(() => { bootStall = true; setStatus("still loading world assets; check the network"); }, WORLD_STALL_MS);
-  fogview = createFogView({ game: liveGame, localPlayer: localPlayerId, toClip: worldClip, groundAt });
+  fogview = createFogView({
+    game: liveGame,
+    localPlayer: localPlayerId,
+    toClip: worldClip,
+    groundAt,
+    visibleGround: () => visibleGroundBounds(renderer3d.camera, window.innerWidth / Math.max(1, window.innerHeight)),
+  });
   window.__fogView = fogview;
   const worldReady = build3d(gl, liveGame).finally(() => clearTimeout(stalled));
   worldBuiltPromise = worldReady;
