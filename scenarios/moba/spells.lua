@@ -206,9 +206,14 @@ local function aims_at_unit(kind, target)
   return kind == TARGET_UNIT or (kind == TARGET_UNIT_OR_POINT and target >= 0 and unit_alive(target))
 end
 
+local LIVING_ARMOR_STRUCTURE_KINDS = {
+  tower = true, tower_t2 = true, tower_t3 = true, tower_t4 = true,
+  barracks_melee = true, barracks_ranged = true,
+  barracks_melee_scourge = true, barracks_ranged_scourge = true,
+}
 local GROUND_RETARGET = {
   zuus_lightning_bolt = { radius = 350, enemy = true, hero = true },
-  treant_living_armor = { radius = 9999, enemy = false, hero = true },
+  treant_living_armor = { radius = 9999, enemy = false, hero = true, kinds = LIVING_ARMOR_STRUCTURE_KINDS },
   abyssal_underlord_dark_rift = { radius = 4000, enemy = false, structure = true },
 }
 local REFERENCE_UNITS_PER_CELL = 64
@@ -218,7 +223,7 @@ local function ground_retarget(caster, rule, x, y)
   local best, best_distance
   for _, u in ipairs(units.units_near(x, y, rule.radius * config.FIX // REFERENCE_UNITS_PER_CELL)) do
     local enemy = units.hostile(caster_player, unit_player(u)) and true or false
-    local fits = (rule.hero and units.is_hero(u)) or (rule.structure and units.is_structure(u))
+    local fits = (rule.hero and units.is_hero(u)) or (rule.structure and units.is_structure(u)) or (rule.kinds ~= nil and rule.kinds[game.unit_kind(u)] == true)
     if unit_alive(u) and enemy == rule.enemy and fits and (not enemy or game.visible_to(caster, u)) then
       local ux, uy = unit_position(u)
       local dx, dy = ux - x, uy - y
