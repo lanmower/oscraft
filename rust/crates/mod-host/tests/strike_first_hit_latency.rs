@@ -4,12 +4,13 @@ use mod_host::{build_image, ModHost};
 use sim::fixed::{self, HALF, ONE};
 
 const OWNER: u8 = 0;
-const NEUTRAL: u8 = 255;
+const ENEMY: u8 = 1;
 const HERO_X: i32 = 92;
 const HERO_Y: i32 = 240;
-const CREEP_OFFSET_CELLS: i32 = 2;
+const TARGET_OFFSET: i32 = ONE;
+const REACH: i64 = 2 * ONE as i64;
 const TICKS: usize = 20;
-const MAX_LAUNCH_ADVANCES: usize = 2;
+const MAX_LATENCY_ADVANCES: usize = 1;
 
 fn pack_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba")
@@ -66,33 +67,44 @@ fn pack_host() -> ModHost {
     host
 }
 
-fn spawn(host: &mut ModHost, kind_name: &str, player: u8, x: i32, y: i32) -> usize {
+fn spawn_hero(host: &mut ModHost, x: i32, y: i32) -> usize {
     let mut sim = host.sim_mut();
-    let kind = sim.catalog().unit_index(kind_name).expect("the kind is in the moba catalog");
-    sim.spawn_attributed(player, kind as u32, x, y).expect("the unit fits on the map")
+    let kind = sim.catalog().unit_index("pudge").expect("the hero kind is in the moba catalog");
+    sim.spawn_attributed(OWNER, kind as u32, x, y).expect("the hero fits on the map")
+}
+
+fn place_target(host: &mut ModHost, x: i32, y: i32) -> usize {
+    let mut sim = host.sim_mut();
+    let kind = sim.catalog().unit_index("objective").expect("the target kind is in the moba catalog");
+    sim.spawn_for(ENEMY, kind as u32, x, y).expect("the target fits on the map")
+}
+
+fn distance_sq(a: (i32, i32), b: (i32, i32)) -> i64 {
+    let (dx, dy) = (i64::from(a.0) - i64::from(b.0), i64::from(a.1) - i64::from(b.1));
+    dx * dx + dy * dy
 }
 
 #[test]
-fn a_stopped_hero_in_reach_starts_its_first_swing_within_two_advances() {
+fn a_hero_in_reach_starts_its_first_swing_within_one_advance() {
     let mut host = pack_host();
-    let hero = spawn(&mut host, "pudge", OWNER, fixed::from_int(HERO_X) + HALF, fixed::from_int(HERO_Y) + HALF);
-    spawn(
-        &mut host,
-        "creep",
-        NEUTRAL,
-        fixed::from_int(HERO_X) + HALF + CREEP_OFFSET_CELLS * ONE,
-        fixed::from_int(HERO_Y) + HALF,
-    );
+    let hero = spawn_hero(&mut host, fixed::from_int(HERO_X) + HALF, fixed::from_int(HERO_Y) + HALF);
+    let target = place_target(&mut host, fixed::from_int(HERO_X) + HALF + TARGET_OFFSET, fixed::from_int(HERO_Y) + HALF);
+    let mut first_reach = None;
     let mut first_flight = None;
     for advance in 0..TICKS {
         host.advance().expect("advance the match");
+        let in_reach = distance_sq(host.sim().position_fixed(hero), host.sim().position_fixed(target)) <= REACH * REACH;
+        if first_reach.is_none() && in_reach {
+            first_reach = Some(advance);
+        }
         if first_flight.is_none() && host.sim().hit_in_flight(hero) {
             first_flight = Some(advance);
         }
     }
-    let launched = first_flight.expect("the stopped hero in reach starts a swing");
+    let reached = first_reach.expect("the hero comes into reach of the target");
+    let launched = first_flight.expect("the hero in reach starts a swing");
     assert!(
-        launched < MAX_LAUNCH_ADVANCES,
-        "the stopped hero in reach launched its first swing at advance {launched}, after {MAX_LAUNCH_ADVANCES} allowed"
+        launched <= reached + MAX_LATENCY_ADVANCES,
+        "the hero came into reach at advance {reached} and launched its first swing at advance {launched}, more than {MAX_LATENCY_ADVANCES} advance later"
     );
 }
