@@ -114,6 +114,7 @@ No comments in source: durable facts live here, names carry intent.
 - `recoverGame`: all tick-path Game calls stay inside the try or the rAF chain dies.
 - `js/client/play.js`: the splat KTX2 path relies on `decoders.loadBasis()` warmed at module init.
 - `loadSim` (play.js) starts the map image fetch before the wasm import and awaits it after `mod.default()`; `js/client/boot-overlap-check.mjs` asserts that order and rejects a serial control.
+- The Lua closure (lua_closure.js, read by loadSim) comes from one request for `bundle/moba.modules.json` when Pages wrote it (scripts/bundle-lua.mjs: a JSON map of the manifest modules); without it (local dev, archives) each module is read by file. `scripts/check-lua-bundle.mjs` asserts the bundle, the closure and the Pages output path agree.
 - Swaps: a peer without the image keeps its old Game.
 - Hot reload (hmr.js, `/__hmr` SSE): a module exports `hmrReload(mod)`, run on the NEW instance (inputs on `globalThis.__oscraftHot`); no hook reloads the page; the wasm path concatenates ".wasm" (the Pages check reads literal ".wasm" names as root files).
 - Packs: no code the page runs (.js .mjs .html .wasm .ts refused).

@@ -1,3 +1,5 @@
+import { LUA_BUNDLE } from "./lua_closure.js";
+export { moduleClosure, moduleTextReader } from "./lua_closure.js";
 
 const SITE_ROOT = new URL("../../", import.meta.url);
 const PACK_PARAMS = new URLSearchParams(location.search);
@@ -319,6 +321,15 @@ export const assetUrl = (key, file = "") => source.url(assetRel(key, file));
 export const packBytes = (rel) => source.bytes(rel);
 export const packText = async (rel) => new TextDecoder().decode(await packBytes(rel));
 export const packJson = async (rel) => JSON.parse(await packText(rel));
+
+export async function loadLuaBundle() {
+  try {
+    const res = await fetch(packUrl(LUA_BUNDLE));
+    return res.ok ? JSON.parse(await res.text()) : null;
+  } catch {
+    return null;
+  }
+}
 const assetTextCache = new Map();
 
 export const assetJson = async (key) => {
@@ -336,32 +347,4 @@ export const packName = manifest.name;
 
 export function modulePaths(manifest) {
   return Object.values(manifest.modules ?? {});
-}
-
-export async function moduleClosure(manifest, readText) {
-  const byStem = manifest.modules ?? {};
-  const out = [];
-  const seen = new Set();
-  const reads = new Map();
-  const read = (file) => {
-    if (!reads.has(file)) {
-      reads.set(file, readText(file).then((text) => {
-        for (const [, stem] of text.matchAll(/require\("([^"]+)"\)/g)) if (byStem[stem] !== undefined) read(byStem[stem]);
-        return text;
-      }));
-    }
-    return reads.get(file);
-  };
-  for (const root of manifest.mods ?? []) read(root);
-  const visit = async (file) => {
-    if (seen.has(file)) return;
-    seen.add(file);
-    const text = await read(file);
-    out.push({ name: file, text });
-    for (const [, stem] of text.matchAll(/require\("([^"]+)"\)/g)) {
-      if (byStem[stem] !== undefined) await visit(byStem[stem]);
-    }
-  };
-  for (const root of manifest.mods ?? []) await visit(root);
-  return out;
 }

@@ -108,7 +108,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           set -euo pipefail
-          node scripts/bundle-lua.mjs scenarios/moba _site/scenarios/moba/bundle/moba.modules.lua
+          node scripts/bundle-lua.mjs scenarios/moba _site/scenarios/moba/bundle/moba.modules.json
 
       - name: Check the bundled site and stamp its content hash
         working-directory: ${{ github.workspace }}

@@ -23,10 +23,10 @@ const REQUIRED = [
   "js/client/pkg/web_bg.wasm",
   "js/client/vendor/wireweave/src/index.js",
   "js/client/vendor/three/libs/draco/draco_wasm_wrapper.js",
-  "scenarios/moba/bundle/moba.modules.lua",
+  "scenarios/moba/bundle/moba.modules.json",
 ];
-const NONEMPTY = ["js/client/play.bundle.js", "js/client/pkg/web_bg.wasm", "scenarios/moba/bundle/moba.modules.lua"];
-const FINGERPRINT = ["js/client/play.bundle.js", "js/client/pkg/web_bg.wasm", "scenarios/moba/moba.osdt", "scenarios/moba/bundle/moba.modules.lua"];
+const NONEMPTY = ["js/client/play.bundle.js", "js/client/pkg/web_bg.wasm", "scenarios/moba/bundle/moba.modules.json"];
+const FINGERPRINT = ["js/client/play.bundle.js", "js/client/pkg/web_bg.wasm", "scenarios/moba/moba.osdt", "scenarios/moba/bundle/moba.modules.json"];
 
 const fail = (what) => { throw new Error(what); };
 const at = (dir, ...parts) => path.join(dir, ...parts);

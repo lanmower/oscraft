@@ -7,7 +7,7 @@ import * as xstate from "xstate";
 import { createAmbientFx, AMBIENT_KINDS } from "./ambient_fx.js";
 import { encodeFrame, decodeFrame, frameTypeName, FRAME, MAX_PLAYERS, TEAM_SIZE, SPECTATOR } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
-import { assetJson, assetRel, assetUrl, fetchRetrying, manifest, manifestOf, moduleClosure, modulePaths, packBytes, packJson, packText, packUrl, readPackFile, stashPack, UI } from "./pack_load.js";
+import { assetJson, assetRel, assetUrl, fetchRetrying, loadLuaBundle, manifest, manifestOf, moduleClosure, moduleTextReader, modulePaths, packBytes, packJson, packText, packUrl, readPackFile, stashPack, UI } from "./pack_load.js";
 import { applyFrame, createAutoSeats, createSeating, createStateEncoder, startFrame } from "./delta.js";
 import { createFrameRecovery } from "./net_recovery.js";
 import { AnimationPlayer, cycleSpeed, globalMatrices, jointMatrices, retargetLibrary, skinFloor } from "./anim.js";
@@ -549,7 +549,8 @@ async function loadSim() {
   mapUrl = packUrl(manifest.image);
   const imageFetch = fetch(mapUrl).then((res) => res.arrayBuffer());
   const rulesFetch = packText(manifest.rules);
-  const modsFetch = noMods ? Promise.resolve([]) : moduleClosure(manifest, packText);
+  const luaBundle = noMods ? null : loadLuaBundle();
+  const modsFetch = noMods ? Promise.resolve([]) : luaBundle.then((bundle) => moduleClosure(manifest, moduleTextReader(bundle, packText)));
   const mod = await import(pkgUrl);
   await mod.default();
   wasmModule = mod;

@@ -74,7 +74,7 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 | --- | --- | --- | --- |
 | `firstdraw-stale-modulepreloads` | medium | The deployed bundled page still preloads 39 unbundled local modules and loads rooms.js loose | planned: at HEAD the count is 64 and rooms.js loads loose at play.html:228; the fix (scripts/bundle-client.mjs, check-site-bundle.mjs bundled-page check) is held outside the tree because it needs the pages.yml bundle step replaced, which only a real Pages deploy can prove |
 | `firstdraw-probe-median-worldbuilt-request-unit` | low | The first-draw probe reports the slower sample as the median, calls distinct paths requests, and measures worldBuilt rather than a frame | landed: scripts/check-first-draw-median.mjs (5 fixtures) |
-| `firstdraw-boot-critical-path` | medium | loadSim starts 99 Lua fetches and the 944 KB image alongside the 601 KB wasm, and the Pages Lua bundle is dead output | partly: named overlap test landed (js/client/boot-overlap-check.mjs; live timing in DESIGN.md); Lua fetch count and Pages Lua bundle still open |
+| `firstdraw-boot-critical-path` | medium | loadSim starts 99 Lua fetches and the 944 KB image alongside the 601 KB wasm, and the Pages Lua bundle is dead output | landed: named overlap test (js/client/boot-overlap-check.mjs) and one bundle request for the Lua closure (scripts/check-lua-bundle.mjs; live counts in DESIGN.md); the 601 KB wasm figure is compressed and not reproduced |
 | `firstdraw-cold-warm-cache-probe` | low | The first-draw probe is cold-only and uses different headers and MIME types from the pack-cache probe, so cache reuse is never measured | planned, needs a named test |
 | `firstdraw-shipped-asset-prune-check` | medium | layout-site.sh ships the whole 113 MB scenarios tree while a measured first draw transfers 3 MB, with no check of which loose files are actually requested | landed as a report gate: scripts/check-shipped-assets.mjs (38.7% of 113.1 MB unreferenced; deletes nothing) |
 
@@ -130,7 +130,7 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 | `lua-pack-archive-module-omission` | high | pack-package.mjs omits 98 module files and all 10 tables from the tar.gz | landed: audit missing 108 -> 0; `check-pack-archive.mjs` gates it |
 | `lua-pack-hook-order-unpinned` | medium | init.lua death-hook order is documented but has no test | landed: check-hook-order.mjs gates 61 requires |
 | `lua-pack-generated-lua-ungated` | medium | Three generated Lua tables have no banner or --check and CI runs no generator check | landed: 9 banners, 16 generator gates; ability_text_688g.lua external |
-| `lua-pack-ci-lua-bundle-unused` | low | Pages writes a package.preload Lua bundle that nothing loads and omits subdir modules | landed: bundle-lua.mjs walks manifest.modules, 99 stems preloaded; output still unused |
+| `lua-pack-ci-lua-bundle-unused` | low | Pages writes a package.preload Lua bundle that nothing loads and omits subdir modules | landed: bundle-lua.mjs writes bundle/moba.modules.json, a JSON map of the manifest modules; the client reads it once for the Lua closure (js/client/lua_closure.js) |
 | `lua-pack-example-mods-unloadable` | medium | Two of 15 example mods fail mod_check and no test exercises mods/ | landed: both fixed, check-example-mods.mjs runs all 15 |
 
 ## Verification
