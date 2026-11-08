@@ -154,6 +154,10 @@ local function best_in_reach(unit, range, aggro_target)
   return best
 end
 
+function targeting.best_in_range(unit, range)
+  return best_in_reach(unit, range, game.aggro_target(unit))
+end
+
 function targeting.strike_choice(unit)
   local damage, range = game.weapon(unit)
   if damage <= 0 then return NO_UNIT end

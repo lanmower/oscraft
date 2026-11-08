@@ -153,3 +153,38 @@ fn a_homing_missile_follows_its_target_and_a_plain_one_misses_a_target_that_move
         assert_eq!(sim.hp(target) < hp, homing, "{kind}: the shot hits a target that moved away only when homing");
     }
 }
+
+#[test]
+fn a_unit_on_a_move_order_strikes_its_target_in_reach_while_it_moves() {
+    let mut sim = open_field();
+    let mover = spawn(&mut sim, PLAYER, 4, 5);
+    let foe = spawn(&mut sim, FOE, 5, 5);
+    let foe_hp = sim.hp(foe);
+    let start = sim.position_fixed(mover);
+    assert!(sim.set_strike_on_move(mover, true));
+    sim.order(mover, centre(20), centre(5));
+
+    for _ in 0..60 {
+        drive_targeting(&mut sim, mover);
+        sim.tick();
+    }
+
+    assert!(sim.hp(foe) < foe_hp, "the mover strikes the foe in reach while it walks");
+    assert_ne!(sim.position_fixed(mover), start, "the mover keeps walking");
+}
+
+#[test]
+fn a_unit_on_a_move_order_does_not_strike_without_the_strike_on_move_flag() {
+    let mut sim = open_field();
+    let mover = spawn(&mut sim, PLAYER, 4, 5);
+    let foe = spawn(&mut sim, FOE, 5, 5);
+    let foe_hp = sim.hp(foe);
+    sim.order(mover, centre(20), centre(5));
+
+    for _ in 0..60 {
+        drive_targeting(&mut sim, mover);
+        sim.tick();
+    }
+
+    assert_eq!(sim.hp(foe), foe_hp, "a plain move order does not strike");
+}

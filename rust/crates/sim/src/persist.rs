@@ -4,7 +4,7 @@ use crate::rules::{Refusal, REFUSAL_KINDS};
 use crate::*;
 
 const MAGIC: &[u8; 4] = b"OSSV";
-const STATE_VERSION: u16 = 67;
+const STATE_VERSION: u16 = 68;
 
 const REFUSALS: [Refusal; REFUSAL_KINDS] = [
     Refusal::Unset,
@@ -501,6 +501,7 @@ impl Sim {
         put_i32s(&mut w, &self.heading);
         put_i32s(&mut w, &self.turn_step);
         w.extend_from_slice(&self.hold_fire);
+        w.extend_from_slice(&self.strike_on_move);
         put_i32(&mut w, self.move_tree_half);
         put_u32(&mut w, self.move_tree_regrow);
         for rate in self.xp_rate {
@@ -799,6 +800,7 @@ impl Sim {
         r.i32s_into(&mut next.heading)?;
         r.i32s_into(&mut next.turn_step)?;
         r.bytes_into(&mut next.hold_fire)?;
+        r.bytes_into(&mut next.strike_on_move)?;
         next.move_tree_half = r.i32()?;
         next.move_tree_regrow = r.u32()?;
         for rate in &mut next.xp_rate {

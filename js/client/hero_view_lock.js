@@ -22,9 +22,9 @@ export function createHeroViewLock() {
   };
 }
 
-export function heroDirection(keys, yaw) {
-  let right = 0;
-  let forward = 0;
+export function heroDirection(keys, yaw, stick = null) {
+  let right = stick ? stick.x : 0;
+  let forward = stick ? stick.y : 0;
   for (const key of keys) {
     const axis = ARROW_AXES.get(key);
     if (axis) {

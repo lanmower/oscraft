@@ -113,7 +113,7 @@ impl Sim {
         let Some(b) = self.commanded_strike(i) else {
             return;
         };
-        if self.walking(i) {
+        if self.walking(i) && self.strike_on_move[i] == 0 {
             return;
         }
         if !self.face_target(i, b) {
@@ -173,6 +173,18 @@ impl Sim {
 
     pub fn holds_fire(&self, i: usize) -> bool {
         self.hold_fire.get(i).is_some_and(|&v| v != 0)
+    }
+
+    pub fn set_strike_on_move(&mut self, i: usize, on: bool) -> bool {
+        if i >= self.n {
+            return false;
+        }
+        self.strike_on_move[i] = u8::from(on);
+        true
+    }
+
+    pub fn strikes_on_move(&self, i: usize) -> bool {
+        self.strike_on_move.get(i).is_some_and(|&v| v != 0)
     }
 
     pub fn strike_of(&self, i: usize) -> i32 {

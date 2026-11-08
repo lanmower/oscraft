@@ -8,6 +8,7 @@ local courier = require("courier")
 local glyph = require("glyph")
 local patrol = require("patrol")
 local pings = require("pings")
+local targeting = require("targeting")
 
 local FIX = config.FIX
 local TARGET_UNIT = 1
@@ -401,6 +402,26 @@ local function toggle_quick_cast(who, slot)
   game.setting(who, key, game.setting(who, key) == 1 and 0 or 1)
 end
 
+local ONE_HAND_SETTING = "onehand"
+
+local function one_hand_on(who)
+  return game.setting(who, ONE_HAND_SETTING) == 1
+end
+
+local function set_one_hand(who, on)
+  game.setting(who, ONE_HAND_SETTING, on and 1 or 0)
+end
+
+local function one_hand_fire(who, hero, slot, name, kind, item)
+  local ext = ability_ext(name)
+  local hit = targeting.best_in_range(hero, config.milli(ext and ext.cast_range or 0))
+  if kind == TARGET_UNIT and hit < 0 then return refuse(who, "noTarget") end
+  local tx, tz = unit_position(hero)
+  if hit >= 0 then tx, tz = unit_position(hit) end
+  local unit = kind ~= TARGET_POINT and hit or -1
+  return walk_then_fire(who, hero, { item = item, slot = slot, name = name, unit = unit, px = tx, pz = tz })
+end
+
 local function cast_key(who, slot, wx, wz, key)
   local hero = caster_of(who)
   if hero == nil then return refuse(who, "noHero") end
@@ -408,6 +429,7 @@ local function cast_key(who, slot, wx, wz, key)
   if a == nil then return refuse(who, "noAbility") end
   if game.unit_cooldown(hero, slot) > 0 then return refuse(who, "cooldown") end
   local kind = target_kind(ability_info(a.name))
+  if kind ~= nil and one_hand_on(who) then return one_hand_fire(who, hero, slot, a.name, kind, false) end
   if kind ~= nil then
     local quick = key ~= nil and quick_cast_on(who, slot)
     local ext = quick and ability_ext(a.name) or nil
@@ -422,12 +444,27 @@ local function cast_key(who, slot, wx, wz, key)
   return walk_then_fire(who, hero, { item = false, slot = slot, name = a.name, unit = hit and hit.id or -1, px = fx(wx), pz = fx(wz) })
 end
 
+local function cast_at(who, slot, x, z)
+  local hero = caster_of(who)
+  if hero == nil then return refuse(who, "noHero") end
+  local a = ability_of(hero, slot)
+  if a == nil then return refuse(who, "noAbility") end
+  if game.unit_cooldown(hero, slot) > 0 then return refuse(who, "cooldown") end
+  local kind = target_kind(ability_info(a.name))
+  if kind == nil or one_hand_on(who) then return cast_key(who, slot) end
+  if x == nil or z == nil then return refuse(who, "noTarget") end
+  local hit = pick(x, z)
+  if kind == TARGET_UNIT and hit == nil then return refuse(who, "noTarget") end
+  return walk_then_fire(who, hero, { item = false, slot = slot, name = a.name, unit = hit and hit.id or -1, px = fx(x), pz = fx(z) })
+end
+
 local function item_key(who, slot)
   local hero = hero_selected(who)
   if hero == nil then return refuse(who, "noHero") end
   for _, it in ipairs(game.unit_items(hero)) do
     if it.slot == slot then
       local kind = target_kind(it.ability)
+      if kind ~= nil and one_hand_on(who) then return one_hand_fire(who, hero, slot, it.ability.name, kind, true) end
       if kind ~= nil then return arm(who, { item = true, slot = slot, kind = kind, radius = 0, name = it.ability.name }) end
       local ux, uz = unit_position(hero)
       game.cmd_use_item(hero, slot, -1, ux, uz)
@@ -483,8 +520,16 @@ local function follow_local_respawn()
   end
 end
 
+local function sync_strike_on_move()
+  for who = 0, config.PLAYERS - 1 do
+    local hero = own_hero(who)
+    if hero ~= nil then game.set_strike_on_move(hero, one_hand_on(who)) end
+  end
+end
+
 local function on_tick()
   follow_local_respawn()
+  sync_strike_on_move()
   for who = 0, config.PLAYERS - 1 do
     local s = STATE[who]
     local p = s and s.pending
@@ -759,6 +804,8 @@ local function on_action(name, args)
     if args.call == "select" and args.args ~= nil then set_selection(args.player or LOCAL, args.args.ids or {}) end
     if args.call == "cast" and args.args ~= nil and args.args.slot ~= nil then cast_key(args.player or LOCAL, args.args.slot) end
     if args.call == "quickcast" and args.args ~= nil and args.args.slot ~= nil then toggle_quick_cast(args.player or LOCAL, args.args.slot) end
+    if args.call == "one_hand" and args.args ~= nil then set_one_hand(args.player or LOCAL, args.args.on == true) end
+    if args.call == "cast_at" and args.args ~= nil and args.args.slot ~= nil then cast_at(args.player or LOCAL, args.args.slot, args.args.x, args.args.z) end
   elseif name == "viewport" then
     if args.x0 and args.z0 and args.x1 and args.z1 then
       st(args.player or LOCAL).view = { x0 = args.x0, z0 = args.z0, x1 = args.x1, z1 = args.z1 }

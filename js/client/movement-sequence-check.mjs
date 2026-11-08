@@ -20,6 +20,7 @@ const NAMES = [
   "heroViewLock", "approachTarget", "followTarget", "stepHeroRun", "createHeroRun", "heroDirection",
   "enemiesInSight", "drawnPosition", "groundAt", "currentUnits", "localHeroUnit", "isHostile",
   "renderer3d", "keysDown", "commands", "PAN_RULES", "pointer", "drag", "canvas", "LOCK_FOLLOW_RATE", "W", "H",
+  "padMove", "pollPad", "syncOneHand",
 ];
 
 function extract(header) {
@@ -171,6 +172,9 @@ async function sequence(mode, { panSource = extract(PAN_HEADER), releaseAfterWri
       LOCK_FOLLOW_RATE,
       W: 2048,
       H: 2048,
+      padMove: null,
+      pollPad: () => {},
+      syncOneHand: () => {},
     });
     const frame = () => {
       driver.panByKeys(DT);

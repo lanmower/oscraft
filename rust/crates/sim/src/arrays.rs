@@ -98,6 +98,7 @@ pub struct Sim {
     pub(crate) heading: Vec<i32>,
     pub(crate) turn_step: Vec<i32>,
     pub(crate) hold_fire: Vec<u8>,
+    pub(crate) strike_on_move: Vec<u8>,
     pub(crate) unit_scale: Vec<u16>,
     pub(crate) xp_rate: [u16; MAX_PLAYERS],
 
@@ -319,6 +320,7 @@ impl Sim {
             heading: vec![0; cap],
             turn_step: vec![0; cap],
             hold_fire: vec![0; cap],
+            strike_on_move: vec![0; cap],
             unit_scale: vec![DEFAULT_PERCENT; cap],
             xp_rate: [DEFAULT_PERCENT; MAX_PLAYERS],
             amount: vec![0; cap],
@@ -752,6 +754,7 @@ impl Sim {
         self.heading[i] = 0;
         self.turn_step[i] = 0;
         self.hold_fire[i] = 0;
+        self.strike_on_move[i] = 0;
         self.unit_scale[i] = DEFAULT_PERCENT;
         self.amount[i] = match self.kind[i] {
             KIND_MINERAL => self.cat.econ.resource_a_per_patch,

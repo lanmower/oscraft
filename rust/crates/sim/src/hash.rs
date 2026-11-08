@@ -187,6 +187,9 @@ impl Sim {
         if self.hold_fire.iter().any(|&f| f != 0) {
             h.bytes(&self.hold_fire);
         }
+        if self.strike_on_move.iter().any(|&f| f != 0) {
+            h.bytes(&self.strike_on_move);
+        }
         if self.turn_step.iter().any(|&t| t != 0) {
             h.i32s(&self.turn_step);
             h.i32s(&self.heading);

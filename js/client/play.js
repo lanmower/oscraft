@@ -16,6 +16,7 @@ import { resolveGlbExtensions } from "./glb_resolve.js";
 import { createHud } from "./hud.js";
 import { approachTarget, centredOnHero, createHeroViewLock, findHeroOf, followTarget, heroDirection } from "./hero_view_lock.js";
 import { createHeroRun, enemiesInSight, stepHeroRun } from "./hero_run.js";
+import { PAD_CAST_SLOTS, aimPoint, pressedDownEdges, twinStick } from "./twin_stick.js";
 import { teamOf } from "./moba_select.js";
 import { cameraDragAction, MIDDLE_BUTTON, pointerReleaseKinds } from "./camera_mouse.js";
 import { createMinimap } from "./ui_minimap.js";
@@ -367,7 +368,7 @@ function collectKeyNames(node, out) {
 function forwardKey(phase, e) {
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
   if (phase === "down" && e.repeat) return;
-  const at = pointer && renderer3d ? screenToWorld(pointer.x, pointer.y) : null;
+  const at = padAimWorld() ?? (pointer && renderer3d ? screenToWorld(pointer.x, pointer.y) : null);
   sendInput("key", {
     key: keyNameOf(e),
     phase,
@@ -1275,8 +1276,8 @@ function driveLockedHero(dtS) {
   }
   const step = stepHeroRun(heroRun, {
     hero: hero ? { id: hero.id, x: hero.x, z: hero.z } : null,
-    direction: heroDirection(keysDown, renderer3d.camera.yaw),
-    held: keysDown.size > 0,
+    direction: heroDirection(keysDown, renderer3d.camera.yaw, padMove),
+    held: keysDown.size > 0 || padMove !== null,
     dtS,
     enemyIds: enemiesInSight(hero, units, isHostile),
     bounds: { w: W, h: H },
@@ -1288,16 +1289,54 @@ function driveLockedHero(dtS) {
   }
 }
 
+let padMove = null;
+let padAim = null;
+let padPressed = [];
+let oneHandSent = null;
+
+function pollPad() {
+  const pad = twinStick(navigator.getGamepads ? navigator.getGamepads() : []);
+  padMove = pad.move;
+  padAim = pad.aim;
+  const downs = pressedDownEdges(padPressed, pad.pressed);
+  padPressed = pad.pressed;
+  for (const button of downs) {
+    if (PAD_CAST_SLOTS.includes(button)) castAtAim(button);
+  }
+}
+
+function padAimWorld() {
+  if (!padAim || !renderer3d) return null;
+  const hero = localHeroUnit(currentUnits());
+  return hero ? aimPoint(hero, padAim, renderer3d.camera.yaw) : null;
+}
+
+function castAtAim(slot) {
+  const hero = localHeroUnit(currentUnits());
+  if (!hero) return;
+  const at = padAimWorld() ?? { x: hero.x, z: hero.z };
+  sendInput("ui", { call: "cast_at", args: { slot, x: at.x, z: at.z } });
+}
+
+function syncOneHand() {
+  const on = heroViewLock.isLocked();
+  if (on === oneHandSent) return;
+  oneHandSent = on;
+  sendInput("ui", { call: "one_hand", args: { on } });
+}
+
 function panByKeys(dtS) {
   if (!renderer3d || !PAN_RULES) return;
+  pollPad();
+  syncOneHand();
   if (heroViewLock.isLocked()) {
     driveLockedHero(dtS);
     return;
   }
   heroRun = createHeroRun();
   lockedFocus = null;
-  let dx = 0;
-  let dz = 0;
+  let dx = padMove ? padMove.x : 0;
+  let dz = padMove ? -padMove.y : 0;
   if (keysDown.has("ArrowLeft")) dx -= 1;
   if (keysDown.has("ArrowRight")) dx += 1;
   if (keysDown.has("ArrowUp")) dz -= 1;
@@ -3724,6 +3763,8 @@ if (params.get("ci") === "1") {
   window.__ciSelect = (unitId) => { if (hud) hud.input.setSelection([unitId]); else selectedId = unitId; };
   window.__ciInputSelection = () => (hud ? hud.input.selection() : []);
   window.__ciLocalPlayer = () => myPlayer;
+  window.__ciHp = (unitId) => (localGame ? localGame.unit_hp(unitId) : null);
+  window.__ciRecentFx = () => (fx ? fx.recentEffects() : []);
   window.__ciFocus = (x, z) => { if (renderer3d) renderer3d.setCamera({ target: [x, groundAt(x, z), z] }); };
   window.__ciToScreen = (x, z) => worldToScreen(x, z, groundAt(x, z));
   window.__ciKillSide = (player) => {

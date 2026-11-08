@@ -1520,6 +1520,14 @@ fn bind_unit_primitives<'gc>(ctx: Context<'gc>, game: Table<'gc>, sh: &Sh) {
         s.replace(c, sh.sim.set_hold_fire(unit, on));
         Ok(CallbackReturn::Return)
     });
+    native!(ctx, game, "set_strike_on_move", [sh], |c, s| {
+        let unit = a(c, &s, 0)?;
+        let on = s.get(1).to_bool();
+        let mut sh = sh.borrow_mut();
+        let unit = known_unit(&sh.sim, unit).map_err(|m| fail(c, m))?;
+        s.replace(c, sh.sim.set_strike_on_move(unit, on));
+        Ok(CallbackReturn::Return)
+    });
     native!(ctx, game, "holds_fire", [sh], |c, s| {
         let sh = sh.borrow();
         let u = known_unit(&sh.sim, a(c, &s, 0)?).map_err(|m| fail(c, m))?;
