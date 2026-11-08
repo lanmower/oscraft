@@ -17,6 +17,8 @@ const REQUIRED = [
   "js/client/play.js",
   "js/client/pack_load.js",
   "js/client/play.bundle.js",
+  "js/client/rooms.bundle.js",
+  "js/client/bundled-inputs.json",
   "scenarios/moba/manifest.json",
   "scenarios/moba/moba.osdt",
   "js/client/pkg/web.js",
@@ -52,9 +54,24 @@ function fingerprint(dir) {
   return hash.digest("hex");
 }
 
+function staleProblems(dir) {
+  const pagePath = at(dir, "js/client/play.html");
+  const listPath = at(dir, "js/client/bundled-inputs.json");
+  if (!fs.existsSync(pagePath) || !fs.existsSync(listPath)) return [];
+  const html = fs.readFileSync(pagePath, "utf8");
+  const problems = [];
+  if (html.includes("src=" + Q + "rooms.js" + Q)) problems.push("play.html loads rooms.js loose, not from rooms.bundle.js");
+  const inlined = JSON.parse(fs.readFileSync(listPath, "utf8"));
+  const stale = preloadTargets(html).map(localRel).filter((rel) => inlined.includes(rel));
+  if (stale.length) problems.push(stale.length + " stale modulepreloads of modules play.bundle.js already inlines: " + stale.join(", "));
+  return problems;
+}
+
 function inspect(dir) {
   const missing = REQUIRED.filter((rel) => !fs.existsSync(at(dir, rel)));
-  if (missing.length) fail("site is missing " + missing.join(", "));
+  const stale = staleProblems(dir);
+  const problems = [...(missing.length ? ["site is missing " + missing.join(", ")] : []), ...stale];
+  if (problems.length) fail(problems.join("; "));
   for (const rel of NONEMPTY) if (fs.statSync(at(dir, rel)).size === 0) fail(rel + " is empty");
   const chunks = fs.readdirSync(at(dir, "js/client")).filter((f) => f.startsWith("chunk-") && f.endsWith(".js"));
   if (!chunks.length) fail("esbuild produced no split chunks");
@@ -84,7 +101,7 @@ function selfTest() {
     for (const rel of REQUIRED) {
       const abs = at(dir, rel);
       fs.mkdirSync(path.dirname(abs), { recursive: true });
-      fs.writeFileSync(abs, rel === "js/client/play.html" ? fixtureHtml : "fixture");
+      fs.writeFileSync(abs, rel === "js/client/play.html" ? fixtureHtml : rel === "js/client/bundled-inputs.json" ? "[]" : "fixture");
     }
     fs.writeFileSync(at(dir, "version.json"), JSON.stringify({ sha: "fixture", ref: "local", run: "local" }) + NL);
     fs.copyFileSync(at(dir, "version.json"), at(dir, "js/client/version.json"));
@@ -101,11 +118,17 @@ function selfTest() {
     if (!refused) fail("a missing chunk did not fail the check");
     fs.writeFileSync(chunk, "export const fixture = 1;");
     if (stamped.preloads !== 1) fail("modulepreload detection found " + stamped.preloads + " targets");
+    const inlinedList = at(dir, "js/client/bundled-inputs.json");
+    fs.writeFileSync(inlinedList, JSON.stringify(["preload-fixture.js"]) + NL);
+    refused = false;
+    try { inspect(dir); } catch { refused = true; }
+    if (!refused) fail("a modulepreload of a module the bundle inlines did not fail the check");
+    fs.writeFileSync(inlinedList, "[]" + NL);
     fs.rmSync(at(dir, "js/client/preload-fixture.js"));
     refused = false;
     try { inspect(dir); } catch { refused = true; }
     if (!refused) fail("a missing modulepreload target did not fail the check");
-    console.log("site bundle ok (13 required files, chunk, preloads, html, version parity, fingerprint, 2 negative cases)");
+    console.log(`site bundle ok (${REQUIRED.length} required files, chunk, preloads, html, version parity, fingerprint, 3 negative cases)`);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

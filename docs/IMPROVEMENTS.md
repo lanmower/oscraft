@@ -72,7 +72,7 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 
 | id | risk | finding | status |
 | --- | --- | --- | --- |
-| `firstdraw-stale-modulepreloads` | medium | The deployed bundled page still preloads 39 unbundled local modules and loads rooms.js loose | planned: at HEAD the count is 64 and rooms.js loads loose at play.html:228; the fix (scripts/bundle-client.mjs, check-site-bundle.mjs bundled-page check) is held outside the tree because it needs the pages.yml bundle step replaced, which only a real Pages deploy can prove |
+| `firstdraw-stale-modulepreloads` | medium | The deployed bundled page still preloads 40 unbundled local modules that play.bundle.js already inlines, and loads rooms.js loose | landed: scripts/bundle-client.mjs bundles play.js and rooms.js, removes the 40 stale modulepreloads and keeps the 24 vendor preloads, and check-site-bundle.mjs fails a site that still carries them. Row: firstdraw-stale-modulepreloads. Witness: on HEAD 1bf621a the site check exits 1 with "40 stale modulepreloads of modules play.bundle.js already inlines" and the loose rooms.js; the after site passes ("24 kept"). First draw, same job on both sites (3 browser contexts, cold and warm, 6 loads each, worldBuilt in ms): HEAD median of six 1517 (cold 1518, 1516, 1536; warm 1542, 1502, 1481), 126–127 requests, 3.15 MB; after median 1470.5 (cold 1483, 1448, 1459; warm 1475, 1466, 1481), 88–90 requests, 3.06 MB. The worldBuilt gap is inside the run spread; the request and byte drop is the measured effect |
 | `firstdraw-probe-median-worldbuilt-request-unit` | low | The first-draw probe reports the slower sample as the median, calls distinct paths requests, and measures worldBuilt rather than a frame | landed: scripts/check-first-draw-median.mjs (5 fixtures) |
 | `firstdraw-boot-critical-path` | medium | loadSim starts 99 Lua fetches and the 944 KB image alongside the 601 KB wasm, and the Pages Lua bundle is dead output | landed: named overlap test (js/client/boot-overlap-check.mjs) and one bundle request for the Lua closure (scripts/check-lua-bundle.mjs; live counts in DESIGN.md). CI wire size (run 42475227556): live bundle 282,168 bytes vs 1,167,040 for the 99 .lua files; wasm 497,938 bytes on the wire (the 601 KB figure was a local build's gzip) |
 | `firstdraw-cold-warm-cache-probe` | low | The first-draw probe is cold-only and uses different headers and MIME types from the pack-cache probe, so cache reuse is never measured | landed: check-first-draw-passes.mjs (cold and warm passes; 17 MIME types match; negative controls rejected) |
@@ -139,7 +139,7 @@ The adversarial vote was capped at six claims and started, but no verifier retur
 
 ## Remaining work, ranked (2026-11-08)
 
-Held and not in this list: GP-CHT-15 repick window (docs/GAMEPLAY_PARITY.md) and firstdraw-stale-modulepreloads (modulepreload fix).
+Held and not in this list: GP-CHT-15 repick window (docs/GAMEPLAY_PARITY.md).
 
 | rank | item | status | witness |
 | --- | --- | --- | --- |
