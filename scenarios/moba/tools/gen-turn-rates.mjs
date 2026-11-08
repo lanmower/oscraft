@@ -6,7 +6,11 @@ import { fileURLToPath } from "node:url";
 const moba = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
 const opt = (name, dflt) => (args.includes(name) ? args[args.indexOf(name) + 1] : dflt);
-const iniPath = opt("--unit-ini", "/workspace/hy3d/output/g688-lni/unit.ini");
+const iniPath = opt("--unit-ini", process.env.G688_UNIT_INI || "");
+if (!iniPath) {
+  console.error("gen-turn-rates needs the 6.88g unit.ini: pass --unit-ini or set G688_UNIT_INI");
+  process.exit(2);
+}
 const DEG_PER_S_PER_TURN_RATE = 57.2958 / 0.03;
 
 const LANE = {

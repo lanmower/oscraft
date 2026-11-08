@@ -85,12 +85,11 @@ const GATE_GENERATORS = [
   "gen-lane-routes-688g.mjs",
 ];
 
-const DRIFT = [
-  { id: "gen-turn-rates.mjs", output: "turn_rates.lua", reason: "reads the machine-local hy3d 6.88g unit.ini; a --check failure means the committed rates diverged from the generator" },
-];
+const DRIFT = [];
 
 const EXTERNAL = [
   { id: "js/client/editor-check.mjs", reason: "needs the built rust/target/debug/osdt-data binary" },
+  { id: "gen-turn-rates.mjs", reason: "needs G688_UNIT_INI set to the 6.88g unit.ini that turn_rates.lua was generated from" },
   { id: "gen-ability-keys.mjs", reason: "needs the hy3d g688-lni directory" },
   { id: "gen-ability-text-688g.mjs", reason: "needs G688_LNI set to the hy3d 6.88g lni directory holding ability.ini" },
   { id: "gen-neutral-688g.mjs", reason: "needs --src with the 6.88g war3map.j script" },
@@ -102,18 +101,23 @@ const G688_LNI = process.env.G688_LNI || "";
 const abilityTextGate = G688_LNI
   ? [nodeEntry("gen", "gen-ability-text-688g.mjs", "gate", ["scenarios/moba/tools/gen-ability-text-688g.mjs", "--check", join(G688_LNI, "ability.ini")])]
   : [];
+const G688_UNIT_INI = process.env.G688_UNIT_INI || "";
+const turnRatesDrift = G688_UNIT_INI
+  ? [nodeEntry("gen", "gen-turn-rates.mjs", "drift", tools("gen-turn-rates.mjs"), { output: "turn_rates.lua", reason: "a --check failure means the committed rates diverged from the 6.88g unit.ini named by G688_UNIT_INI" })]
+  : [];
 const entries = [
   { kind: "check", id: "git diff --check", state: "gate", exe: "git", argv: ["diff", "--check"] },
   ...GATE_CHECKS.map((id) => nodeEntry("check", id, "gate", [id])),
   ...GATE_GENERATORS.map((id) => nodeEntry("gen", id, "gate", tools(id))),
   ...DRIFT.map((d) => nodeEntry("gen", d.id, "drift", tools(d.id), { output: d.output, reason: d.reason })),
+  ...turnRatesDrift,
   ...abilityTextGate,
-  ...EXTERNAL.filter((e) => !(G688_LNI && e.id === "gen-ability-text-688g.mjs")).map((e) => ({ kind: e.id.startsWith("js/") ? "check" : "gen", id: e.id, state: "external", reason: e.reason })),
+  ...EXTERNAL.filter((e) => !(G688_LNI && e.id === "gen-ability-text-688g.mjs") && !(G688_UNIT_INI && e.id === "gen-turn-rates.mjs")).map((e) => ({ kind: e.id.startsWith("js/") ? "check" : "gen", id: e.id, state: "external", reason: e.reason })),
 ];
 
 if (listOnly) {
   for (const e of entries) console.log(e.state.padEnd(8) + " " + e.id + (e.reason ? "  " + e.reason : ""));
-  console.log("LIST gates=" + entries.filter((e) => e.state === "gate").length + " drift=" + DRIFT.length + " external=" + EXTERNAL.length);
+  console.log("LIST gates=" + entries.filter((e) => e.state === "gate").length + " drift=" + entries.filter((e) => e.state === "drift").length + " external=" + entries.filter((e) => e.state === "external").length);
   process.exit(0);
 }
 
