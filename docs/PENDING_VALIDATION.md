@@ -154,8 +154,9 @@ Phase A changes (owner rule, 2026-11-08, recorded in AGENTS.md) are written and 
 - Owner decision (2026-11-09 Phase B request): the docs are the side that was wrong; Join-then-Fill was accepted, and the host gate was not changed.
 - Phase B measurement contradicts the premise the acceptance rested on. On a `?host=1` page the host gate is open (startHost makes the page the host), so Fill is allowed before any seat claim, and the Join button is disabled until the lobby is negotiated (`negotiated()` in scenarios/moba/panels.lua needs a mode and either Fill or every seat taken). So Join cannot be clicked first. Fill before a claim fills all ten seats with bots and leaves no human seat.
 - The order that reached the live match (Phase B, 2026-11-09): a mode chip (All Pick), the claim call for seat 0 (`window.oscraft.lobby('claim', {slot: 0})`; the per-seat Claim buttons are hidden in this layout), Fill with bots, hero PUD, Ready, Start match. The page then reported `data-phase="live"`. docs/BROWSER_WITNESSES.md line 7 now states this order. The host gate is unchanged.
-- Owner to confirm: the accepted Join-then-Fill order cannot run, so the measured order replaces it in the docs.
-- Status: run in Phase B; the order is documented, and the owner's confirmation is open.
+- Owner acceptance (2026-11-09, this pass): the owner accepted the measured order as the reachable one, and the docs record it. The Join-then-Fill order the owner first accepted cannot be run, so the accepted order is the measured one.
+- My reasoning for keeping the host gate unchanged: Join is disabled until `negotiated()` holds, and that needs a mode and either Fill or every seat held, so Join cannot be the first human action. On a `?host=1` page Fill is allowed before any claim, and it then fills all ten seats with bots. Claiming seat 0 first makes the page's own seat human, and Fill then fills the other nine. The claim-then-Fill order is therefore the only one that keeps a human seat, and the host gate needs no change for it.
+- Status: run in Phase B, and the order is documented. Accepted by the owner; the live run in Phase B is what shows the order reaches the live match.
 
 ## F5. First-hit latency for a stopped hero in reach (Phase A pass 2026-11-09, item 1)
 
