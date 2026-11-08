@@ -93,7 +93,7 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 
 | id | risk | finding | status |
 | --- | --- | --- | --- |
-| `rust-sim-ci-test-job-retired` | medium | Restore a Rust test workflow and correct the stale ci.yml / rust-gate documentation | needs decision |
+| `rust-sim-ci-test-job-retired` | medium | Restore a Rust test workflow and correct the stale ci.yml / rust-gate documentation | decided: no automated checks in CI (owner); not restoring |
 | `rust-sim-item-generation-global` | medium | Make item_generation_total per-Sim instead of a process-wide atomic | landed: Sim field, existing tests pass |
 | `rust-sim-replay-format-untested` | low | Add replay format-3 parse/render round-trip tests to the only format code with no tests | landed: replay/tests/format_three.rs, 2 tests |
 | `rust-sim-state-version-contract` | medium | Pin STATE_VERSION with a full-plane save/load contract test | landed: sim/tests/state_version_contract.rs, 1 test |
@@ -151,7 +151,7 @@ Held and not in this list: GP-CHT-15 repick window (docs/GAMEPLAY_PARITY.md) and
 | 6 | Courier controls unchecked: item exclusions, owner-return point, per-owner filter, zoom and rotation-lock keys | planned | AGENTS courier lines |
 | 7 | Wolf form E015 not modelled | planned | AGENTS |
 | 8 | Live feel of the hero view lock at a usable frame rate | needs a bounded browser run | the lock gates are logic proxies |
-| 9 | rust-sim CI test job retired | blocked: owner decision | 9a17155e |
+| 9 | rust-sim CI test job retired | resolved: the owner decided no automated checks in CI, only manual checks; sim-witness.yml, mod-host-witness.yml and lua-wire-size.yml are removed, pages.yml and release.yml stay as builds | 9a17155e (decision); this commit (removal) |
 | 10 | pages-scout post-deploy compare gate | deferred: max-age=600 makes it unsafe | row text above |
 
 Landed in this pass: data-generators-temp-copy-no-check (e02044a2, check-generators-temp-copy.mjs: 3 regenerations identical, tamper control caught) and firstdraw-cold-warm-cache-probe (46c85c32, check-first-draw-passes.mjs: cold and warm, 17 MIME types match, negative controls rejected). Both rows were stale as planned.
@@ -159,7 +159,7 @@ Landed in this pass: data-generators-temp-copy-no-check (e02044a2, check-generat
 ## Needs a decision
 
 - `data-generators-current-drift`: resolved. The owner approved reconciling the three outputs to their generators; DESIGN.md 2026-11-06 records hy3d's patch and the zero-drift gates.
-- `rust-sim-ci-test-job-retired`: `9a17155e` deliberately retired the test workflows. Re-adding one is an owner decision, not a defect fix.
+- `rust-sim-ci-test-job-retired`: `9a17155e` deliberately retired the test workflows, and the owner has since decided there are no automated checks in CI. Checks run by hand (`node scripts/check-all.mjs`); builds stay in CI.
 
 ## Deferred with a reason
 
