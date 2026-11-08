@@ -25,6 +25,7 @@ const GATE_CHECKS = [
   "scripts/check-first-draw-median.mjs",
   "scripts/check-first-draw-passes.mjs",
   "scripts/check-generators-temp-copy.mjs",
+  "scripts/check-external-inputs.mjs",
   "js/client/frame-chain-check.mjs",
   "js/client/safe-storage-check.mjs",
   "js/client/hud-hot-check.mjs",

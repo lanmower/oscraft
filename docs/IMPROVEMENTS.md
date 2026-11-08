@@ -84,7 +84,7 @@ Status: **landed** (in this run, with a witness below), **verified** (survived t
 | --- | --- | --- | --- |
 | `data-generators-offline-gate` | medium | Replace the generic generator-check idea with one manifest-driven offline gate | landed |
 | `data-generators-current-drift` | high | Regenerate three shipped outputs that already fail their own checks | landed: owner approved hy3d's patch; all three --check now pass |
-| `data-generators-external-input-contract` | medium | Pin external hy3d inputs instead of relying on a machine path or local checkout | planned |
+| `data-generators-external-input-contract` | medium | Pin external hy3d inputs instead of relying on a machine path or local checkout | landed: unit.ini and ability.ini pinned by sha256 in scenarios/moba/tools/external-688g.tsv; scripts/check-external-inputs.mjs fails on a mismatch |
 | `data-generators-temp-copy-no-check` | medium | Compare no-check generators through a temp copy rather than adding 25 ad hoc flags | planned |
 | `data-generators-osdt-exclusion` | low | Exclude the committed stale .osdt snapshot from source-drift checks | planned |
 | `data-generators-hero-model-completeness` | high | Assert nonempty hero models in the same gate that checks hero bodies | landed |

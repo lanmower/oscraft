@@ -145,7 +145,7 @@ No comments in source: durable facts live here, names carry intent.
 - Hero full names are data only: UI, tooltips and hover text show `hero_acronyms.lua` acronyms (panels.lua `LATE.acronym`; `gen-ability-text-688g.mjs` substitutes them). `scripts/check-acronyms.mjs` asserts 1-3 letters and unique. `gen-ability-text-688g.mjs --check /workspace/hy3d/output/g688-lni/ability.ini` matches the committed hover text (447 abilities); an older hy3d ability.ini copy with 450 entries drifted, so pass the ini the text was generated from.
 - Asset prep: prep-ktx never calls `reorder()` (the client fits over every POSITION vertex). `pack-package.mjs` splits packs over 25 MiB; its extension allow-list must match `js/client/pack_load.js`. `vendor-cdn.mjs` re-fetches from the `// Vendored from <url> by ` header: keep that text. `atlas.py` output must stay deterministic (fixed LANCZOS resample, WebP quality and method 6, no time or random input).
 
-- External 6.88g inputs are named, never machine paths: `gen-turn-rates.mjs` reads the unit.ini given by `--unit-ini` or `G688_UNIT_INI` and exits 2 without one; check-all runs its drift check only when `G688_UNIT_INI` is set.
+- External 6.88g inputs are named, never machine paths: `gen-turn-rates.mjs` reads the unit.ini given by `--unit-ini` or `G688_UNIT_INI` and exits 2 without one; check-all runs its drift check only when `G688_UNIT_INI` is set. Each named input is pinned by sha256 in `scenarios/moba/tools/external-688g.tsv`; `scripts/check-external-inputs.mjs` fails when a named file differs from its pin.
 
 ## Area notes: crates
 
