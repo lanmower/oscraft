@@ -236,6 +236,12 @@ Each row is one change, committed on its own. The review compared docs/CONTROLS.
 - E3-10 (pad source and start): docs/CONTROLS.md, the gamepad section's first paragraph and the paragraph on buttons 0 to 3. Cause: the doc said "standard mapping" without saying the pad is the first connected gamepad with no layout check (twin_stick.js lines 20-22), and it did not say pad polling and casts wait for the renderer and the pan rules (play.js 1329-1330). Witness: none; the claim rests on those lines, and a Phase B run with a connected pad would have to show it.
 - Status: committed locally; not run in Phase A.
 
+## G3. Phase B items for the 2026-11-09 open-items pass
+
+- Rows to validate: H1 (swing point and tick accessors, `STATE_VERSION` unchanged: accessors only, no layout change), H2 (timed live witness and its check), F4 (acceptance recorded, live order run), E3-1 to E3-10 (CONTROLS.md, doc changes only; the code-side check is the `pad_cast_at` and `movement-*` gates named in each row).
+- Commands (Phase B): `WASM=1 SKIP_PACKS=1 bash scripts/dev/stage.sh`; `cargo test -p sim` and `cargo test -p mod-host`; `node scripts/witness/first-hit-timing-check.mjs`; `node scripts/witness/strike-while-walking-check.mjs`; the live timed witness (H2); `node scripts/check-all.mjs`.
+- Status: not run.
+
 ## Notes for Phase B (observations, not validation)
 
 - A hero walks about 4.7 cells per second on the live map. Reads taken one second apart can look like a stalled hero; use the position log over several seconds.
