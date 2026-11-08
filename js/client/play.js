@@ -3765,6 +3765,7 @@ if (params.get("ci") === "1") {
   window.__ciLocalPlayer = () => myPlayer;
   window.__ciHp = (unitId) => (localGame ? localGame.unit_hp(unitId) : null);
   window.__ciRecentFx = () => (fx ? fx.recentEffects() : []);
+  window.__ciStrikeOf = (unitId) => (localGame ? localGame.unit_strike_of(unitId) : null);
   window.__ciFocus = (x, z) => { if (renderer3d) renderer3d.setCamera({ target: [x, groundAt(x, z), z] }); };
   window.__ciToScreen = (x, z) => worldToScreen(x, z, groundAt(x, z));
   window.__ciKillSide = (player) => {
