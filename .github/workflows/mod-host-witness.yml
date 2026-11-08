@@ -1,0 +1,21 @@
+name: mod-host witness
+on:
+  workflow_dispatch:
+jobs:
+  witness:
+    name: run the Reincarnation Leoric witness in mod-host
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          submodules: recursive
+      - name: Install the pinned Rust toolchain
+        run: |
+          rustup toolchain install
+          rustc --version
+      - name: Run the Reincarnation Leoric witness
+        run: cargo test -p mod-host --test leoric_reincarnation -- --nocapture
