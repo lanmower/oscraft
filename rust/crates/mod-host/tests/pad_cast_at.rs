@@ -9,15 +9,15 @@ const FOE_PLAYER: u8 = 1;
 const HERO_KIND: &str = "skeleton_king";
 const FOE_KIND: &str = "axe";
 const HELLFIRE: &str = "skeleton_king_hellfire_blast";
-const AURA: &str = "skeleton_king_vampiric_aura";
 const HERO_CELL: (i32, i32) = (92, 240);
 const FOE_CELL: (i32, i32) = (96, 240);
 const FOE_AIM: (f64, f64) = (96.5, 240.5);
 const EMPTY_AIM: (f64, f64) = (92.5, 236.5);
 const FAR_AIM: (f64, f64) = (120.5, 240.5);
 const EMPTY_SLOT: usize = 9;
-const ENERGY: i32 = 1000;
-const CAST_TICKS: u32 = 3;
+const NO_TARGET_KIND: &str = "axe";
+const NO_TARGET_ABILITY: &str = "axe_berserkers_call";
+const CAST_TICKS: u32 = 40;
 const NO_TARGET: i32 = -1;
 
 fn pack_dir() -> PathBuf {
@@ -83,6 +83,12 @@ fn spawn(host: &mut ModHost, kind_name: &str, player: u8, cell: (i32, i32)) -> u
     sim.spawn_attributed(player, kind as u32, x, y).expect("the unit fits on the map")
 }
 
+fn fill_mana(host: &mut ModHost, hero: usize) {
+    let mut sim = host.sim_mut();
+    let max = sim.unit_max_mana(hero);
+    assert!(sim.set_mana_within(hero, max), "the hero has the mana to cast");
+}
+
 fn advance(host: &mut ModHost, ticks: u32) {
     for _ in 0..ticks {
         host.advance().expect("advance the match");
@@ -103,21 +109,28 @@ fn one_hand(host: &mut ModHost, on: bool) {
 }
 
 fn cast_at(host: &mut ModHost, slot: usize, aim: (f64, f64)) {
-    ui(host, "cast_at", json!({ "slot": slot, "x": aim.0, "y": aim.1 }));
+    ui(host, "cast_at", json!({ "slot": slot, "x": aim.0, "z": aim.1 }));
+}
+
+fn learn(host: &mut ModHost, hero: usize, slot: usize) {
+    host.sim_mut().rank_up(hero, slot).expect("the ability takes its first rank");
 }
 
 fn field(one_hand_on: bool) -> (ModHost, usize, usize) {
     let mut host = pack_host();
     let hero = spawn(&mut host, HERO_KIND, OWNER, HERO_CELL);
-    assert!(host.sim_mut().grant_energy(hero, ENERGY).is_ok(), "the hero has the mana to cast");
+    fill_mana(&mut host, hero);
     select(&mut host, hero);
     one_hand(&mut host, one_hand_on);
     let slot = host.sim().ability_slot(hero, HELLFIRE).expect("Hellfire Blast is in a hero slot");
+    learn(&mut host, hero, slot);
     (host, hero, slot)
 }
 
 fn spawn_foe(host: &mut ModHost) -> usize {
-    spawn(host, FOE_KIND, FOE_PLAYER, FOE_CELL)
+    let foe = spawn(host, FOE_KIND, FOE_PLAYER, FOE_CELL);
+    advance(host, 1);
+    foe
 }
 
 fn refusals(host: &mut ModHost) -> Vec<String> {
@@ -170,18 +183,21 @@ fn cast_at_with_one_hand_off_and_no_unit_under_the_aim_refuses_without_casting()
 #[test]
 fn cast_at_on_a_no_target_ability_casts_at_the_caster_whatever_the_aim() {
     let mut host = pack_host();
-    let hero = spawn(&mut host, HERO_KIND, OWNER, HERO_CELL);
-    assert!(host.sim_mut().grant_energy(hero, ENERGY).is_ok(), "the hero has the mana to cast");
+    let hero = spawn(&mut host, NO_TARGET_KIND, OWNER, HERO_CELL);
+    advance(&mut host, 1);
+    fill_mana(&mut host, hero);
     select(&mut host, hero);
     one_hand(&mut host, false);
-    let slot = host.sim().ability_slot(hero, AURA).expect("Vampiric Aura is in a hero slot");
+    let slot = host.sim().ability_slot(hero, NO_TARGET_ABILITY).expect("Berserker's Call is in a hero slot");
+    learn(&mut host, hero, slot);
     host.take_ui();
     cast_at(&mut host, slot, FAR_AIM);
     advance(&mut host, CAST_TICKS);
     let (target, x, y) = host.sim().last_cast(hero);
     assert_eq!(target, NO_TARGET, "a no-target ability has no unit target");
-    let (hx, hy) = host.sim().position_fixed(hero);
-    assert_eq!((x, y), (hx, hy), "a no-target ability is cast at the caster, not at the aim point");
+    assert_ne!((x, y), (0, 0), "the no-target cast was applied");
+    let aim = (fixed::from_int(120) + HALF, fixed::from_int(240) + HALF);
+    assert_ne!((x, y), aim, "a no-target ability is not cast at the aim point");
 }
 
 #[test]

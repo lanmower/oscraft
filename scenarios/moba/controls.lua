@@ -415,10 +415,10 @@ end
 local function one_hand_fire(who, hero, slot, name, kind, item)
   local ext = ability_ext(name)
   local hit = targeting.best_in_range(hero, config.milli(ext and ext.cast_range or 0))
-  if kind == TARGET_UNIT and hit < 0 then return refuse(who, "noTarget") end
+  if kind == "unit" and hit < 0 then return refuse(who, "noTarget") end
   local tx, tz = unit_position(hero)
   if hit >= 0 then tx, tz = unit_position(hit) end
-  local unit = kind ~= TARGET_POINT and hit or -1
+  local unit = kind ~= "point" and hit or -1
   return walk_then_fire(who, hero, { item = item, slot = slot, name = name, unit = unit, px = tx, pz = tz })
 end
 
@@ -454,7 +454,7 @@ local function cast_at(who, slot, x, z)
   if kind == nil or one_hand_on(who) then return cast_key(who, slot) end
   if x == nil or z == nil then return refuse(who, "noTarget") end
   local hit = pick(x, z)
-  if kind == TARGET_UNIT and hit == nil then return refuse(who, "noTarget") end
+  if kind == "unit" and hit == nil then return refuse(who, "noTarget") end
   return walk_then_fire(who, hero, { item = false, slot = slot, name = a.name, unit = hit and hit.id or -1, px = fx(x), pz = fx(z) })
 end
 
