@@ -22,6 +22,7 @@ const GATE_CHECKS = [
   "scripts/check-relay-tie-order.mjs",
   "scripts/check-release-layout.mjs",
   "scripts/check-shipped-assets.mjs",
+  "scripts/check-first-draw-median.mjs",
   "js/client/frame-chain-check.mjs",
   "js/client/safe-storage-check.mjs",
   "js/client/hud-hot-check.mjs",

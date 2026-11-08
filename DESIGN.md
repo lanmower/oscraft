@@ -62,7 +62,7 @@ This supersedes the 2dad9b5 section above. The authoritative gm hash is cf884aa 
 - Lock engage order: `js/client/lock-engage-order-check.mjs` witnesses `single engage site hud.js:182 inside the hero-lock onclick; createHud installs it at play.js:3398 after the boot write at play.js:3391`. Negative control: an earlier createHud install fails. The dev-only hud hmrReload is outside the production order.
 - Live feel: still OPEN. The one bounded headless attempt never reached the live phase, so RAF_FRAMES, SAMPLES and frames_with_motion were not printed. The gates are logic proxies, not live verification.
 - Mod camera drag: still releases the lock, because shared.rs:118 ui_camera carries no origin field (modui.js:176).
-- Current tree figures: gates=67, gate path refs=56 with 0 missing, camera writes=24 with 0 unclassified.
+- Current tree figures: gates=68, gate path refs=57 with 0 missing, camera writes=24 with 0 unclassified.
 - The figures above track the tree; scripts/check-design-record.mjs fails when they drift.
 
 ## Four-repo pass: gm 7be1790 (2026-11-07)
