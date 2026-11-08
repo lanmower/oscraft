@@ -35,7 +35,7 @@ Buttons 0 to 3 cast whether or not the lock is engaged, because the pad is polle
 
 Keys are forwarded to the match, which decides what they do. For each key, the first matching rule wins, in this order.
 
-0. Custom keys from the pack's `custom` table come first (none by default). Then, with a courier selected (not a hero), the courier keys come first, and E sends the courier home when it can.
+0. A quick-cast release and Escape are handled first. Then, with a courier selected (not a hero), E sends the courier home when it can, and the courier keys act. A custom binding therefore cannot take a courier letter. Custom keys from the pack's `custom` table (none by default) come next and override the rest of this list.
 1. An ability hotkey from the 6.88g ability table (`scenarios/moba/ability_keys.lua`) casts that ability, and Ctrl with it levels the skill.
 2. Ctrl plus 1 to 9 sets a control group. Plain 1 focuses the hero. Plain 2 to 9 recalls a group.
 3. The keys below.
