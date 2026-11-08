@@ -10,6 +10,8 @@ local SHAPESHIFT = {
   duration = 18 * TICKS,
   stagger = 4,
   refresh = 8,
+  home = "lycan",
+  form = "lycan_wolf_form",
 }
 
 local shifted = lib.registry()
@@ -17,13 +19,16 @@ local shifted = lib.registry()
 local function shapeshift_cast(caster)
   if lib.rank_of(caster, SHAPESHIFT.ability) == 0 then return end
   game.set_counter(caster, "shapeshift_due", game.ticks() + SHAPESHIFT.duration)
+  game.morph(caster, SHAPESHIFT.form)
   shifted.add(caster)
 end
 
 local function shapeshift_step(caster)
+  if not game.alive(caster) then return end
   local now = game.ticks()
-  if game.counter(caster, "shapeshift_due") <= now or not game.alive(caster) then
+  if game.counter(caster, "shapeshift_due") <= now then
     game.set_counter(caster, "shapeshift_due", 0)
+    game.morph(caster, SHAPESHIFT.home)
     shifted.remove(caster)
     return
   end
