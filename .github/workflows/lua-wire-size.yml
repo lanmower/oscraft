@@ -1,0 +1,96 @@
+name: lua wire size
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    name: build the page as pages.yml does and measure the wire size
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          submodules: recursive
+
+      - name: Install the pinned Rust toolchain
+        run: |
+          rustup toolchain install
+          rustc --version
+
+      - uses: jetli/wasm-pack-action@0d096b08b4e5a7de8c28de67e11e945404e9eefa
+        with:
+          version: v0.15.0
+
+      - name: Build the page wasm
+        env:
+          CARGO_PROFILE_RELEASE_OPT_LEVEL: s
+          CARGO_PROFILE_RELEASE_LTO: true
+          CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "1"
+          CARGO_PROFILE_RELEASE_STRIP: symbols
+        run: wasm-pack build crates/web --target web --out-dir site/pkg
+
+      - name: Export the maps
+        run: |
+          set -euo pipefail
+          cargo build -p mapexport
+          target/debug/mapexport ../scenarios/moba ../scenarios/moba/moba.osdt
+          target/debug/mapexport ../scenarios/duel-routes ../scenarios/duel-routes/duel-routes.osdt
+
+      - name: Install the pinned toktx and Pillow
+        run: |
+          set -euo pipefail
+          ktx_dir="$RUNNER_TEMP/ktx"
+          mkdir -p "$ktx_dir"
+          curl -fsSL -o "$ktx_dir/ktx.tar.bz2" https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.2/KTX-Software-4.4.2-Linux-x86_64.tar.bz2
+          echo "c6b08c817f8c8dd299deccae4f2fbb8d55e9acd2  $ktx_dir/ktx.tar.bz2" | sha1sum -c -
+          tar -xjf "$ktx_dir/ktx.tar.bz2" -C "$ktx_dir"
+          echo "$ktx_dir/KTX-Software-4.4.2-Linux-x86_64/bin" >> "$GITHUB_PATH"
+          python3 -m venv "$RUNNER_TEMP/atlas-python"
+          "$RUNNER_TEMP/atlas-python/bin/pip" install --quiet pillow==13.0.0
+          echo "PYTHON=$RUNNER_TEMP/atlas-python/bin/python" >> "$GITHUB_ENV"
+
+      - name: Lay out the site
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          bash scripts/layout-site.sh _site "$GITHUB_REF_NAME" "$GITHUB_RUN_ID"
+          du -sk _site
+
+      - name: Bundle the client JS into one file
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          npx --yes esbuild@0.25.0 _site/js/client/play.js --bundle --format=esm --splitting --outdir=_site/js/client --entry-names=play.bundle --chunk-names=chunk-[hash] --external:./pkg/* --external:./vendor/* --external:wireweave --external:wireweave/* --external:nostr-tools --external:xstate --external:node:*
+          sed -i 's|<script type="module" src="play.js"></script>|<script type="module" src="play.bundle.js"></script>|' _site/js/client/play.html
+          grep -q 'src="play.bundle.js"' _site/js/client/play.html
+
+      - name: Bundle the moba Lua modules into one file
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          node scripts/bundle-lua.mjs scenarios/moba _site/scenarios/moba/bundle/moba.modules.json
+
+      - name: Check the bundled site and stamp its content hash
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          node scripts/check-site-bundle.mjs _site
+
+      - name: Measure the wire size
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          node scripts/measure-lua-wire.mjs _site | tee wire-size.json
+          {
+            echo "## Wire size of the built page (gzip -9 and brotli -11, bytes)"
+            echo '```json'
+            cat wire-size.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
