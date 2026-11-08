@@ -71,7 +71,7 @@ function targeting.aggro_redirect(attacker, victim)
   aggro_holds[victim] = { attacker = attacker, until_tick = now + hold_ticks }
   local x, y = unit_position(attacker)
   for _, u in ipairs(units.units_near(x, y, AGGRO_RADIUS)) do
-    if unit_alive(u) and AGGRO_KINDS[game.unit_kind(u)] and units.hostile(unit_player(u), attacker_side)
+    if unit_alive(u) and AGGRO_KINDS[game.unit_kind(u)] and creep_owned(u) and units.hostile(unit_player(u), attacker_side)
       and game.aggro_target(u) < 0 then
       game.set_aggro(u, attacker, hold_ticks)
       local kind, ox, oy = game.order_of(u)

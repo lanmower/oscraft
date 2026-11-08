@@ -9,7 +9,8 @@ const ENEMY: &str = "axe";
 const LANE_CREEP: &str = "creep";
 const ATTACKER_PLAYER: u8 = 0;
 const ENEMY_PLAYER: u8 = 1;
-const CREEP_PLAYER: u8 = 2;
+const LANE_CREEP_PLAYER: u8 = 1;
+const FOG_ENEMY_PLAYER: u8 = 3;
 const CREEP_TEAM: u8 = 2;
 const ORIGIN_X: i32 = 92;
 const ORIGIN_Y: i32 = 240;
@@ -152,10 +153,9 @@ fn a_right_click_on_a_lane_creep_does_not_redirect_the_other_lane_creep() {
 fn fogged_arena(enemy_gap_cells: i32, spotter: bool) -> (ModHost, usize, usize) {
     let mut host = pack_host();
     host.sim_mut().set_fog(true);
-    host.sim_mut().set_team(CREEP_PLAYER, CREEP_TEAM).expect("the lane creep side has a team of its own");
     let attacker = hero(&mut host, ATTACKER, ATTACKER_PLAYER, ORIGIN_X, ORIGIN_Y);
     let enemy_x = ORIGIN_X + enemy_gap_cells;
-    let enemy = hero(&mut host, ENEMY, ENEMY_PLAYER, enemy_x, ORIGIN_Y);
+    let enemy = hero(&mut host, ENEMY, FOG_ENEMY_PLAYER, enemy_x, ORIGIN_Y);
     if spotter {
         creep(&mut host, ATTACKER_PLAYER, enemy_x - 1, ORIGIN_Y);
     }
@@ -164,13 +164,13 @@ fn fogged_arena(enemy_gap_cells: i32, spotter: bool) -> (ModHost, usize, usize) 
 }
 
 fn lane_creep_beside_attacker(host: &mut ModHost) -> usize {
-    creep(host, CREEP_PLAYER, ORIGIN_X + CREEP_OFFSET_X, ORIGIN_Y + CREEP_OFFSET_Y)
+    creep(host, LANE_CREEP_PLAYER, ORIGIN_X + CREEP_OFFSET_X, ORIGIN_Y + CREEP_OFFSET_Y)
 }
 
 #[test]
 fn a_right_click_the_enemy_hero_can_see_redirects_the_lane_creep_under_fog() {
     let (mut host, attacker, enemy) = fogged_arena(VISIBLE_ENEMY_GAP_CELLS, false);
-    assert!(host.sim().visible(ENEMY_PLAYER, attacker), "the enemy hero's owner sees the attacker 5 cells away");
+    assert!(host.sim().visible(FOG_ENEMY_PLAYER, attacker), "the enemy hero's owner sees the attacker 5 cells away");
     let lane_creep = lane_creep_beside_attacker(&mut host);
     host.sim_mut().order_attack_or_approach(attacker, enemy).expect("the attack order on the enemy hero is accepted");
     advance(&mut host, 2);
@@ -181,9 +181,9 @@ fn a_right_click_the_enemy_hero_can_see_redirects_the_lane_creep_under_fog() {
 fn a_right_click_the_enemy_hero_cannot_see_does_not_redirect_the_lane_creep() {
     let (mut host, attacker, enemy) = fogged_arena(FAR_ENEMY_GAP_CELLS, true);
     assert!(host.sim().visible(ATTACKER_PLAYER, enemy), "the attacker sees the enemy hero through its spotter");
-    assert!(!host.sim().visible(ENEMY_PLAYER, attacker), "the enemy hero's owner cannot see the attacker");
+    assert!(!host.sim().visible(FOG_ENEMY_PLAYER, attacker), "the enemy hero's owner cannot see the attacker");
     let lane_creep = lane_creep_beside_attacker(&mut host);
-    assert!(host.sim().hostile(CREEP_PLAYER, ATTACKER_PLAYER), "the lane creep is hostile to the attacker");
+    assert!(host.sim().hostile(LANE_CREEP_PLAYER, ATTACKER_PLAYER), "the lane creep is hostile to the attacker");
     host.sim_mut().order_attack_or_approach(attacker, enemy).expect("the attack order on the enemy hero is accepted");
     advance(&mut host, 2);
     assert_eq!(aggro_of(&host, lane_creep), -1, "a right-click the enemy cannot see does not redirect the lane creep (yU)");
@@ -201,4 +201,25 @@ fn a_redirected_lane_creep_attacks_the_hero_for_the_hold_then_returns_to_its_ord
     advance(&mut f.host, HOLD_TICKS);
     assert_eq!(aggro_of(&f.host, creep), -1, "the redirect ends after the hold");
     assert_eq!(f.host.sim().attack_order_of(creep), -1, "the lane creep stops attacking the hero when the hold ends");
+}
+
+const NON_LANE_CREEP_PLAYER: u8 = 2;
+
+#[test]
+fn a_hostile_creep_that_no_lane_player_owns_is_not_redirected() {
+    let mut host = pack_host();
+    host.sim_mut()
+        .set_team(NON_LANE_CREEP_PLAYER, CREEP_TEAM)
+        .expect("the stray creep side has a team of its own");
+    let attacker = hero(&mut host, ATTACKER, ATTACKER_PLAYER, ORIGIN_X, ORIGIN_Y);
+    let enemy = hero(&mut host, ENEMY, ENEMY_PLAYER, ORIGIN_X + ENEMY_GAP_CELLS, ORIGIN_Y);
+    let stray = creep(&mut host, NON_LANE_CREEP_PLAYER, ORIGIN_X + CREEP_OFFSET_X, ORIGIN_Y + CREEP_OFFSET_Y);
+    assert!(host.sim().hostile(NON_LANE_CREEP_PLAYER, ATTACKER_PLAYER), "the stray creep is hostile to the attacker");
+    host.sim_mut().order_attack_or_approach(attacker, enemy).expect("the attack order on the enemy hero is accepted");
+    advance(&mut host, 2);
+    assert_eq!(
+        aggro_of(&host, stray),
+        -1,
+        "6.88g SME (war3map.j 31391) redirects only creeps and towers that players 0 and 1 own"
+    );
 }
