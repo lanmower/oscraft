@@ -473,6 +473,9 @@ impl Sim {
             return Ok(true);
         }
         let (sx, sy) = self.strike_stop(i, target);
+        if self.order_kind[i] == ORDER_STOP {
+            self.order_kind[i] = ORDER_MOVE;
+        }
         self.approach_to(i, sx, sy);
         Ok(false)
     }

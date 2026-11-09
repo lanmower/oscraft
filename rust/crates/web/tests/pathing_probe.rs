@@ -9,6 +9,7 @@ use sim::Sim;
 const PLAYER: u8 = 0;
 const FOE: u8 = 1;
 const ORDER_MOVE: u8 = 0;
+const ORDER_STOP: u8 = 1;
 const ORDER_ATTACK_MOVE: u8 = 2;
 const ORDER_FOLLOW: u8 = 5;
 const HERO: &str = "antimage";
@@ -920,6 +921,24 @@ fn a_target_just_inside_melee_reach_takes_melee_damage() {
     }
     println!("probe reach_inside gap={gap:.2} reach={reach:.2} attacker_strikes={strikes} foe_hp={}", host.sim().hp(foe));
     assert!(strikes > 0, "the melee unit never struck a target {gap:.2} cells away, just inside its {reach:.2}-cell reach");
+}
+
+#[test]
+fn a_stopped_hero_ordered_to_attack_a_foe_out_of_reach_walks_in_and_strikes() {
+    let mut host = pack_host();
+    no_acquire(&mut host, GROUND);
+    let (attacker, foe) = reach_pair(&mut host, REACH_MARGIN_CELLS);
+    host.sim_mut().issue_order_kind(attacker, ORDER_STOP, 0, 0).expect("the stop order is accepted");
+    host.sim_mut().order_attack_or_approach(attacker, foe).expect("the attack order is accepted");
+    let mut strikes = 0u32;
+    for _ in 0..REACH_OUTSIDE_TICKS {
+        host.advance().expect("advance the match");
+        if struck_by(&host, attacker, foe) {
+            strikes += 1;
+        }
+    }
+    println!("probe stopped_attack strikes={strikes} order={:?} attack={}", host.sim().order_of(attacker), host.sim().attack_order_of(attacker));
+    assert!(strikes > 0, "the stopped unit never walked in to strike the foe it was ordered to attack");
 }
 
 const LIVE_STALL_FROM: (i32, i32) = (71, 276);
