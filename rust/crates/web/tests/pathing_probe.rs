@@ -660,3 +660,90 @@ fn attack_move_engages(enemies: &[(&str, bool, i32, i32)]) {
         );
     }
 }
+
+const BUNDLE_SIZE: usize = 40;
+const BUNDLE_FROM: (i32, i32, i32, i32) = (88, 236, 96, 246);
+const BUNDLE_TO: (i32, i32, i32, i32) = (104, 230, 118, 250);
+const BUNDLE_TICKS: u32 = 2400;
+const BUNDLE_STALL_LIMIT: u32 = 60;
+
+fn open_cells_in(host: &ModHost, rect: (i32, i32, i32, i32), count: usize) -> Vec<(i32, i32)> {
+    let grid = host.sim().grid();
+    let (x0, y0, x1, y1) = rect;
+    let cells: Vec<(i32, i32)> = (y0..=y1).flat_map(|y| (x0..=x1).map(move |x| (x, y))).filter(|&(x, y)| grid.walkable(x, y)).collect();
+    assert!(cells.len() >= count, "the rectangle {rect:?} holds {} open cells, {count} are needed", cells.len());
+    cells.into_iter().take(count).collect()
+}
+
+#[test]
+fn a_bundle_larger_than_the_path_field_cache_reaches_each_goal_behind_a_wall() {
+    let mut host = pack_host();
+    raise_wall(&mut host);
+    let starts = open_cells_in(&host, BUNDLE_FROM, BUNDLE_SIZE);
+    let goals = open_cells_in(&host, BUNDLE_TO, BUNDLE_SIZE);
+    let units: Vec<usize> = starts.iter().map(|&c| spawn(&mut host, PLAYER, GROUND, false, c)).collect();
+    for (&unit, &goal) in units.iter().zip(&goals) {
+        let (gx, gy) = fixed_point(goal);
+        host.sim_mut().issue_order_kind(unit, ORDER_MOVE, gx, gy).expect("the move order is accepted");
+    }
+    let mut prev: Vec<(f64, f64)> = units.iter().map(|&u| at(&host, u)).collect();
+    let mut arrived: Vec<Option<u32>> = vec![None; units.len()];
+    let mut run = vec![0u32; units.len()];
+    let mut longest = vec![0u32; units.len()];
+    for t in 1..=BUNDLE_TICKS {
+        host.advance().expect("advance the match");
+        for (k, &unit) in units.iter().enumerate() {
+            if arrived[k].is_some() {
+                continue;
+            }
+            let now = at(&host, unit);
+            if dist(now, cell_point(goals[k])) <= ARRIVE_CELLS {
+                arrived[k] = Some(t);
+            } else if dist(prev[k], now) <= 1e-3 {
+                run[k] += 1;
+                longest[k] = longest[k].max(run[k]);
+            } else {
+                run[k] = 0;
+            }
+            prev[k] = now;
+        }
+        if arrived.iter().all(Option::is_some) {
+            break;
+        }
+    }
+    let stuck: Vec<usize> = (0..units.len()).filter(|&k| arrived[k].is_none()).collect();
+    let worst = longest.iter().copied().max().unwrap_or(0);
+    println!("probe bundle units={} arrived={} stuck={stuck:?} longest_stall_run={worst}", units.len(), units.len() - stuck.len());
+    assert!(stuck.is_empty(), "{} of {} units never reached their goal behind the wall within {BUNDLE_TICKS} ticks (first stuck unit index {:?})", stuck.len(), units.len(), stuck.first());
+    assert!(worst <= BUNDLE_STALL_LIMIT, "a unit stalled {worst} ticks in a row while the bundle moved");
+}
+
+const MELEE_FOE_CELL_GAP: i32 = 5;
+const MELEE_TICKS: u32 = 300;
+const MELEE_REACH_SLACK_CELLS: f64 = 0.05;
+
+#[test]
+fn a_melee_hit_lands_only_within_its_weapon_range() {
+    let mut host = pack_host();
+    no_acquire(&mut host, GROUND);
+    let foe_cell = (START.0 + MELEE_FOE_CELL_GAP, START.1);
+    assert!(host.sim().grid().walkable(foe_cell.0, foe_cell.1), "the foe cell {foe_cell:?} is open");
+    let attacker = spawn(&mut host, PLAYER, GROUND, false, START);
+    let foe = spawn(&mut host, FOE, GROUND, false, foe_cell);
+    let reach = weapon_cells(&host, attacker);
+    host.sim_mut().order_attack_or_approach(attacker, foe).expect("the attack order is accepted");
+    let mut hp = host.sim().hp(foe);
+    let mut hits = 0u32;
+    for t in 1..=MELEE_TICKS {
+        host.advance().expect("advance the match");
+        let now = host.sim().hp(foe);
+        if now < hp {
+            hits += 1;
+            let gap = dist(at(&host, attacker), at(&host, foe));
+            assert!(gap <= reach + MELEE_REACH_SLACK_CELLS, "a melee hit landed at tick {t} from {gap:.2} cells, past the {reach:.2}-cell weapon range");
+        }
+        hp = now;
+    }
+    println!("probe melee_reach reach={reach:.2} hits={hits} foe_hp={hp}");
+    assert!(hits > 0, "the melee unit never struck the foe within {MELEE_TICKS} ticks");
+}
