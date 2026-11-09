@@ -58,10 +58,14 @@ export async function firstHitLeg(config) {
     const isolated = candidates.filter((c) => interceptorsOf(units, c, from, heroId).length === 0);
     if (isolated.length > 0) return { creep: nearestOf(isolated, from), aborted: null };
     const nearest = nearestOf(candidates, from);
-    const blockers = interceptorsOf(units, nearest, from, heroId).map((v) => v.id);
+    const stop = stopPointOf(from, nearest);
+    const blockers = interceptorsOf(units, nearest, from, heroId).map((v) => {
+      const cause = segmentDistance(v, from, nearest) <= config.isolationCells ? "on the approach" : "nearer the stop point";
+      return `${v.id} (player ${v.player}, ${v.type}, ${cause}, ${distance(v, stop).toFixed(1)} cells from the stop point)`;
+    });
     return {
       creep: null,
-      aborted: `no isolated creep: nearest creep ${nearest.id} has hostile units ${blockers.join(", ")} within ${config.isolationCells} cells`,
+      aborted: `no clear creep: all ${candidates.length} candidates are blocked; nearest ${nearest.id} is blocked by ${blockers.join("; ")}`,
     };
   };
   const nextTick = async (after, until) => {

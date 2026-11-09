@@ -318,6 +318,17 @@ The H2 witness was pushed in f964cf11 with its verdict still failing. This pass 
 - Status: H2 open. No valid verdict. Not pushed.
 - Decision needed (owner): whether hostile units of the lanes and structures count as interceptors for the first-hit witness, or whether the judged legs use a target the map provides away from lanes. The witness cannot pass this rule as written from the retreat point.
 
+## H2 run 16c decision: keep the lane-strike protection (2026-11-09)
+
+- Decision (owner): hostile lane units and towers count as interceptors. The rule is not relaxed. The judged legs and the control take a target clear of the lanes, and when no candidate is clear, the leg is refused and its named blocker is recorded.
+- Code (Phase A): the rule was already counting every living hostile unit, lane units and towers included, so no rule changed. The refusal now names every blocker with its player, its unit type, whether it sits on the approach or nearer the stop point, and its distance from the stop point, and it reports how many candidates were checked. The identities are needed to say whether any neutral creep is clear of the lanes.
+- Phase A gives no witness result. Phase B runs the witness; the verdict must show both judged legs and the control with distinct targets, or the named blockers show that no clear target exists from the retreat point.
+
+- Run 17 (/tmp/witness-driver/run17.out, `RUN_EXIT 0`, named blockers, the rule unchanged): `ok: false`. Leg 1 valid (creep 118, reach 803, launch 803, hit 809, latency 6). Leg 2 and the control both refused: `all 44 candidates are blocked; nearest 111 is blocked by 109 (player 255, 46, on the approach, 2.7 cells from the stop point); 110 (player 255, 45, on the approach, 3.1 cells from the stop point)`.
+- What this shows: the blockers are neutral creeps (player 255), not lane or tower units, so the owner's wording on lanes and towers does not name them directly. The rule counts them because the sim strikes the nearest in-reach creep, and a camp-mate on the approach would take the first hit. Leg 1 found creep 118 clear from the same retreat point before any strike, and after it, no other creep is clear from there.
+- Status: H2 open. No valid verdict for leg 2 or the control. Not pushed.
+- Decision needed (owner): the rule counts neutral camp-mates on the approach as well as lane and tower units. Lane-only protection would be a relaxation, so the rule stays unless you decide otherwise. Options left, each a new design: a leg-2 start point other than the fountain, or a judged target placed by the map rather than found by the witness.
+
 ## Notes for Phase B (observations, not validation)
 
 - A hero walks about 4.7 cells per second on the live map. Reads taken one second apart can look like a stalled hero; use the position log over several seconds.
