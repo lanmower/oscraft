@@ -32,11 +32,15 @@ const cases = [
   { name: "a red leg with no hero-sourced effect kinds still passes", legs: greenRedGreen({ kinds: {} }), ok: true },
   { name: "a leg at the sample floor passes", legs: greenRedGreen({ samples: CONFIG.sampleFloor }), ok: true },
   { name: "a leg below the sample floor fails, even when its counts are green", legs: greenRedGreen({ samples: CONFIG.sampleFloor - 1 }), ok: false },
+  { name: "a lock-on leg with no effect sample passes when the sim launched a walking strike", legs: greenRedGreen({}, { strikeSamplesWhileMoving: 0, walkProbe: { launched: 2, cooling: 21, notCommandable: 0, outOfArc: 2 } }), ok: true },
+  { name: "a lock-on leg whose walking ticks all wait on the weapon fails as no ready window", legs: greenRedGreen({}, { strikeSamplesWhileMoving: 0, walkProbe: { launched: 0, cooling: 59, notCommandable: 0, outOfArc: 0 } }), ok: false, reason: "no ready walking window" },
+  { name: "a lock-on leg with no effect sample and no watched tick fails as no strike", legs: greenRedGreen({}, { strikeSamplesWhileMoving: 0, walkProbe: { launched: 0, cooling: 0, notCommandable: 0, outOfArc: 0 } }), ok: false, reason: "no strike while moving with one-hand on" },
 ];
 
 for (const c of cases) {
   const result = verdict(c.legs);
   assert.equal(result.ok, c.ok, c.name);
+  if (c.reason) assert.ok(result.reasons.some((r) => r.includes(c.reason)), c.name);
 }
 
 assert.equal(verdict([leg({ lock: "true", strikeSamplesWhileMoving: 0 })]).reasons[0], "leg: no strike while moving with one-hand on");

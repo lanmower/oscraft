@@ -482,7 +482,12 @@ export function verdict(legs) {
     if (leg.aborted) reasons.push(`${leg.label}: the leg ended early (${leg.aborted})`);
     if (!(leg.samples >= CONFIG.sampleFloor)) reasons.push(`${leg.label}: ${leg.samples} samples, below the floor of ${CONFIG.sampleFloor} after ${attempts} attempts`);
     if (leg.inReachMoving === 0) reasons.push(`${leg.label}: the hero was never in reach while moving`);
-    if (leg.lock === "true" && leg.strikeSamplesWhileMoving === 0) reasons.push(`${leg.label}: no strike while moving with one-hand on`);
+    const walkLaunches = leg.walkProbe?.launched ?? 0;
+    const walkCooling = leg.walkProbe?.cooling ?? 0;
+    if (leg.lock === "true" && leg.strikeSamplesWhileMoving === 0 && walkLaunches === 0) {
+      if (walkCooling > 0) reasons.push(`${leg.label}: every walking tick in reach waited on the weapon (${walkCooling} cooling, 0 launched), so the leg has no ready walking window`);
+      else reasons.push(`${leg.label}: no strike while moving with one-hand on`);
+    }
     if (leg.lock === "true" && Object.keys(leg.kinds ?? {}).length === 0) reasons.push(`${leg.label}: no hero-sourced effect kinds recorded`);
     if (leg.lock === "false" && leg.launchesWhileMoving !== 0) reasons.push(`${leg.label}: ${leg.launchesWhileMoving} strikes launched while moving with one-hand off`);
   }

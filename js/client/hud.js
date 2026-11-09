@@ -197,12 +197,17 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
   }
 
   function viewRect() {
-    const corners = [[0, 0], [window.innerWidth, 0], [0, window.innerHeight], [window.innerWidth, window.innerHeight]].map(([x, y]) => toWorld(x, y));
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const a = toWorld(0, 0);
+    const b = toWorld(w, 0);
+    const c = toWorld(0, h);
+    const d = toWorld(w, h);
     return {
-      x0: Math.min(...corners.map((c) => c.x)),
-      z0: Math.min(...corners.map((c) => c.z)),
-      x1: Math.max(...corners.map((c) => c.x)),
-      z1: Math.max(...corners.map((c) => c.z)),
+      x0: Math.min(a.x, b.x, c.x, d.x),
+      z0: Math.min(a.z, b.z, c.z, d.z),
+      x1: Math.max(a.x, b.x, c.x, d.x),
+      z1: Math.max(a.z, b.z, c.z, d.z),
     };
   }
 
@@ -243,6 +248,7 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
     if (value && url.endsWith("/ui_minimap.js")) minimap = value;
   });
 
+  const maxHpById = new Map();
   function gameMaxHps() {
     if (!game) return null;
     let ids = null;
@@ -260,7 +266,8 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
       ids = game.unit_ids();
       maxes = game.unit_max_hps();
     }
-    const byId = new Map();
+    maxHpById.clear();
+    const byId = maxHpById;
     for (let i = 0; i < ids.length; i++) byId.set(ids[i], maxes[i]);
     return byId;
   }

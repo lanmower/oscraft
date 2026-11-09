@@ -898,3 +898,84 @@ Caveat, not resolved here: passes 1, 5, 7 and 8 were measured under the old witn
 Open: passes 2 and 6 remain red. Their launches on watched ticks are 2 and 0 in lock on again, and most watched ticks are cooling (21 of 25 in pass 2, 59 of 59 in pass 6). The walking definition is no longer the cause there; the weapon's cooldown leaves no strike while walking. Whether that is the intended sim behaviour, or a witness that should wait for a ready weapon before counting, is open.
 
 check-all at this change (the witness change above, with the ledger): `RESULT gates=74 ok=74 failed=0 drift=0 skipped=6 strict=false`, exit 0 (log `.gm/witness-traces/checkall-final.log`).
+
+
+## Phase A pass: D1 cause for passes 2 and 6, and the reuse pass (2026-11-09)
+
+Phase A only: no build, test, gate, witness or browser run ran in this pass. Start point 4ff5c321. Committed locally as lanmower with no trailer; nothing pushed. The Rust edit is not compiled and the JS and witness edits are not run; Phase B does all of that.
+
+### D1 decision for passes 2 and 6: the cause is in the witness, the sim is unchanged
+
+Counts from the traces in .gm/witness-traces (walkProbe is the sim's own count per leg; a watched tick is one where the hero walks, is in weapon range and the strike is ready). Lock-off legs record zero walkProbe by construction, since walk_watch needs strikes on move.
+
+| Trace | Leg | walkProbe launched / cooling / notCommandable / outOfArc | strikeSamplesWhileMoving | launchesWhileMoving | strikeSamplesWhileStopped |
+|---|---|---|---|---|---|
+| P2 19-48-05 (red) | lock on | 10 / 145 / 0 / 3 | 4 | 1 | 28 |
+| P2 19-48-05 (red) | lock on again | 2 / 21 / 0 / 2 | 0 | 0 | 26 |
+| P3 20-03-59 (ok) | lock on | 15 / 216 / 0 / 8 | 22 | 1 | 10 |
+| P3 20-03-59 (ok) | lock on again | 6 / 99 / 0 / 8 | 1 | 0 | 21 |
+| P4 20-06-34 (ok) | lock on | 14 / 210 / 0 / 6 | 22 | 0 | 11 |
+| P4 20-06-34 (ok) | lock on again | 11 / 147 / 0 / 3 | 5 | 0 | 30 |
+| P6 20-09-04 (red) | lock on | 16 / 216 / 0 / 8 | 25 | 0 | 8 |
+| P6 20-09-04 (red) | lock on again | 0 / 59 / 0 / 0 | 0 | 0 | 23 |
+
+Pass 2 (red): the sim is not at fault. The sim launched 2 strikes on watched ticks in lock on again, so it did strike while walking with one-hand on. The witness saw neither. Two witness measures miss them:
+- strikeSamplesWhileMoving counts landing effects only on samples where the hero moved and walked. A launch whose effect lands after the walk is counted as stopped, not moving.
+- launchesWhileMoving needs the hero to be more than 1.5 cells from its station (farFromStation). The trace's one launch stamp for this leg is at atTick 594, pos (93.73, 275.01), walkTo (94.97, 275.49): 1.33 cells, so the witness excludes it, while the sim counts it as walking (more than 1 cell from its target). The launch stamp also records only the first launch per target (strike_stamp, stamp_launch), so the witness cannot see later launches on the same target at all.
+
+Pass 6 (red): the sim is not at fault. In lock on again every one of the 59 watched ticks is cooling and none launched. Its weapon was on cooldown from the 23 stationary strikes of that leg. The sim decrements the cooldown before its walking check (combat.rs attack, cooldown then walk_watch), and a stationary strike sets the cooldown to the attack period, so the cooling is the sim's own rule working. The witness did not ensure a ready weapon before its walk, and its verdict reported "no strike while moving", which put the cause on the sim.
+
+Caveat: the trace file keeps only the first 300 strike samples (strikeTraceCap), so for lock on again it covers ticks 0 to 600 of 640. The decision rests on the walkProbe counts and the stored leg counts, not on the trace tail.
+
+Witness changes made in this pass (scripts/witness/strike-while-walking.mjs, verdict):
+- W1: on a one-hand-on leg, a leg with no strike sample passes when the sim's walkProbe.launched is above zero. The sim's own launch count is the evidence, and the effect sample is kept as corroboration. Expected effect: pass 2 satisfies the lock on again check on 2 launches (thin margin, not yet run).
+- W2: a one-hand-on leg with no strike sample and no launch, but with walking cooling ticks, reports "every walking tick in reach waited on the weapon (N cooling, 0 launched), so the leg has no ready walking window" in place of "no strike while moving". Expected effect: pass 6 stays red under the corrected reason (not yet run).
+- Self-check (scripts/witness/strike-while-walking-check.mjs): three cases added (pass-2 shape passes, pass-6 shape fails with the no-ready-window reason, a leg with no watched tick keeps the old reason). The loop now asserts the reason substring when a case gives one. The 11 earlier cases are unchanged.
+
+Open, not changed in Phase A: the lock-on-again leg does not wait for a ready weapon before its walk. A leg-design change (a stationary wait until the sim reports a ready strike, or a longer walk) is a witness change for a later pass; Phase B decides whether D1 needs it.
+
+### Reuse pass (audit at f513d64b, rows marked no behaviour change)
+
+Applied:
+- J1 (js/client/play.js syncDeadProps): the join key is gone. The dead-prop id array is compared element by element against the last one; null (the reset at play.js:2823) still forces a rebuild, as the string compare did. R2 (a sim death-generation counter) is not applied: it needs a new Sim field and a load and swap contract. The wasm Vec still allocates each frame.
+- J6 (play.js drawWorld3d, shadow branch): the spread copy of drawCounts is a module-level savedDrawCounts filled by Object.assign and restored the same way.
+- J7 (play.js drawWorld3d, podium plinth): the plinth mesh is built once per podium.plinth object (podium.js:65 assigns it once and nothing mutates it in place).
+- J12 (js/client/hud.js viewRect): four scalar corners, no array or spreads; the toWorld calls keep their order.
+- J14 (js/client/hud.js gameMaxHps): a held Map cleared per call. Its only caller is drawBars, which runs each frame and uses the map within the frame.
+- R14 (rust/crates/sim/src/ground.rs pickup_ground_item): the before-snapshot is a stack array [u32; INV_SLOTS] (INV_SLOTS is pub(crate) const usize in inventory.rs). This is a stack array, not a held buffer, so no Sim field is needed.
+
+Already reused, no change: J11 (ui_minimap.js playerFill memoises in fillByPlayer, :149-157).
+
+Audit rows corrected by reading the code:
+- J15: ui_minimap.js:88-89 are constructor-time Maps in createMinimapImpl, not per fit(). No change.
+- J9: figureOf runs once per loaded figure (render3d.js:1214), not per frame. No change.
+- J13: hud_canvas.js place() runs on panel updates (apply, :157), not per frame, and the DOM rects allocate regardless. No change.
+
+Not applied, with the reason:
+- R1 (state hash, STATE_VERSION), J2, J3, J4, J10: the audit marks them as behaviour changes. Kept.
+- R2: needs a Sim generation field and a load and swap contract (see J1).
+- R3 units_near: mod-host (piccolo_host.rs:2005) builds a Lua table per call, so a held Rust Vec saves one small allocation beside it. Not done.
+- R4 drain_kill_events: the web boundary (web/src/lib.rs:474) returns a Vec to JS; a held buffer needs a host field.
+- R5 take_procs, take_casts, take_destination_requests: drained by the host (piccolo_host.rs:4509, 4530). A held buffer needs a host field, and re-entrancy is not checked.
+- R6 hash_later snapshot: needs a Sim copy_from over every field. Not started.
+- R7 state_hash: changing to &mut self touches web/src/lib.rs:147 and replay. Runs per checkpoint only.
+- R8 astar route: the path feeds one waypoint (movement.rs:495); a held output needs a Sim field.
+- R9 clear_trees_square felled: per teleport; needs a Sim field.
+- R10 vision_plane: the wasm boundary (web/src/lib.rs:524) returns a Vec; needs a JS buffer.
+- R11 attack_terms: a witness hook only; web/src/lib.rs:208 converts to a Vec at the boundary, so a fixed array gains nothing.
+- R12 recent_hitters: mod-host (piccolo_host.rs:1247, 1292) and tests use the Vec.
+- R13 queued_orders: the resync reader (order_queue.rs:113) is not checked.
+- R15 carry_from: set_ground takes an owned Vec that becomes the stored value; no spare buffer.
+- J5 podiumTransform: multiply, translation and rotationY allocate their own matrices; full reuse needs matrix-into variants.
+- J8 render3d.js setCamera (:509): copying into a held camera.target changes array identity; the holders of camera.target are not checked.
+
+### Changes in this pass (file, row, witness needed in Phase B)
+
+1. scripts/witness/strike-while-walking.mjs, verdict (D1 W1 and W2). Witness: node scripts/witness/strike-while-walking-check.mjs, then eight fresh-import D1 passes on port 8832.
+2. scripts/witness/strike-while-walking-check.mjs (three cases and the reason assertion). Witness: the same self-check.
+3. js/client/play.js syncDeadProps (J1). Witness: js/client/camera-target-audit-check.mjs, js/client/hero-trajectory-check.mjs, js/client/movement-sequence-check.mjs and js/client/lock-engage-order-check.mjs, plus a playwriter count of GC or heap growth per 600 frames against the current build.
+4. js/client/play.js drawWorld3d (J6, J7). Witness: the same JS gates and heap count.
+5. js/client/hud.js viewRect and gameMaxHps (J12, J14). Witness: the same JS gates, and js/client/hud-canvas-check.mjs as the HUD probe.
+6. rust/crates/sim/src/ground.rs pickup_ground_item (R14). Witness: cargo test -p sim, and the replay parity check (mod-host/src/bin/parity_hash.rs) on a fixed seed.
+
+Phase B order: self-check, cargo test -p sim --test strikes with the guard removed and then with it, the eight D1 passes, node scripts/check-all.mjs, one push. The D1 result is not predicted here; the predictions above (pass 2 ok, pass 6 red with the new reason) are to be confirmed or refuted by the passes.

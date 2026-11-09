@@ -67,7 +67,10 @@ impl Sim {
             return Err(self.reject(Refusal::NoItem));
         }
         let g = self.ground[k];
-        let before: Vec<u32> = (0..INV_SLOTS).map(|s| self.inventory_slot(unit, s).1).collect();
+        let mut before = [0u32; INV_SLOTS];
+        for (s, slot) in before.iter_mut().enumerate() {
+            *slot = self.inventory_slot(unit, s).1;
+        }
         if !self.inventory_add(unit, g.kind, g.count) {
             return Err(self.reject(Refusal::InventoryFull));
         }

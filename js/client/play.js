@@ -1182,13 +1182,17 @@ function drawGround3d() {
   }
 }
 
-let deadPropKey = "";
+let deadPropKey = new Uint32Array(0);
+function sameDeadProps(a, b) {
+  if (b === null || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
 function syncDeadProps() {
   if (!localGame || typeof localGame.dead_props !== "function" || placedProps.length === 0) return;
   const dead = localGame.dead_props();
-  const key = dead.join(",");
-  if (key === deadPropKey) return;
-  deadPropKey = key;
+  if (sameDeadProps(dead, deadPropKey)) return;
+  deadPropKey = dead;
   const gone = new Set(dead);
   propBatches = batchByMesh(placedProps.filter((d) => !gone.has(d.id)));
 }
@@ -1212,6 +1216,9 @@ function podiumTransform(e) {
   ));
 }
 
+const savedDrawCounts = {};
+let podiumPlinthSource = null;
+let podiumPlinthMesh = null;
 function drawWorld3d() {
   syncDeadProps();
   drawCounts.terrain = 0;
@@ -1235,16 +1242,20 @@ function drawWorld3d() {
   const shadow = renderer3d.beginShadowPass ? renderer3d.beginShadowPass() : null;
   shadowUnitCount = 0;
   if (shadow) {
-    const counted = { ...drawCounts };
+    Object.assign(savedDrawCounts, drawCounts);
     if (shadow.staticDirty) drawGround3d();
     renderer3d.beginShadowUnits();
     shadowUnitCount = emitUnitDraws(unitDraws, true);
     renderer3d.endShadowPass();
-    Object.assign(drawCounts, counted);
+    Object.assign(drawCounts, savedDrawCounts);
   }
   drawGround3d();
   if (podium.active && podium.plinth) {
-    const plinthMesh = { ...podium.plinth, color: [0.32, 0.38, 0.5] };
+    if (podiumPlinthSource !== podium.plinth) {
+      podiumPlinthSource = podium.plinth;
+      podiumPlinthMesh = { ...podium.plinth, color: [0.32, 0.38, 0.5] };
+    }
+    const plinthMesh = podiumPlinthMesh;
     for (const t of podiumPlinthTransforms(podium)) renderer3d.drawMesh(plinthMesh, t);
     drawCounts.prop += podium.entries.length;
   }
