@@ -81,7 +81,11 @@
       picked = pickAmong();
     }
     if (picked.creep !== null || !rule.placeTarget) return picked;
-    const found = placements(rule, roster(), from, heroId);
+    let found = placements(rule, roster(), from, heroId);
+    for (let retry = 1; found.aborted !== null && retry < (rule.placeRetries ?? 1); retry += 1) {
+      await new Promise((resolve) => setTimeout(resolve, rule.placeRetryMs ?? 0));
+      found = placements(rule, roster(), from, heroId);
+    }
     if (found.aborted !== null) return { creep: null, aborted: found.aborted };
     const tried = found.points.slice(0, rule.probeLimit ?? found.points.length);
     for (const p of tried) {

@@ -9,6 +9,9 @@ export const LEGS = [
 export const CONFIG = {
   legMs: 25000,
   sampleMs: 100,
+  stallRunSamples: 8,
+  stallTraceCap: 400,
+  stationTurns: 8,
   orderEveryMs: 300,
   resetMs: 120000,
   minStartHp: 200,
@@ -19,9 +22,11 @@ export const CONFIG = {
   oscillateCells: 1.6,
   stopCells: 2,
   isolationCells: 4,
-  laneCells: 10,
+  laneCells: 4,
   placeTarget: true,
-  placeRadii: [8, 12, 16, 20, 24],
+  placeRadii: [8, 12, 16, 20, 24, 28, 32, 36, 40],
+  placeRetries: 10,
+  placeRetryMs: 400,
   placeStepDeg: 15,
   probeMs: 1500,
   probeCells: 1.5,
@@ -49,6 +54,8 @@ export async function strikeWhileWalkingLeg(config) {
     placeRadii: config.placeRadii,
     placeStepDeg: config.placeStepDeg,
     probeLimit: config.probeLimit,
+    placeRetries: config.placeRetries,
+    placeRetryMs: config.placeRetryMs,
     alive: (u) => window.__ciHp(u.id) > 0,
     hostile: (u) => window.__ciHostile(me, u.player),
   });
@@ -101,9 +108,12 @@ export async function strikeWhileWalkingLeg(config) {
     }
     return 0;
   }
-  function pointToward(target, from, cells) {
-    const dx = from.x - target.x;
-    const dz = from.z - target.z;
+  function pointToward(target, from, cells, turn) {
+    const angle = (turn * Math.PI) / 4;
+    const ax = from.x - target.x;
+    const az = from.z - target.z;
+    const dx = ax * Math.cos(angle) - az * Math.sin(angle);
+    const dz = ax * Math.sin(angle) + az * Math.cos(angle);
     const length = Math.hypot(dx, dz) || 1;
     return { x: target.x + (dx / length) * cells, z: target.z + (dz / length) * cells };
   }
@@ -151,6 +161,13 @@ export async function strikeWhileWalkingLeg(config) {
   let heroEffectsWhileMoving = 0;
   let inReachMoving = 0;
   let previous = null;
+  let stationTurn = 0;
+  let stationRotations = 0;
+  let refusedMoves = 0;
+  let stillSamples = 0;
+  let stillSince = 0;
+  const stallRuns = [];
+  const stallTrace = [];
   let lastOrderAt = 0;
   let creep = null;
   let toward = null;
@@ -206,11 +223,16 @@ export async function strikeWhileWalkingLeg(config) {
     if (creep && Date.now() - lastOrderAt > config.orderEveryMs) {
       if (window.__ciStrikeOf(heroId) !== creep.id) commandAttack(creep.id, "in-loop re-attack");
       const stations = {
-        a: pointToward(creep, stage, config.stopCells),
-        b: pointToward(creep, stage, config.stopCells + config.oscillateCells),
+        a: pointToward(creep, stage, config.stopCells, stationTurn),
+        b: pointToward(creep, stage, config.stopCells + config.oscillateCells, stationTurn),
       };
       if (toward === null || distance(h, stations[toward]) < config.arriveCells) toward = toward === "a" ? "b" : "a";
-      window.__ciMove(heroId, stations[toward].x, stations[toward].z);
+      const accepted = window.__ciMove(heroId, stations[toward].x, stations[toward].z);
+      if (!accepted) {
+        stationTurn = (stationTurn + 1) % config.stationTurns;
+        stationRotations += 1;
+        refusedMoves += 1;
+      }
       walkTo = stations[toward];
       lastOrderAt = Date.now();
     }
@@ -223,13 +245,43 @@ export async function strikeWhileWalkingLeg(config) {
     samples += 1;
     const moved = previous !== null && Math.hypot(now.x - previous.x, now.z - previous.z) > 0.05;
     if (moved) movingSamples += 1;
+    if (moved) {
+      if (stillSamples >= config.stallRunSamples) stallRuns.push({ startMs: stillSince, samples: stillSamples });
+      stillSamples = 0;
+    } else {
+      if (stillSamples === 0) stillSince = Date.now() - legStart;
+      stillSamples += 1;
+      if (stillSamples >= config.stallRunSamples && stallTrace.length < config.stallTraceCap) {
+        stallTrace.push({
+          atMs: Date.now() - legStart,
+          run: stillSamples,
+          pos: [+now.x.toFixed(2), +now.z.toFixed(2)],
+          walkTo: walkTo ? [+walkTo.x.toFixed(2), +walkTo.z.toFixed(2)] : null,
+          order: window.__ciOrderOf(heroId),
+          swingPoint: window.__ciSwingPoint(heroId),
+          strikeTarget: window.__ciStrikeOf(heroId),
+          tick: window.__ciTicks(),
+          hp: window.__ciHp(heroId),
+          refusal: window.__ciRefusal(),
+          stationTurn,
+        });
+      }
+    }
     const farFromStation = walkTo !== null && distance(now, walkTo) > config.walkingCells;
     const launch = window.__ciStrikeStamp(heroId)?.[2] ?? -1;
     if (launch !== lastLaunch) {
       const settled = Date.now() - lastOrderAt >= config.orderSettleMs;
       if (launch !== -1 && moved && farFromStation && settled) {
         launchesWhileMoving += 1;
-        movingLaunches.push({ atMs: Date.now() - legStart, launch });
+        movingLaunches.push({
+          atMs: Date.now() - legStart,
+          launch,
+          pos: [+now.x.toFixed(2), +now.z.toFixed(2)],
+          walkTo: walkTo ? [+walkTo.x.toFixed(2), +walkTo.z.toFixed(2)] : null,
+          order: window.__ciOrderOf(heroId),
+          strikeTarget: window.__ciStrikeOf(heroId),
+          tick: window.__ciTicks(),
+        });
       }
       lastLaunch = launch;
     }
@@ -259,8 +311,13 @@ export async function strikeWhileWalkingLeg(config) {
     }
     previous = { x: now.x, z: now.z };
   }
+  if (stillSamples >= config.stallRunSamples) stallRuns.push({ startMs: stillSince, samples: stillSamples });
 
   return {
+    stallRuns,
+    stallTrace,
+    stationRotations,
+    refusedMoves,
     ready,
     startHp,
     samples,
