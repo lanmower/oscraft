@@ -668,7 +668,8 @@ const BUNDLE_TICKS: u32 = 2400;
 const BUNDLE_STALL_LIMIT: u32 = 60;
 
 fn open_cells_in(host: &ModHost, rect: (i32, i32, i32, i32), count: usize) -> Vec<(i32, i32)> {
-    let grid = host.sim().grid();
+    let sim = host.sim();
+    let grid = sim.grid();
     let (x0, y0, x1, y1) = rect;
     let cells: Vec<(i32, i32)> = (y0..=y1).flat_map(|y| (x0..=x1).map(move |x| (x, y))).filter(|&(x, y)| grid.walkable(x, y)).collect();
     assert!(cells.len() >= count, "the rectangle {rect:?} holds {} open cells, {count} are needed", cells.len());
@@ -718,6 +719,18 @@ fn a_bundle_larger_than_the_path_field_cache_reaches_each_goal_behind_a_wall() {
     assert!(worst <= BUNDLE_STALL_LIMIT, "a unit stalled {worst} ticks in a row while the bundle moved");
 }
 
+fn hitter_detail(host: &ModHost, target: usize) -> Vec<(u32, u8, u32, (f64, f64), f64)> {
+    host.sim()
+        .recent_hitters(target, 4)
+        .into_iter()
+        .map(|h| {
+            let u = h as usize;
+            let sim = host.sim();
+            (h, sim.player(u), sim.kind_of(u), at(host, u), dist(at(host, u), at(host, target)))
+        })
+        .collect()
+}
+
 const MELEE_FOE_CELL_GAP: i32 = 5;
 const MELEE_TICKS: u32 = 300;
 const MELEE_REACH_SLACK_CELLS: f64 = 0.05;
@@ -734,16 +747,113 @@ fn a_melee_hit_lands_only_within_its_weapon_range() {
     host.sim_mut().order_attack_or_approach(attacker, foe).expect("the attack order is accepted");
     let mut hp = host.sim().hp(foe);
     let mut hits = 0u32;
+    let mut trace: Vec<String> = Vec::new();
     for t in 1..=MELEE_TICKS {
         host.advance().expect("advance the match");
         let now = host.sim().hp(foe);
-        if now < hp {
+        let gap = dist(at(&host, attacker), at(&host, foe));
+        trace.push(format!("t{t} gap={gap:.2} hp={now} swing={} strike={}", host.sim().swing_point(attacker), host.sim().commanded_strike_index(attacker)));
+        if now < hp && struck_by(&host, attacker, foe) {
             hits += 1;
-            let gap = dist(at(&host, attacker), at(&host, foe));
-            assert!(gap <= reach + MELEE_REACH_SLACK_CELLS, "a melee hit landed at tick {t} from {gap:.2} cells, past the {reach:.2}-cell weapon range");
+            assert!(gap <= reach + MELEE_REACH_SLACK_CELLS, "the attacker's melee hit landed at tick {t} from {gap:.2} cells, past the {reach:.2}-cell weapon range; hitters {:?} attacker {attacker}; hitter_detail {:?}; trace {:?}", host.sim().recent_hitters(foe, 4), hitter_detail(&host, foe), &trace[trace.len().saturating_sub(8)..]);
         }
         hp = now;
     }
     println!("probe melee_reach reach={reach:.2} hits={hits} foe_hp={hp}");
     assert!(hits > 0, "the melee unit never struck the foe within {MELEE_TICKS} ticks");
+}
+
+const CHASE_BUNDLE_SIZE: usize = 30;
+const CHASE_BUNDLE_FROM: (i32, i32, i32, i32) = (88, 236, 96, 246);
+const CHASE_FOE: (i32, i32) = (108, 240);
+const CHASE_TICKS: u32 = 1200;
+const CHASE_REACH_SLACK_CELLS: f64 = 0.5;
+
+#[test]
+fn a_bundle_chasing_one_foe_behind_a_wall_reaches_strike_range_or_the_foe_dies() {
+    let mut host = pack_host();
+    raise_wall(&mut host);
+    no_acquire(&mut host, GROUND);
+    assert!(host.sim().grid().walkable(CHASE_FOE.0, CHASE_FOE.1), "the foe cell {CHASE_FOE:?} is open");
+    let foe = spawn(&mut host, FOE, GROUND, false, CHASE_FOE);
+    let starts = open_cells_in(&host, CHASE_BUNDLE_FROM, CHASE_BUNDLE_SIZE);
+    let attackers: Vec<usize> = starts.iter().map(|&c| spawn(&mut host, PLAYER, GROUND, false, c)).collect();
+    let reach = weapon_cells(&host, attackers[0]);
+    for &unit in &attackers {
+        host.sim_mut().order_attack_or_approach(unit, foe).expect("the attack order is accepted");
+    }
+    let mut reached: Vec<Option<u32>> = vec![None; attackers.len()];
+    for t in 1..=CHASE_TICKS {
+        host.advance().expect("advance the match");
+        if host.sim().hp(foe) <= 0 {
+            break;
+        }
+        for (k, &unit) in attackers.iter().enumerate() {
+            if reached[k].is_none() && dist(at(&host, unit), at(&host, foe)) <= reach + CHASE_REACH_SLACK_CELLS {
+                reached[k] = Some(t);
+            }
+        }
+        if reached.iter().all(Option::is_some) {
+            break;
+        }
+    }
+    let foe_dead = host.sim().hp(foe) <= 0;
+    let missing: Vec<usize> = (0..attackers.len()).filter(|&k| reached[k].is_none()).collect();
+    println!("probe chase_bundle attackers={} reached={} missing={missing:?} foe_dead={foe_dead}", attackers.len(), attackers.len() - missing.len());
+    assert!(foe_dead || missing.is_empty(), "{} of {} attackers never reached strike range of the foe behind the wall (first missing index {:?})", missing.len(), attackers.len(), missing.first());
+}
+
+const REACH_MARGIN_CELLS: f64 = 0.3;
+const REACH_OUTSIDE_TICKS: u32 = 200;
+const REACH_INSIDE_TICKS: u32 = 100;
+
+fn reach_pair(host: &mut ModHost, offset_cells: f64) -> (usize, usize) {
+    let attacker = spawn(host, PLAYER, GROUND, false, START);
+    let foe = spawn(host, FOE, GROUND, false, (START.0 + MELEE_FOE_CELL_GAP, START.1));
+    let reach = weapon_cells(host, attacker);
+    let (ax, ay) = host.sim().position_fixed(attacker);
+    let x = ax + fixed::from_milli(((offset_cells + reach) * 1000.0).round() as i32);
+    let foe_cell = (fixed::to_int(x), fixed::to_int(ay));
+    assert!(host.sim().grid().walkable(foe_cell.0, foe_cell.1), "the reach foe cell {foe_cell:?} is open");
+    assert!(host.sim_mut().teleport(foe, x, ay), "the foe moves onto an open cell");
+    (attacker, foe)
+}
+
+#[test]
+fn a_target_just_outside_melee_reach_takes_no_melee_damage() {
+    let mut host = pack_host();
+    no_acquire(&mut host, GROUND);
+    let (attacker, foe) = reach_pair(&mut host, REACH_MARGIN_CELLS);
+    let gap = dist(at(&host, attacker), at(&host, foe));
+    let reach = weapon_cells(&host, attacker);
+    assert!(gap > reach, "the foe stands {gap:.2} cells away, inside the {reach:.2}-cell reach");
+    let mut strikes = 0u32;
+    for _ in 0..REACH_OUTSIDE_TICKS {
+        host.advance().expect("advance the match");
+        if struck_by(&host, attacker, foe) {
+            strikes += 1;
+        }
+    }
+    println!("probe reach_outside gap={gap:.2} reach={reach:.2} attacker_strikes={strikes} foe_hp={}", host.sim().hp(foe));
+    assert_eq!(strikes, 0, "the melee unit struck a target {gap:.2} cells away, just outside its {reach:.2}-cell reach");
+}
+
+#[test]
+fn a_target_just_inside_melee_reach_takes_melee_damage() {
+    let mut host = pack_host();
+    no_acquire(&mut host, GROUND);
+    let (attacker, foe) = reach_pair(&mut host, -REACH_MARGIN_CELLS);
+    let gap = dist(at(&host, attacker), at(&host, foe));
+    let reach = weapon_cells(&host, attacker);
+    assert!(gap <= reach, "the foe stands {gap:.2} cells away, outside the {reach:.2}-cell reach");
+    host.sim_mut().order_attack_or_approach(attacker, foe).expect("the attack order is accepted");
+    let mut strikes = 0u32;
+    for _ in 0..REACH_INSIDE_TICKS {
+        host.advance().expect("advance the match");
+        if struck_by(&host, attacker, foe) {
+            strikes += 1;
+        }
+    }
+    println!("probe reach_inside gap={gap:.2} reach={reach:.2} attacker_strikes={strikes} foe_hp={}", host.sim().hp(foe));
+    assert!(strikes > 0, "the melee unit never struck a target {gap:.2} cells away, just inside its {reach:.2}-cell reach");
 }
