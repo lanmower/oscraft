@@ -1,3 +1,5 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const LEGS = [
@@ -36,6 +38,7 @@ export const CONFIG = {
   walkingCells: 1.5,
   arrivedCells: 1,
   orderSettleMs: 250,
+  traceDir: fileURLToPath(new URL("../../.gm/witness-traces/", import.meta.url)),
 };
 
 export async function strikeWhileWalkingLeg(config) {
@@ -442,5 +445,15 @@ export async function runWitness(page, config = CONFIG) {
     const measured = await page.evaluate(strikeWhileWalkingLeg, config);
     legs.push({ label: leg.label, lock, ...measured });
   }
-  return { legs, verdict: verdict(legs) };
+  const result = { legs, verdict: verdict(legs) };
+  result.traceFile = writeTrace(result, config);
+  return result;
+}
+
+function writeTrace(result, config) {
+  mkdirSync(config.traceDir, { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const file = join(config.traceDir, "d1-" + stamp + "-" + (result.verdict.ok ? "ok" : "red") + ".json");
+  writeFileSync(file, JSON.stringify({ config, verdict: result.verdict, legs: result.legs }, null, 1));
+  return file;
 }
