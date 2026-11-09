@@ -1,5 +1,7 @@
 import { fileURLToPath } from "node:url";
 
+const SIM_ORDER_MOVE = 0;
+
 export const LEGS = [
   { label: "lock on", lock: true },
   { label: "lock off", lock: false },
@@ -244,6 +246,8 @@ export async function strikeWhileWalkingLeg(config) {
     }
     samples += 1;
     const moved = previous !== null && Math.hypot(now.x - previous.x, now.z - previous.z) > 0.05;
+    const walkingOrder = (window.__ciOrderOf(heroId)?.[0] ?? -1) === SIM_ORDER_MOVE;
+    const walking = moved && walkingOrder;
     if (moved) movingSamples += 1;
     if (moved) {
       if (stillSamples >= config.stallRunSamples) stallRuns.push({ startMs: stillSince, samples: stillSamples });
@@ -271,7 +275,7 @@ export async function strikeWhileWalkingLeg(config) {
     const launch = window.__ciStrikeStamp(heroId)?.[2] ?? -1;
     if (launch !== lastLaunch) {
       const settled = Date.now() - lastOrderAt >= config.orderSettleMs;
-      if (launch !== -1 && moved && farFromStation && settled) {
+      if (launch !== -1 && walking && farFromStation && settled) {
         launchesWhileMoving += 1;
         movingLaunches.push({
           atMs: Date.now() - legStart,
@@ -302,9 +306,9 @@ export async function strikeWhileWalkingLeg(config) {
       }
     }
 
-    if (moved) heroEffectsWhileMoving += heroEffects;
+    if (walking) heroEffectsWhileMoving += heroEffects;
     if (heroEffects > 0) {
-      if (moved) {
+      if (walking) {
         strikeSamplesWhileMoving += 1;
         movingStrikes.push({ atMs: Date.now() - legStart, effects: heroEffects });
       } else strikeSamplesWhileStopped += 1;

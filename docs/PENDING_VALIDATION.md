@@ -518,3 +518,9 @@ Final-witness tally: 4 of 5 green (runs 4, 5, 6, 8 pass; run 7 fails with the st
   - placement uses a wider search (`placeRadii` 8 to 40) and a lane isolation radius of 4 cells (`laneCells` 4, was 10).
 - Change, `scripts/witness/clear-target.js`: `choose` retries placement `placeRetries` times (`placeRetryMs` apart) before it reports the placement as aborted. Earlier runs aborted on "no clear point" after one search, while lane creeps moved past the candidate points.
 - Witness (Phase B): the three-leg D1 witness via gm, five final-version live runs, each recorded with its verdict and its stall, refusal and rotation counts. The earlier runs in this session that used the older witness versions are not counted toward the five.
+
+## Phase A row: D1 counts walking under the sim's move order (2026-11-09)
+
+- Defect, from the five final-version live runs (`/tmp/d1-final-1794215010721.json` to `...1794215446691.json`): three launches counted "while moving" had sim order kind 2 (`ORDER_ATTACK_MOVE`, lib.rs:94), not `ORDER_MOVE`. The sim's `walking()` (movement.rs) needs `ORDER_MOVE`; an attack-chase move is the sim's permitted movement, so the witness counted a launch the sim does not classify as walking. Witness defect, not a sim defect.
+- Change, `scripts/witness/strike-while-walking.mjs`: a sample counts as walking only when `__ciOrderOf(heroId)[0] === SIM_ORDER_MOVE` (0) as well as moving. Launch counting, strike samples while walking and effects while walking use `walking`.
+- Witness: the three-leg D1 witness, five live runs, recorded with their verdicts. Earlier runs (before this row) are recorded in the Phase B results below.
