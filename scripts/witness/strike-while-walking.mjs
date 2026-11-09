@@ -29,6 +29,7 @@ export const CONFIG = {
   pickRangeCells: 100,
   attemptLimit: 40,
   walkingCells: 1.5,
+  orderSettleMs: 250,
 };
 
 export async function strikeWhileWalkingLeg(config) {
@@ -225,7 +226,8 @@ export async function strikeWhileWalkingLeg(config) {
     const farFromStation = walkTo !== null && distance(now, walkTo) > config.walkingCells;
     const launch = window.__ciStrikeStamp(heroId)?.[2] ?? -1;
     if (launch !== lastLaunch) {
-      if (launch !== -1 && moved && farFromStation) {
+      const settled = Date.now() - lastOrderAt >= config.orderSettleMs;
+      if (launch !== -1 && moved && farFromStation && settled) {
         launchesWhileMoving += 1;
         movingLaunches.push({ atMs: Date.now() - legStart, launch });
       }
