@@ -29,7 +29,13 @@
   };
   const pick = (rule, units, from, heroId) => {
     const candidates = units.filter(
-      (u) => u.id !== heroId && !rule.excluded.includes(u.id) && u.player === rule.targetOwner && rule.alive(u) && rule.hostile(u),
+      (u) =>
+        u.id !== heroId &&
+        !rule.excluded.includes(u.id) &&
+        u.player === rule.targetOwner &&
+        rule.alive(u) &&
+        rule.hostile(u) &&
+        (rule.pickRangeCells === undefined || distance(u, from) <= rule.pickRangeCells),
     );
     if (candidates.length === 0) return { creep: null, aborted: "no hostile creep to strike" };
     const clear = candidates.filter((c) => blockersOf(rule, units, c, from, heroId).length === 0);

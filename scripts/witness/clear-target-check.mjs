@@ -172,4 +172,13 @@ for (const c of cases) {
   assert.match(r.aborted, /^no clear creep/, "with placement off, the refusal stands");
 }
 
+{
+  const units = [hero, unit(10, 30, 0)];
+  const far = pick(rule({ pickRangeCells: 20 }), units, hero, HERO);
+  assert.equal(far.creep, null, "a creep beyond the pick range is not a candidate");
+  assert.equal(far.aborted, "no hostile creep to strike");
+  const near = pick(rule({ pickRangeCells: 40 }), units, hero, HERO);
+  assert.equal(near.creep.id, 10, "a creep within the pick range is picked");
+}
+
 console.log("clear-target checks ok");
