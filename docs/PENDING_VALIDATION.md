@@ -366,6 +366,44 @@ The H2 witness was pushed in f964cf11 with its verdict still failing. This pass 
 - Known risk for the one-hand module: each leg resets to the stage before it picks, so a creep still alive beside the stage from an earlier leg blocks the pick, and the leg refuses with its named blocker. Nothing in this pass changes that; the first live run shows whether it happens.
 - Changes in this pass, each committed locally as lanmower: (1) `scripts/witness/clear-target.js` and `scripts/witness/clear-target-check.mjs`, the shared rule and its node tests (witness: `node scripts/witness/clear-target-check.mjs`, not run in Phase A); (2) `scripts/witness/strike-while-walking.mjs`, the one-hand target choice through the shared rule with placement and a named refusal (witness: the live one-hand run in Phase B, not run in Phase A); (3) this entry.
 
+## Phase B pass 2026-11-09 (D1, H2 re-run, gates): record
+
+- Browser work ran through the gm playwriter setup (`gm.playwriter_execute`, `state.page`), not playwright-core. The witness modules are imported inside the snippet and run with `runWitness(state.page)` / `runFirstHitTiming(state.page)`. Each witness run uses a fresh run context (`gm.playwriter_browsers({action:'close'})` closes only this run's context), so no leftover match is reused.
+- Staged wasm: `WASM=1 SKIP_PACKS=1 bash scripts/dev/stage.sh` ran with `wasm-pack` at `/config/.cargo/bin` (job PATH); the stage wrote `.dev-site` (EXIT 0). The job's PATH did not find wasm-pack at first (`wasm-pack: command not found`), so the run added `/config/.cargo/bin` to PATH.
+- Node checks, all pass: `clear-target-check.mjs` (ok), `strike-while-walking-check.mjs` (8 cases), `first-hit-timing-check.mjs` (15 cases), `js/client/movement-sequence-check.mjs` (sequence ok, all negative controls fail as expected, pad walk ok).
+- Cargo, all pass: `cargo test -p sim` (12 result blocks, 0 failed), `cargo test -p sim --test strikes` (9 passed), `cargo test -p mod-host --test pad_cast_at` (6 passed). `cargo test -p mod-host` was killed mid-run by the gm job runner (16 of 17 test binaries reported, the last one `running 1 test` had no result); rerun detached in `/tmp/gm-modhost2.log` (see the result line below once it finishes).
+
+### Defects found live and fixed in this pass
+
+1. Placement spawn refusal aborted the leg. The sim refused some placed points (`spawn_attributed` → `fits` refuses unwalkable cells: probes refused (84.6,83.3), (86.4,82), (120,120), (30,30) and accepted (76,257), (100,100), (200,200)). `choose` gave up after the first refusal with `could not place a creep at ...`. Fix in `clear-target.js`: placement tries each clear point in order until the sim accepts one (`placements` returns all clear points; `choose` loops). Node tests added: a refused point is followed by the next, and an all-refused list names the refusal. H2's `placeClearTarget` has the same fix (it continues on refusal).
+2. Placed points in a pocket were unreachable. The old stage (78.5, 82) lies in a pocket: the hero moves west, south and north-west from it, but the east and north-east points stop it after 0.3 cells. Fix: a reachability probe in `clear-target.js` `choose` (an injected async `reachable(point)`): the probe orders a move to the stop point and counts the approach over 1.5 s (`probeMs`, `probeCells`), an unreachable existing creep is excluded and the next is picked, and placement spawns only at a probed point (`probeLimit` 8). The witness leg passes `reachable` from its own move order.
+3. The walk orders went to a creep's own centre, a cell its footprint occupies; the hero stood still. Fix: the walk stations are now stop points two cells from the creep on the stage side, and the second station 1.6 cells further (`stopCells`, `oscillateCells`).
+4. The stage was a fixed point in the pocket. Fix: the stage is the hero's own position at leg start (`stage` in the leg), so no fixed map coordinate is assumed.
+5. No strike target was ever set while walking. Fix: the leg issues a commanded attack (`__ciAttack`) on the picked creep and re-issues it when the strike target is lost; the leg result carries `initialPick` (the id, type, position and the strike target 400 ms after the attack).
+6. H2 corridor: `first-hit-timing.mjs` `interceptorsOf` now measures the approach to the stop point (the same corridor as `clear-target.js`), and its cause text names the stop point.
+
+### One-hand witness (D1): run results
+
+- Run with fixes 1 to 4 (before the attack order): all three legs started (`aborted: null`), no strike target, `movingSamples` 2 to 6, the hero did not walk. Cause: the walk went to the creep's centre (fix 3).
+- Run with fix 3 and the stage at the hero's spawn: the hero walks (movingSamples 188, 190, 169), the leg picks creep 118 (type 6, 1.6 cells from the hero), and `probes` shows the approach gained 6.39, 5.49 and 2.74 cells.
+- Run with fix 5 and the `initialPick` record: leg 1 `strikeAfterAttack` -1, leg 2 -1, leg 3 118 (`inReach` 10, `targetsSeen` [118]). Verdict: `ok: false`, with `never in reach while moving` for legs 1 and 2, and no strike or kinds on any leg. Last verdict line: `lock on: the hero was never in reach while moving; lock on: no strike while moving with one-hand on; lock on: no hero-sourced effect kinds recorded; lock off: never in reach while moving; lock on again: no strike while moving with one-hand on; lock on again: no hero-sourced effect kinds recorded`.
+- Open cause (not found): `order_attack_or_approach` (rust/crates/sim/src/movement.rs:443) refuses an attack with `InvalidOrderTarget` (not hostile, no matching target layer, or not visible to the player) or `Stunned`. The attack order on creep 118 was refused in legs 1 and 2 and accepted in leg 3. The witness does not record the refusal, so which condition fired is unknown. Next: read the refusal log (`rec` refusal lines) for the attack in legs 1 and 2, or add the refusal reason to the leg result, then rerun.
+- D1 status: not witnessed. Its verdict is red, and the red verdict is an honest failure of the one-hand walking strike, not a witness defect.
+
+### H2 re-run under the corrected corridor
+
+- Change before the run: `first-hit-timing.mjs` `interceptorsOf` now uses `segmentDistance(v, from, stop)` (was `from, c`), and `placeClearTarget` continues past a sim refusal.
+- Run (live, fresh match, gm playwriter, `runFirstHitTiming`): verdict `{"ok":true,"reasons":[]}`. Legs: first target 118, `reachTick` 830, `launchTick` 830, `hitTick` 836, `latencyTicks` 6, `attackPoint` 7, `struckOther` false, `aborted` null; second target 248, `reachTick` 1699, `hitTick` 1705, `latencyTicks` 6, `attackPoint` 7, `aborted` null; lock-off control 251, `latencyTicks` 6 (not judged). Result: H2 passes under the corrected corridor.
+
+### Results of the Phase B pass
+
+- `node scripts/check-all.mjs`: `RESULT gates=73 ok=73 failed=0 drift=0 skipped=6 strict=false`, exit 0 (the 6 skips are the same missing inputs as before: G688_UNIT_INI, G688_LNI, --src, hy3d directory, osdt-data binary, and check-all's own editor check).
+- `node js/client/movement-sequence-check.mjs`: sequence ok, every negative control fails as expected, pad walk ok.
+- `cargo test -p sim`: all test binaries ok. `cargo test -p sim --test strikes`: 9 passed. `cargo test -p mod-host --test pad_cast_at`: 6 passed. `cargo test -p mod-host` (full rerun, detached, `/tmp/gm-modhost2.log`): `MODHOST_EXIT 0`, no FAILED or panicked lines.
+- `node scripts/witness/clear-target-check.mjs`: ok. `node scripts/witness/strike-while-walking-check.mjs`: 8 cases ok. `node scripts/witness/first-hit-timing-check.mjs`: 15 cases ok. `node js/client/twin-stick-check.mjs` (C1): ok. `node scripts/check-browser-witnesses.mjs` (A5): `browser witness spec ok (4 witnesses, 4 bounded-run rules)`.
+- Not run in this pass: E3 (control scheme doc review against a running client; a review item, not a gate).
+- D1 (one-hand walking strike, live): RED, not witnessed. Open cause as above.
+
 ## Notes for Phase B (observations, not validation)
 
 - A hero walks about 4.7 cells per second on the live map. Reads taken one second apart can look like a stalled hero; use the position log over several seconds.
