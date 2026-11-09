@@ -60,7 +60,7 @@
         const clear = hostiles.every(
           (v) =>
             distance(v, p) > rule.isolationCells &&
-            segmentDistance(v, from, p) > rule.isolationCells &&
+            (distance(v, from) <= rule.isolationCells || segmentDistance(v, from, p) > rule.isolationCells) &&
             (v.player === rule.targetOwner || distance(v, p) > rule.laneCells),
         );
         if (clear) points.push(p);

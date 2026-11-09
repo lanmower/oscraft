@@ -524,3 +524,9 @@ Final-witness tally: 4 of 5 green (runs 4, 5, 6, 8 pass; run 7 fails with the st
 - Defect, from the five final-version live runs (`/tmp/d1-final-1794215010721.json` to `...1794215446691.json`): three launches counted "while moving" had sim order kind 2 (`ORDER_ATTACK_MOVE`, lib.rs:94), not `ORDER_MOVE`. The sim's `walking()` (movement.rs) needs `ORDER_MOVE`; an attack-chase move is the sim's permitted movement, so the witness counted a launch the sim does not classify as walking. Witness defect, not a sim defect.
 - Change, `scripts/witness/strike-while-walking.mjs`: a sample counts as walking only when `__ciOrderOf(heroId)[0] === SIM_ORDER_MOVE` (0) as well as moving. Launch counting, strike samples while walking and effects while walking use `walking`.
 - Witness: the three-leg D1 witness, five live runs, recorded with their verdicts. Earlier runs (before this row) are recorded in the Phase B results below.
+
+## Phase A row: placement rejected every candidate when an enemy stood near the hero (2026-11-09)
+
+- Defect (D1 walk-order runs 2, 5 and earlier: "no clear point to place a creep" on the lock-off and lock-on-again legs, 3 of 5 runs): the placement test (`clear-target.js` placements) required every hostile unit to be more than `isolationCells` from the segment from the hero to the candidate. A hostile unit within `isolationCells` of the hero is within that distance of the segment's start, so it blocks every candidate direction at once. Cause: the test ignores that the blocker is at the hero. Witness defect, not a sim defect.
+- Change, `scripts/witness/clear-target.js`: the segment test skips a hostile unit already within `isolationCells` of the hero (`distance(v, from) <= isolationCells ||`). The point test still applies to it.
+- Witness: the three-leg D1 witness, five live runs.
