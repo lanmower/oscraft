@@ -47,13 +47,13 @@ export async function strikeWhileWalkingLeg(config) {
   const roster = () => window.__ciRoster();
   const heroUnit = () => roster().find((u) => u.player === me && window.__ciIsHero(u.id));
   const unitById = (id) => roster().find((u) => u.id === id);
-  const rule = () => ({
+  const rule = (avoid = []) => ({
     pickRangeCells: config.pickRangeCells,
     isolationCells: config.isolationCells,
     reachCells: config.stopCells,
     laneCells: config.laneCells,
     targetOwner: config.targetOwner,
-    excluded: [...stationBlocked, ...used],
+    excluded: [...stationBlocked, ...avoid],
     placeTarget: config.placeTarget,
     placeRadii: config.placeRadii,
     placeStepDeg: config.placeStepDeg,
@@ -61,6 +61,7 @@ export async function strikeWhileWalkingLeg(config) {
     placeRetries: config.placeRetries,
     placeRetryMs: config.placeRetryMs,
     alive: (u) => window.__ciHp(u.id) > 0,
+    hp: (u) => window.__ciHp(u.id),
     hostile: (u) => window.__ciHostile(me, u.player),
   });
   const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -83,8 +84,8 @@ export async function strikeWhileWalkingLeg(config) {
     probes.push({ to: [+point.x.toFixed(1), +point.z.toFixed(1)], gained: +gained.toFixed(2) });
     return gained >= config.probeCells;
   };
-  const choosePicked = (h) =>
-    window.clearTarget.choose(rule(), () => roster(), h, heroId, (kind, x, z) => window.__ciSpawnNeutral(kind, x, z), reachable);
+  const choosePicked = (h, avoid = []) =>
+    window.clearTarget.choose(rule(avoid), () => roster(), h, heroId, (kind, x, z) => window.__ciSpawnNeutral(kind, x, z), reachable);
   const commandAttack = (targetId, why) => {
     const terms = window.__ciAttackTerms(heroId, targetId);
     const accepted = window.__ciAttack(heroId, targetId);
@@ -191,7 +192,9 @@ export async function strikeWhileWalkingLeg(config) {
   let launchesWhileMoving = 0;
   let lastLaunch = window.__ciStrikeStamp(heroId)?.[2] ?? -1;
   let walkTo = null;
-  const initial = await choosePicked(heroUnit() ?? first);
+  const lastCreep = used.at(-1);
+  let initial = await choosePicked(heroUnit() ?? first, lastCreep === undefined ? [] : [lastCreep]);
+  if (initial.creep === null && lastCreep !== undefined) initial = await choosePicked(heroUnit() ?? first);
   if (initial.creep === null) aborted = initial.aborted;
   else {
     creep = initial.creep;

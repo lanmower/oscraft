@@ -22,6 +22,8 @@
     );
   };
   const nearestOf = (pool, from) => pool.reduce((best, u) => (best === null || distance(u, from) < distance(best, from) ? u : best), null);
+  const healthiestOf = (pool, from, rule) =>
+    pool.reduce((best, u) => (best === null || rule.hp(u) > rule.hp(best) || (rule.hp(u) === rule.hp(best) && distance(u, from) < distance(best, from)) ? u : best), null);
   const describe = (rule, from, c, v) => {
     const stop = stopPointOf(from, c, rule.reachCells);
     const cause = segmentDistance(v, from, stop) <= rule.isolationCells ? "on the approach" : "nearer the stop point";
@@ -39,7 +41,7 @@
     );
     if (candidates.length === 0) return { creep: null, aborted: "no hostile creep to strike" };
     const clear = candidates.filter((c) => blockersOf(rule, units, c, from, heroId).length === 0);
-    if (clear.length > 0) return { creep: nearestOf(clear, from), aborted: null };
+    if (clear.length > 0) return { creep: rule.hp ? healthiestOf(clear, from, rule) : nearestOf(clear, from), aborted: null };
     const first = nearestOf(candidates, from);
     const blockers = blockersOf(rule, units, first, from, heroId).map((v) => describe(rule, from, first, v));
     return {
