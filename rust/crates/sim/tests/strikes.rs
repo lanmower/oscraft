@@ -288,7 +288,7 @@ fn a_walking_unit_turns_to_a_foe_behind_it_and_launches_a_strike_with_strike_on_
 fn a_moving_attack_move_unit_with_strike_on_move_on_is_walking_when_it_launches_a_strike() {
     let mut sim = open_field();
     let attacker = spawn_kind(&mut sim, PLAYER, "antimage", 10, 5);
-    spawn(&mut sim, FOE, 9, 5);
+    let foe = spawn(&mut sim, FOE, 9, 5);
     assert!(sim.set_strike_on_move(attacker, true));
     assert!(sim.set_heading(attacker, 0));
     assert!(sim.set_turn_rate(attacker, 1337));
@@ -296,7 +296,7 @@ fn a_moving_attack_move_unit_with_strike_on_move_on_is_walking_when_it_launches_
     assert!(sim.issue_order_kind(attacker, sim::ORDER_ATTACK_MOVE, centre(20), centre(5)).is_ok());
 
     for _ in 0..8 {
-        drive_targeting(&mut sim, attacker);
+        assert!(sim.set_strike_target(attacker, foe as i32).is_ok());
         sim.tick();
     }
 
