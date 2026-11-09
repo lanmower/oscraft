@@ -750,6 +750,39 @@ fn a_bundle_funnelled_through_a_gap_reaches_each_goal_behind_the_wall() {
     assert!(worst <= FUNNEL_STALL_LIMIT, "a unit stalled {worst} ticks in a row in the funnel");
 }
 
+const SPREAD_SIZE: usize = 40;
+const SPREAD_TO: (i32, i32, i32, i32) = (104, 200, 146, 260);
+const SPREAD_STEP: i32 = 6;
+const SPREAD_TICKS: u32 = 6000;
+const SPREAD_STALL_LIMIT: u32 = 400;
+
+fn spaced_cells_in(host: &ModHost, rect: (i32, i32, i32, i32), step: i32, count: usize) -> Vec<(i32, i32)> {
+    let sim = host.sim();
+    let grid = sim.grid();
+    let (x0, y0, x1, y1) = rect;
+    let cells: Vec<(i32, i32)> = (y0..=y1)
+        .step_by(step as usize)
+        .flat_map(|y| (x0..=x1).step_by(step as usize).map(move |x| (x, y)))
+        .filter(|&(x, y)| grid.walkable(x, y))
+        .collect();
+    assert!(cells.len() >= count, "the rectangle {rect:?} holds {} spaced cells, {count} are needed", cells.len());
+    cells.into_iter().take(count).collect()
+}
+
+#[test]
+fn a_bundle_whose_goals_are_spread_past_the_field_cache_reaches_each_goal_behind_the_wall() {
+    let mut host = pack_host();
+    raise_wall(&mut host);
+    let starts = open_cells_in(&host, BUNDLE_FROM, SPREAD_SIZE);
+    let goals = spaced_cells_in(&host, SPREAD_TO, SPREAD_STEP, SPREAD_SIZE);
+    let (arrived, longest) = march_bundle(&mut host, &starts, &goals, SPREAD_TICKS);
+    let stuck: Vec<usize> = (0..starts.len()).filter(|&k| arrived[k].is_none()).collect();
+    let worst = longest.iter().copied().max().unwrap_or(0);
+    println!("probe spread units={} arrived={} stuck={stuck:?} longest_stall_run={worst}", starts.len(), starts.len() - stuck.len());
+    assert!(stuck.is_empty(), "{} of {} units never reached their spread goal within {SPREAD_TICKS} ticks (first stuck unit index {:?})", stuck.len(), starts.len(), stuck.first());
+    assert!(worst <= SPREAD_STALL_LIMIT, "a unit stalled {worst} ticks in a row while the spread bundle moved");
+}
+
 fn hitter_detail(host: &ModHost, target: usize) -> Vec<(u32, u8, u32, (f64, f64), f64)> {
     host.sim()
         .recent_hitters(target, 4)
