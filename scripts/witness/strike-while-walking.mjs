@@ -164,6 +164,8 @@ export async function strikeWhileWalkingLeg(config) {
   let stationTurn = 0;
   let stationRotations = 0;
   let refusedMoves = 0;
+  const moveRefusals = [];
+  let moveRefusalsDropped = 0;
   let stillSamples = 0;
   let stillSince = 0;
   const stallRuns = [];
@@ -229,6 +231,18 @@ export async function strikeWhileWalkingLeg(config) {
       if (toward === null || distance(h, stations[toward]) < config.arriveCells) toward = toward === "a" ? "b" : "a";
       const accepted = window.__ciMove(heroId, stations[toward].x, stations[toward].z);
       if (!accepted) {
+        if (moveRefusals.length < config.attemptLimit) {
+          moveRefusals.push({
+            atMs: Date.now() - legT0,
+            turn: stationTurn,
+            station: [+stations[toward].x.toFixed(2), +stations[toward].z.toFixed(2)],
+            creep: [+creep.x.toFixed(2), +creep.z.toFixed(2)],
+            hero: [+h.x.toFixed(2), +h.z.toFixed(2)],
+            refusal: window.__ciRefusal(),
+          });
+        } else {
+          moveRefusalsDropped += 1;
+        }
         stationTurn = (stationTurn + 1) % config.stationTurns;
         stationRotations += 1;
         refusedMoves += 1;
@@ -320,6 +334,8 @@ export async function strikeWhileWalkingLeg(config) {
     stallTrace,
     stationRotations,
     refusedMoves,
+    moveRefusals,
+    moveRefusalsDropped,
     ready,
     startHp,
     samples,

@@ -7,6 +7,7 @@ const leg = (overrides) => ({
   ready: true,
   aborted: null,
   strikeSamplesWhileMoving: 4,
+  launchesWhileMoving: 0,
   inReachMoving: 9,
   kinds: { melee_hit: 3 },
   ...overrides,
@@ -20,8 +21,9 @@ const greenRedGreen = (red = {}, green = {}) => [
 
 const cases = [
   { name: "green, red, green with the expected counts passes", legs: greenRedGreen(), ok: true },
-  { name: "a red leg with strikes while moving fails", legs: greenRedGreen({ strikeSamplesWhileMoving: 2 }), ok: false },
+  { name: "a red leg with strike samples but no launch passes, since a landed strike is not a launch", legs: greenRedGreen({ strikeSamplesWhileMoving: 2 }), ok: true },
   { name: "a green leg with no strike while moving fails", legs: greenRedGreen({}, { strikeSamplesWhileMoving: 0 }), ok: false },
+  { name: "a red leg that launches while moving fails", legs: greenRedGreen({ launchesWhileMoving: 1 }), ok: false },
   { name: "a red leg never in reach fails, since zero proves nothing", legs: greenRedGreen({ inReachMoving: 0 }), ok: false },
   { name: "a leg that did not reach the stage at start hp fails", legs: greenRedGreen({}, { ready: false }), ok: false },
   { name: "an aborted leg fails", legs: greenRedGreen({ aborted: "hero dead" }), ok: false },
