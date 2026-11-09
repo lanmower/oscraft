@@ -3736,9 +3736,11 @@ if (params.get("ci") === "1") {
   window.__ciTargetedSlot =(unitId) => { const list = JSON.parse(localGame.abilities_json(unitId)); const t = list.find((a) => (a.target === "unit" || a.target === "point") && a.slot < 4); return t ? t.slot : -1; };
   window.__ciHostile = (a, b) => localGame.hostile(a, b);
   window.__ciIsHero = (unitId) => isHeroUnit(unitId);
-  window.__ciAttack = (unitId, targetId) => session.broadcast(sendAttack(unitId, targetId));
   window.__ciLocalCast = (unitId, slot, target, x, z) => localGame.cast(unitId, slot, target, x, z);
   window.__ciLocalAttack = (unitId, targetId) => localGame.attack(unitId, targetId);
+  window.__ciRefusal = () => (localGame ? localGame.last_refusal() : null);
+  window.__ciAttackTerms = (unitId, targetId) => (localGame ? Array.from(localGame.attack_terms(unitId, targetId)) : null);
+  window.__ciOrderOf = (unitId) => (localGame ? Array.from(localGame.current_order(unitId)) : null);
   window.__ciFxCounts = () => (fx ? fx.counts() : null);
   window.__ciSent = new Map();
   window.__ciRecv = new Map();
