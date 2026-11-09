@@ -11,6 +11,7 @@ export const CONFIG = {
   sampleMs: 100,
   stallRunSamples: 8,
   stallTraceCap: 400,
+  strikeTraceCap: 300,
   stationTurns: 8,
   orderEveryMs: 300,
   resetMs: 120000,
@@ -172,6 +173,7 @@ export async function strikeWhileWalkingLeg(config) {
   let stillSince = 0;
   const stallRuns = [];
   const stallTrace = [];
+  const strikeTrace = [];
   let lastOrderAt = 0;
   let creep = null;
   let toward = null;
@@ -316,6 +318,21 @@ export async function strikeWhileWalkingLeg(config) {
     if (strikeTarget >= 0) targetsSeen.add(strikeTarget);
     const targetUnit = strikeTarget >= 0 ? unitById(strikeTarget) : undefined;
     if (moved && targetUnit && distance(targetUnit, now) < config.reachCells) inReachMoving += 1;
+    if (creep && strikeTrace.length < config.strikeTraceCap) {
+      strikeTrace.push({
+        atMs: Date.now() - legStart,
+        moved,
+        pos: [+now.x.toFixed(2), +now.z.toFixed(2)],
+        creep: [+creep.x.toFixed(2), +creep.z.toFixed(2)],
+        dist: +distance(creep, now).toFixed(2),
+        creepHp: window.__ciHp(creep.id),
+        strikeTarget,
+        order: window.__ciOrderOf(heroId),
+        swing: window.__ciSwingPoint(heroId),
+        launch: window.__ciStrikeStamp(heroId),
+        walkTo: walkTo ? [+walkTo.x.toFixed(2), +walkTo.z.toFixed(2)] : null,
+      });
+    }
     let heroEffects = 0;
     const nowFx = window.__ciRecentFx();
     const nowKeys = nowFx.map((effect) => JSON.stringify(effect));
@@ -342,6 +359,7 @@ export async function strikeWhileWalkingLeg(config) {
   return {
     stallRuns,
     stallTrace,
+    strikeTrace,
     stationRotations,
     refusedMoves,
     moveRefusals,
