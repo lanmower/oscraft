@@ -853,3 +853,48 @@ Also seen and not a site: render3d.js:1-17 and 276 already hold module scratch m
 - Error recorded (run 2026-11-09-18-42-10-98e4bc, next_context events seq 3-4): `mcp-server playwriter state down, reason exited with code 128`, stderr empty. The same happened in run 2026-11-09-19-03-09-ae5a08 until its `restart` at 19:08:10 (event seq 11, "restarted without a reason"). After that restart the server reported `connected`, tools 3, protocol 2025-11-25 (seq 13).
 - Cause: not established. The logs carry no stderr. The launch command is `npx -y -p github:AnEntrypoint/pw#1488a92 playwriter-project` (defaults/mcp.json). The shell run of `playwriter-project --help` and `status` worked, so the failure was in the gm launch, not the package. The restart cleared it. Treat a repeat as an open defect.
 - Session started through gm `playwriter_execute` on the staged site (sha c5e9fab0, port 8832, my server PID 2148909): the project gate pid 2148462, browser pid 2149052, page `http://localhost:8832/js/client/play.html?ci=1&fresh=session1`, title `oscraft net client`, `window.oscraft` is an object, `body[data-phase]` is `lobby`. No D1 pass ran.
+
+### D1 eight passes at f513d64b and the walking witness decision (2026-11-09)
+
+Staged site: sha f513d64b (restaged in this pass; `/version.json` confirmed). Each pass: a fresh page (`?ci=1&fresh=<tag>`), the lobby (`All Pick`, claim, pick antimage, ready, fill, start), `phase === 'live'`, then `runWitness`. Trace files are in `.gm/witness-traces/`. The reds' `walkProbe` counts are per leg; `watched` is launched + cooling + notCommandable + outOfArc (the walking-watched ticks); `in-loop re-attacks` counts attempts whose `why` is `in-loop` (the witness's re-attack).
+
+Original passes, the witness that counted walking as kind 0 only (`walkingOrder` at strike-while-walking.mjs:352 before this change):
+
+| Pass | Verdict | Trace | lock on again: launched / cooling / notCommandable / outOfArc / watched | in-loop re-attacks (lock on / lock on again) |
+|---|---|---|---|---|
+| 1 | ok | d1-2026-11-09T19-26-03-163Z-ok.json | not red | 1 / 0 |
+| 2 | red | d1-2026-11-09T19-28-33-569Z-red.json | 3 / 61 / 0 / 1 / 65 | 0 / 0 |
+| 3 | red | d1-2026-11-09T19-31-03-622Z-red.json | 10 / 38 / 0 / 13 / 61 | 1 / 0 |
+| 4 | red | d1-2026-11-09T19-33-35-486Z-red.json | 4 / 61 / 0 / 5 / 70 | 0 / 0 |
+| 5 | ok | d1-2026-11-09T19-36-06-322Z-ok.json | not red | 1 / 0 |
+| 6 | red | d1-2026-11-09T19-38-57-853Z-red.json | 3 / 22 / 0 / 0 / 25 | 1 / 0 |
+| 7 | ok | d1-2026-11-09T19-41-32-490Z-ok.json | not red | 1 / 0 |
+| 8 | ok | d1-2026-11-09T19-44-02-846Z-ok.json | not red | 1 / 0 |
+
+The four reds all fail `lock on again: no strike while moving with one-hand on`, with `strikeSamplesWhileMoving` 0. Their `lock on` legs pass.
+
+Decision (made from the probe counts). The sim's `walking()` counts a moving attack-move unit as walking when strike on move is on (c5e9fab0). The witness counted kind 0 only, so every strike the sim launched on a kind-2 walking tick was invisible to the verdict. The red legs show launches on watched ticks (3, 10, 4, 3), which is the sim doing what the witness claimed to check. So the witness is changed to match the sim:
+- `walkingOrder` now accepts kind 0, or kind 2 while `#hero-lock` `aria-pressed` is `true`. That is the same flag as the one-hand ui call: `play.js:1322-1325` (`syncOneHand`) sends `one_hand` from `heroViewLock.isLocked()`, and `controls.lua:526` sets strike on move from it. A lock-off leg is unchanged (kind 0 only).
+- Not mirrored: the sim's `attack_order < 0` clause. No hook exposes `attack_order` to the page, so the witness can count a kind-2 sample with an attack target that the sim would not. The launched-count comparison below is the check on that.
+- Verdict thresholds unchanged. `node scripts/witness/strike-while-walking-check.mjs`: `strike-while-walking verdict checks ok (11 cases, leg timing in sim ticks)`.
+
+Reruns with the changed witness (each its own status file under `.gm/witness-traces/d1-finalB-rerun-pass<n>-status.txt`). Pass 2 was run once more in the restart (19-48-05, red) and not rerun again, since it is consistent with the reds:
+
+| Pass | Verdict | Trace | lock on again: strikeWhileMoving / launched / cooling / outOfArc / watched | lock on: strikeWhileMoving |
+|---|---|---|---|---|
+| 2 | red | d1-2026-11-09T19-48-05-847Z-red.json | 0 / 2 / 21 / 2 / 25 | 4 |
+| 3 | ok | d1-2026-11-09T20-03-59-844Z-ok.json | 1 / 6 / 99 / 8 / 113 | 22 |
+| 4 | ok | d1-2026-11-09T20-06-34-455Z-ok.json | 5 / 11 / 147 / 3 / 161 | 22 |
+| 6 | red | d1-2026-11-09T20-09-04-628Z-red.json | 0 / 0 / 59 / 0 / 59 | 25 |
+
+Before and after, lock on again (strikeSamplesWhileMoving): pass 2 0 to 0, pass 3 0 to 1 (ok, a margin of 1 at the threshold), pass 4 0 to 5, pass 6 0 to 0. The walking-watched ticks in pass 6 are all cooling (59 of 59), so the sim had no ready weapon while walking there, not a witness fault.
+
+Result: final verdicts for the eight passes, with the witness each was measured under, are:
+- 1 ok (old witness), 2 red (new), 3 ok (new), 4 ok (new), 5 ok (old), 6 red (new), 7 ok (old), 8 ok (old).
+- Six ok, two red. D1 is not green.
+
+Caveat, not resolved here: passes 1, 5, 7 and 8 were measured under the old witness. The new witness can only add kind-2 walking samples to the lock-on-again leg, so those passes cannot turn red from the change; their counts are simply not from the same measure. Rerunning them under the new witness would make the eight passes one measure; that was not in the requested scope.
+
+Open: passes 2 and 6 remain red. Their launches on watched ticks are 2 and 0 in lock on again, and most watched ticks are cooling (21 of 25 in pass 2, 59 of 59 in pass 6). The walking definition is no longer the cause there; the weapon's cooldown leaves no strike while walking. Whether that is the intended sim behaviour, or a witness that should wait for a ready weapon before counting, is open.
+
+check-all at this change (the witness change above, with the ledger): `RESULT gates=74 ok=74 failed=0 drift=0 skipped=6 strict=false`, exit 0 (log `.gm/witness-traces/checkall-final.log`).

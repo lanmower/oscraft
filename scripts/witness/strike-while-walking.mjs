@@ -349,7 +349,9 @@ export async function strikeWhileWalkingLeg(config) {
     samples += 1;
     const moved = previous !== null && Math.hypot(now.x - previous.x, now.z - previous.z) > 0.05;
     const order = window.__ciOrderOf(heroId);
-    const walkingOrder = order?.[0] === 0 && distance({ x: order[1] / 65536, z: order[2] / 65536 }, now) > config.arrivedCells;
+    const oneHandOn = document.getElementById("hero-lock")?.getAttribute("aria-pressed") === "true";
+    const movingOrder = order?.[0] === 0 || (order?.[0] === 2 && oneHandOn);
+    const walkingOrder = movingOrder && distance({ x: order[1] / 65536, z: order[2] / 65536 }, now) > config.arrivedCells;
     const walking = moved && walkingOrder;
     if (moved) movingSamples += 1;
     if (moved) {
