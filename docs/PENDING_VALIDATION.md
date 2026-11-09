@@ -258,6 +258,16 @@ Each row is one change, committed on its own. The review compared docs/CONTROLS.
 - Open cause, not closed: (0) the attack point is the largest sampled value, so a launch between samples under-reports it (run 6: 4 for a 7-tick swing), which makes the threshold too tight. (1) the sample gap. The page's timers fire every 2 to 3 ticks under headless rendering, so the 1-tick threshold can't be judged from sampled hit and release ticks. (2) The stopped leg's approach window is too short when the target is far from the fountain.
 - Status: H2 is open. The detection fix is committed; the witness's verdict is not decided by these runs.
 
+## H2 close pass (Phase A, 2026-11-09): changes
+
+The H2 witness was pushed in f964cf11 with its verdict still failing. This pass closes it or leaves it open with a cause. Phase A changes only; no build, test or witness run in Phase A. The three causes from the H2 run record each get one change, all in scripts/witness/first-hit-timing.mjs and scripts/witness/first-hit-timing-check.mjs, committed locally.
+
+- H2-A1 (attack point at launch): the attack point is the sampled point at the launch sample, the first sample with a point above zero, not the largest sampled value. Cause: run 6 read 4 for a swing that was 7 at launch, because the largest sample came after three decrements. Witness: the live timed run (H2-B) must show `attackPoint` equal to the launch sample's point, and the reach-to-launch ticks must match the trace; the synthetic check has a case for a missing attack point.
+- H2-A2 (hit tick within one tick): the leg now waits for each sim tick to advance (`nextTick`, polling `__ciTicks`) and samples once per tick, instead of a fixed 5 ms timer. Each leg records `windowGap`, the largest tick gap between two samples from the reach sample to the hit. A judged leg whose `windowGap` is above `maxWindowGapTicks` (1) fails the verdict, so a coarsely sampled run cannot pass. Cause: run 5 and run 6 sampled 2 to 3 ticks apart, so the hit tick had up to 3 ticks of error. Witness: `node scripts/witness/first-hit-timing-check.mjs` now has 14 cases, including `a judged leg sampled two ticks apart in its window fails` and `a coarsely sampled lock-off control does not fail the verdict`; the live run must show `windowGap` 1 on both judged legs.
+- H2-A3 (stopped leg window and target): decided to keep the target, the nearest hostile creep to the hero, and to lengthen the judged leg window to 900 s (`legMs`), with the control at 60 s (`controlMs`, not judged). Reason: the target is about 100 cells from the fountain, and moving it closer would bake a map position into the witness. The approach is setup, not the measured interval, so the window only has to cover the walk. Run 5 and run 6 each ran out 480 s at 47 to 64 cells away. Witness: the live run must show the stopped leg reaching (`reachTick` not null) and hitting, with `ready: true`.
+- Not changed in this pass: the sim. The attack point and the release come from the sim's own swing point through `__ciSwingPoint`, unchanged.
+- Status: committed locally; the live run (H2-B) decides H2.
+
 ## Notes for Phase B (observations, not validation)
 
 - A hero walks about 4.7 cells per second on the live map. Reads taken one second apart can look like a stalled hero; use the position log over several seconds.
