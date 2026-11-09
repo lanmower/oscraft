@@ -294,6 +294,30 @@ The H2 witness was pushed in f964cf11 with its verdict still failing. This pass 
 - Open cause: the check counts every living hostile unit as an interceptor, including towers and lane creeps. The refusal does not name the player or type of 109 and 110, so the run cannot say whether they are neutral camp creeps (the leg's own kind) or enemy structures and lane units. That decides whether the check is too broad or the map has no clean neutral creep from this spot. The next step is to log each blocker's player and type in the refusal and read it from one run, before changing the rule.
 - Status: H2 open. The verdict is not valid; no push.
 
+## H2 target selection: the interceptor rule blocks every creep (Phase A, 2026-11-09)
+
+- Cause, from run 15's refusal (`nearest creep 111 has hostile units 109, 110 within 4 cells`; the control refused the same way): the interceptor rule treated any living hostile within `isolationCells` (4) of the candidate as a blocker. A creep in a camp always has camp-mates within 4 cells, so every candidate on the map was blocked. The rule counted camp-mates on the far side of the candidate, which the sim never strikes first.
+- What the sim does (targeting.lua `best_in_reach`, class then centre distance): the hero strikes the nearest plain creep in reach from its stop point. A creep farther from the stop point than the candidate does not take the first hit. A creep nearer to the stop point does. The rule compared against the candidate, not against where the hero stops.
+- Cause of the approach strikes in runs 10 to 13: the hero's path was blocked by bodies in the corridor, so it stopped with zero velocity in reach of a creep beside the path, and that creep was struck first. The corridor check is correct for this and stays.
+- Fix (witness, `pickCreep` and `interceptorsOf`): a candidate is valid when no living hostile other than itself (a) lies within `isolationCells` of the segment from the hero to the candidate (the approach corridor), or (b) lies nearer to the stop point than the candidate, where the stop point is `reachCells` (2) from the candidate on the hero's side. The pick is the nearest valid candidate. When none is valid, the refusal names the nearest candidate and its blockers under the same rule. The control leg uses the same pick.
+- Witness: the live run 16 must show `ok: true` for both judged legs (or name a new blocker that the rule now counts), with leg 2's `targetId` distinct from leg 1's. `node scripts/witness/first-hit-timing-check.mjs` covers the verdict rules unchanged.
+- Status: code and doc written in Phase A. Not built, not run (Phase A). Phase B runs the witness, then check-all, then one push.
+
+## H2 driver race: the lock button is hidden while the flow stage clears (runs 16, 16b, 2026-11-09)
+
+- Run 16 (`RUN_EXIT 1`) timed out on `locator.click` for `#hero-lock` after resolving it. Run 16b (`RUN_EXIT 1`) timed out waiting for `#hero-lock` to appear, 30 s, with the same lobby order.
+- Cause: `js/client/gui_flow.js` line 27 hides `#hero-lock` while `body[data-flow]` is set, and the flow stage is cleared after `body[data-phase="live"]` is set. The driver clicks the lock as soon as the phase is live, so under machine load (other sessions' browsers were running; load average 9.8) the click lands before the stage clears and waits for a button that is hidden. Earlier runs passed because the stage cleared in time.
+- Fix (witness, `runFirstHitTiming`): wait for `#hero-lock` to be visible, up to 120 s, before the first lock click. The verdict rules and legs are unchanged.
+- Status: the fix is in Phase B, with run 16c as its witness. No witness verdict is recorded under this entry.
+
+## H2 run 16c: the rule rejects every candidate from the retreat point (2026-11-09)
+
+- Run 16c (/tmp/witness-driver/run16c.out, `RUN_EXIT 0`, the stop-point rule and the lock wait in place): `ok: false`. Leg 1 valid (creep 118, reach 803, launch 803, hit 809, latency 6). Leg 2 refused: `nearest creep 109 has hostile units 110, 111`. The control refused with `nearest creep 111 has hostile units 109, 110`.
+- The refusal wording still says "within 4 cells". The check now tests the approach corridor and whether a hostile is nearer the stop point than the candidate, so the wording is stale and must change with the rule.
+- What this shows: the nearest candidate's blockers are its camp-mates, and they sit nearer the hero's stop point than the candidate, so the sim would strike them first. The rule is right about that. But the refusal is for the nearest candidate only; `pickCreep` refuses only when no candidate on the map passes, so every neutral creep is blocked from the retreat point. The refusal does not name the player or type of any blocker. The unanswered question is whether those blockers are neutral camp creeps or hostile lane and structure units, which decides whether the interceptor rule should count them.
+- Status: H2 open. No valid verdict. Not pushed.
+- Decision needed (owner): whether hostile units of the lanes and structures count as interceptors for the first-hit witness, or whether the judged legs use a target the map provides away from lanes. The witness cannot pass this rule as written from the retreat point.
+
 ## Notes for Phase B (observations, not validation)
 
 - A hero walks about 4.7 cells per second on the live map. Reads taken one second apart can look like a stalled hero; use the position log over several seconds.

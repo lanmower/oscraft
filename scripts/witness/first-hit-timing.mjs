@@ -36,12 +36,20 @@ export async function firstHitLeg(config) {
     return Math.hypot(p.x - (a.x + t * dx), p.z - (a.z + t * dz));
   };
   const nearestOf = (pool, from) => pool.reduce((best, u) => (best === null || distance(u, from) < distance(best, from) ? u : best), null);
-  const interceptorsOf = (units, c, from, heroId) =>
-    units.filter(
+  const stopPointOf = (from, c) => {
+    const dx = from.x - c.x;
+    const dz = from.z - c.z;
+    const length = Math.hypot(dx, dz) || 1;
+    return { x: c.x + (dx / length) * config.reachCells, z: c.z + (dz / length) * config.reachCells };
+  };
+  const interceptorsOf = (units, c, from, heroId) => {
+    const stop = stopPointOf(from, c);
+    return units.filter(
       (v) =>
         v.id !== heroId && v.id !== c.id && alive(v) && hostileToMe(v) &&
-        (distance(v, c) <= config.isolationCells || segmentDistance(v, from, c) <= config.isolationCells),
+        (segmentDistance(v, from, c) <= config.isolationCells || distance(v, stop) < distance(c, stop)),
     );
+  };
   const pickCreep = (units, from, heroId) => {
     const candidates = units.filter(
       (u) => u.id !== heroId && !config.excluded.includes(u.id) && u.player === config.targetOwner && alive(u) && hostileToMe(u),
@@ -214,6 +222,7 @@ export function verdictFirstHit(legs) {
 
 export async function runFirstHitTiming(page, config = CONFIG) {
   const lockButton = page.locator("#hero-lock");
+  await lockButton.waitFor({ state: "visible", timeout: 120000 });
   const legs = [];
   const struckTargets = [];
   let retreat = null;
