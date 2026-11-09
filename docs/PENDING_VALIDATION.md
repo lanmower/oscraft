@@ -979,3 +979,60 @@ Not applied, with the reason:
 6. rust/crates/sim/src/ground.rs pickup_ground_item (R14). Witness: cargo test -p sim, and the replay parity check (mod-host/src/bin/parity_hash.rs) on a fixed seed.
 
 Phase B order: self-check, cargo test -p sim --test strikes with the guard removed and then with it, the eight D1 passes, node scripts/check-all.mjs, one push. The D1 result is not predicted here; the predictions above (pass 2 ok, pass 6 red with the new reason) are to be confirmed or refuted by the passes.
+
+
+## Phase B results: bcf40b01, the Phase A pass built, tested and witnessed (2026-11-09)
+
+Run on HEAD bcf40b01 with nothing added to Phase A. Phase B items 1 to 9 of the owner request.
+
+Stage: WASM=1 SKIP_PACKS=1 bash scripts/dev/stage.sh laid out .dev-site with sha bcf40b011b4d72994402e6d7d70cf86fb9a2e540, matching HEAD (version.json). The stage rewrote scenarios/moba/moba.osdt and duel-routes.osdt; the rewrite was byte-identical, so git status was clean afterwards.
+
+Self-check: node scripts/witness/strike-while-walking-check.mjs printed "strike-while-walking verdict checks ok (14 cases, leg timing in sim ticks)" (11 earlier cases and 3 added in Phase A).
+
+Strikes, with and without the guard (cargo test -p sim --test strikes, run from rust/):
+- Guard removed (tick.rs:138 replaced by an unconditional face_move): 12 passed, 2 failed. The failures are a_moving_attack_move_unit_with_strike_on_move_on_is_walking_when_it_launches_a_strike (the new test, panic "the moving attack-move unit launched a strike counted as walking") and a_walking_unit_turns_to_a_foe_behind_it_and_launches_a_strike_with_strike_on_move_on (an existing test, panic "the walking unit turned to the foe behind it and launched a strike"). The second test also depends on the guard; the Phase A entry named only the new test.
+- Guard restored (git checkout of tick.rs, status clean): 14 passed, 0 failed.
+
+Suite counts (cargo test from rust/; each log in .gm/witness-traces):
+- cargo test -p sim: 45 passed, 0 failed, 0 ignored (12 binaries, the doctest binary has none).
+- cargo test -p web --test pathing_probe: 29 passed, 0 failed.
+- cargo test -p mod-host: 48 passed, 0 failed, 0 ignored (22 binaries).
+
+Eight fresh-import D1 passes on port 8832 (the staged sha above; server PID 2306851, stopped after the passes; 8831 PID 927110 left running). Each pass booted a fresh page (play.html?ci=1&fresh=bb<n>z), checked body phase live as its own call, and ran runWitness; the trace name is the newest d1- file written by that pass. Run as one background gm body that writes .gm/witness-traces/phaseB-d1-status.txt after each pass, because the playwriter route runs through gm, not setsid.
+
+| Pass | Trace | Verdict | lock on walkProbe launched/cooling and strikeMove | lock on again walkProbe launched/cooling and strikeMove |
+|---|---|---|---|---|
+| 1 | d1-2026-11-09T20-43-51-683Z-ok.json | ok | 12 / 198, 19 | 4 / 51, 0 |
+| 2 | d1-2026-11-09T20-46-26-583Z-ok.json | ok | 14 / 210, 22 | 13 / 146, 3 |
+| 3 | d1-2026-11-09T20-49-12-237Z-ok.json | ok | 14 / 210, 22 | 6 / 60, 2 |
+| 4 | d1-2026-11-09T20-51-46-991Z-ok.json | ok | 14 / 210, 22 | 11 / 147, 5 |
+| 5 | d1-2026-11-09T20-54-21-861Z-ok.json | ok | 14 / 210, 22 | 11 / 160, 8 |
+| 6 | d1-2026-11-09T20-56-56-659Z-ok.json | ok | 15 / 219, 23 | 11 / 160, 7 |
+| 7 | d1-2026-11-09T20-59-27-126Z-ok.json | ok | 14 / 137, 4 | 0 / 51, 1 |
+| 8 | d1-2026-11-09T21-01-57-556Z-ok.json | ok | 16 / 197, 20 | 2 / 84, 2 |
+
+Eight of eight ok; no red trace, so no red-leg walkProbe counts to record. Lock off legs record zero walkProbe in every pass, as expected by construction (walk_watch needs strikes on move).
+
+Against the Phase A prediction: pass 6 was predicted to stay red under the corrected reason; in this run it is ok (11 launches while walking in lock on again). The earlier pass-6 red (0 launches, 59 cooling) and this run differ in how the walk lined up with the weapon cooldown, so the lock-on-again outcome varies run to run. The cooling-only failure mode the W2 reason names is real but was not hit in these eight passes.
+
+Thin margins: pass 7 lock on again passes on one effect sample and zero launches; pass 8 on two of each; pass 3 on two effect samples and one launch; pass 1 passes only through walkProbe.launched (4 launches, zero effect samples), which is the W1 path. Pass 2, red in the earlier run, passes here with 13 launches and 3 samples.
+
+The earlier D1 record (the eight passes at f513d64b and the four reruns) used different witness rules for different passes, so it is not one measure. This run is one measure, the bcf40b01 witness, eight passes.
+
+Reuse edits (Phase A, not compiled before this run): compiled and tested by the suites above (ground.rs is in sim; the JS edits are in the staged bundle). No defect showed; no fix was needed.
+
+JS gates on the staged bundle (node, each exit 0):
+- camera-target-audit-check.mjs: 24 writes in 65 files, all classified; negative control fails at play.js:4008.
+- hero-trajectory-check.mjs: hero trajectory ok; 3 negative controls.
+- movement-sequence-check.mjs: pad walk ok; negative control fails.
+- lock-engage-order-check.mjs: lock engage order ok; negative control fails.
+- movement-lock-release-check.mjs: movement lock release gate ok; 5 negative controls fail.
+- hud-canvas-check.mjs: hud canvas probe ok (cells 3, draws 8).
+- Not run: the playwriter heap count per 600 frames for the J1, J6, J7, J12 and J14 edits. The audit names it; it is not done in this pass.
+
+Check-all: node scripts/check-all.mjs, EXIT=0, "RESULT gates=74 ok=74 failed=0 drift=0 skipped=6 strict=false" (log .gm/witness-traces/phaseB-checkall.log).
+
+Incidents in this run, recorded:
+- The first guard-off cargo run started from /workspace/oscraft, not rust/, and failed with "could not find Cargo.toml" before compiling anything; rerun from rust/.
+- The combined suites job was killed after sim and pathing passed; mod-host was rerun detached (setsid) and passed.
+- The sleep-based polling bodies were moved to background by the gm host after 120 s; they completed normally.
