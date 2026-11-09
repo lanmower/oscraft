@@ -1,7 +1,7 @@
 export const LEGS = [
-  { label: "stopped, lock on", lock: true, walk: false, judged: true },
-  { label: "walking, lock on", lock: true, walk: true, judged: true },
-  { label: "walking, lock off (control)", lock: false, walk: true, judged: false },
+  { label: "first target, lock on", lock: true, judged: true },
+  { label: "second target, lock on", lock: true, judged: true },
+  { label: "lock off (control)", lock: false, judged: false },
 ];
 
 export const CONFIG = {
@@ -14,10 +14,11 @@ export const CONFIG = {
   abortHp: 100,
   targetOwner: 255,
   reachCells: 2,
-  oscillateCells: 1.6,
-  arriveCells: 0.8,
-  maxWindowGapTicks: 1,
   toleranceTicks: 1,
+  isolationCells: 4,
+  excluded: [],
+  retreat: null,
+  retreatMs: 240000,
 };
 
 export async function firstHitLeg(config) {
@@ -25,25 +26,35 @@ export async function firstHitLeg(config) {
   const me = window.__ciLocalPlayer();
   const roster = () => window.__ciRoster();
   const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
-  const pointToward = (target, from, cells) => {
-    const dx = from.x - target.x;
-    const dz = from.z - target.z;
-    const length = Math.hypot(dx, dz) || 1;
-    return { x: target.x + (dx / length) * cells, z: target.z + (dz / length) * cells };
+  const alive = (u) => window.__ciHp(u.id) > 0;
+  const hostileToMe = (u) => window.__ciHostile(me, u.player);
+  const segmentDistance = (p, a, b) => {
+    const dx = b.x - a.x;
+    const dz = b.z - a.z;
+    const lengthSq = dx * dx + dz * dz;
+    const t = lengthSq === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.z - a.z) * dz) / lengthSq));
+    return Math.hypot(p.x - (a.x + t * dx), p.z - (a.z + t * dz));
   };
-  const nearestCreep = (units, from, heroId) => {
-    let best = null;
-    let nearest = Infinity;
-    for (const u of units) {
-      if (u.id === heroId || u.player !== config.targetOwner || window.__ciHp(u.id) <= 0) continue;
-      if (!window.__ciHostile(me, u.player)) continue;
-      const d = distance(u, from);
-      if (d < nearest) {
-        nearest = d;
-        best = u;
-      }
-    }
-    return best;
+  const nearestOf = (pool, from) => pool.reduce((best, u) => (best === null || distance(u, from) < distance(best, from) ? u : best), null);
+  const interceptorsOf = (units, c, from, heroId) =>
+    units.filter(
+      (v) =>
+        v.id !== heroId && v.id !== c.id && alive(v) && hostileToMe(v) &&
+        (distance(v, c) <= config.isolationCells || segmentDistance(v, from, c) <= config.isolationCells),
+    );
+  const pickCreep = (units, from, heroId) => {
+    const candidates = units.filter(
+      (u) => u.id !== heroId && !config.excluded.includes(u.id) && u.player === config.targetOwner && alive(u) && hostileToMe(u),
+    );
+    if (candidates.length === 0) return { creep: null, aborted: "no hostile creep to strike" };
+    const isolated = candidates.filter((c) => interceptorsOf(units, c, from, heroId).length === 0);
+    if (isolated.length > 0) return { creep: nearestOf(isolated, from), aborted: null };
+    const nearest = nearestOf(candidates, from);
+    const blockers = interceptorsOf(units, nearest, from, heroId).map((v) => v.id);
+    return {
+      creep: null,
+      aborted: `no isolated creep: nearest creep ${nearest.id} has hostile units ${blockers.join(", ")} within ${config.isolationCells} cells`,
+    };
   };
   const nextTick = async (after, until) => {
     while (window.__ciTicks() === after && Date.now() < until) await sleep(config.tickPollMs);
@@ -53,14 +64,12 @@ export async function firstHitLeg(config) {
     ready: false,
     startHp: null,
     targetId: null,
+    struckOther: false,
     reachTick: null,
     launchTick: null,
-    releaseTick: null,
     hitTick: null,
     attackPoint: 0,
-    launchDelayTicks: null,
     latencyTicks: null,
-    windowGap: null,
     samples: 0,
     aborted,
     trace: [],
@@ -80,28 +89,34 @@ export async function firstHitLeg(config) {
   if (startHp < config.minStartHp) return { ...empty("hero below start hp"), startHp };
 
   units = roster();
+  const startAt = units.find((u) => u.id === heroId);
+  const startPosition = { x: startAt.x, z: startAt.z };
+  if (config.retreat !== null && units.some((v) => v.id !== heroId && alive(v) && hostileToMe(v) && distance(v, startAt) <= config.isolationCells)) {
+    const retreatUntil = Date.now() + config.retreatMs;
+    window.__ciMove(heroId, config.retreat.x, config.retreat.z);
+    while (Date.now() < retreatUntil) {
+      await sleep(300);
+      const moved = roster().find((u) => u.id === heroId);
+      if (!moved || distance(moved, config.retreat) <= 1) break;
+    }
+    units = roster();
+  }
   const origin = units.find((u) => u.id === heroId);
-  const firstCreep = nearestCreep(units, origin, heroId);
-  if (firstCreep === null) return { ...empty("no hostile creep to strike"), startHp };
-  let creepId = firstCreep.id;
+  const start = pickCreep(units, origin, heroId);
+  if (start.creep === null) return { ...empty(start.aborted), ready: true, startHp, origin: startPosition };
+  let creepId = start.creep.id;
 
-  let approaching = !config.walk;
-  let toward = null;
+  let approaching = true;
   let lastOrderAt = 0;
-  let reachTick = null;
-  let reachHp = null;
-  let launchTick = null;
-  let releaseTick = null;
-  let hitTick = null;
-  let attackPoint = 0;
+  let stamp = null;
   let samples = 0;
   let aborted = null;
-  let prevTick = null;
-  let windowGap = 0;
+  let struckOther = false;
   const trace = [];
 
   const legStart = Date.now();
   let tick = window.__ciTicks();
+  const startTick = tick;
   while (Date.now() - legStart < config.legMs) {
     units = roster();
     const h = units.find((u) => u.id === heroId);
@@ -114,12 +129,13 @@ export async function firstHitLeg(config) {
       break;
     }
     let creep = units.find((u) => u.id === creepId);
-    if (reachTick === null && (!creep || window.__ciHp(creepId) <= 0)) {
-      creep = nearestCreep(units, h, heroId);
-      if (creep === null) {
-        aborted = "no hostile creep left to strike";
+    if ((stamp === null || stamp[0] !== creepId || stamp[1] < 0) && (!creep || window.__ciHp(creepId) <= 0)) {
+      const picked = pickCreep(units, h, heroId);
+      if (picked.creep === null) {
+        aborted = picked.aborted;
         break;
       }
+      creep = picked.creep;
       creepId = creep.id;
     }
     if (creep === undefined || creep === null) {
@@ -129,63 +145,43 @@ export async function firstHitLeg(config) {
     if (approaching && distance(h, creep) <= config.reachCells) {
       window.__ciMove(heroId, h.x, h.z);
       approaching = false;
-    } else if ((config.walk || approaching) && Date.now() - lastOrderAt > config.orderEveryMs) {
-      const stations = { a: { x: creep.x, z: creep.z }, b: pointToward(creep, origin, config.oscillateCells) };
-      if (toward === null || distance(h, stations[toward]) < config.arriveCells) toward = toward === "a" ? "b" : "a";
-      window.__ciMove(heroId, stations[toward].x, stations[toward].z);
+    } else if (approaching && Date.now() - lastOrderAt > config.orderEveryMs) {
+      window.__ciMove(heroId, creep.x, creep.z);
       lastOrderAt = Date.now();
     }
 
     tick = await nextTick(tick, legStart + config.legMs);
     if (Date.now() >= legStart + config.legMs) break;
-    units = roster();
-    const now = units.find((u) => u.id === heroId);
-    if (!now) {
-      aborted = "hero dead";
-      break;
-    }
-    const target = units.find((u) => u.id === creepId);
-    const point = window.__ciSwingPoint(heroId);
-    const hp = window.__ciHp(creepId);
+    stamp = window.__ciStrikeStamp(heroId);
     samples += 1;
-    const gap = prevTick === null ? 0 : tick - prevTick;
-    prevTick = tick;
-    if (trace.length === 0 || trace[trace.length - 1].tick !== tick) {
-      trace.push({ tick, d: target ? +distance(now, target).toFixed(2) : null, point, hp });
-      if (trace.length > 60) trace.shift();
-    }
-    if (reachTick === null && target && hp > 0 && distance(now, target) <= config.reachCells) {
-      reachTick = tick;
-      reachHp = hp;
-      windowGap = gap;
-    } else if (reachTick !== null && hitTick === null) {
-      windowGap = Math.max(windowGap, gap);
-    }
-    if (launchTick === null && point > 0) {
-      launchTick = tick;
-      attackPoint = point;
-    } else if (launchTick !== null && releaseTick === null) {
-      if (point > attackPoint) attackPoint = point;
-      if (point === 0) releaseTick = tick;
-    }
-    if (reachTick !== null && hitTick === null && hp < reachHp) {
-      hitTick = tick;
+    if (stamp === null) {
+      aborted = "no strike stamp hook";
       break;
     }
+    const now = roster().find((u) => u.id === heroId);
+    const target = roster().find((u) => u.id === creepId);
+    const last = trace[trace.length - 1];
+    if (last === undefined || last.stamp.join() !== stamp.join()) {
+      trace.push({ tick, d: target && now ? +distance(now, target).toFixed(2) : null, heading: now ? now.heading : null, stamp });
+    }
+    if (stamp[0] >= 0 && stamp[0] !== creepId && stamp[1] >= startTick) struckOther = true;
+    if (stamp[0] === creepId && stamp[4] >= 0) break;
   }
 
+  const [, reach, launch, point, land] = stamp && stamp[0] === creepId ? stamp : [-1, -1, -1, 0, -1];
+  const reachTick = reach >= 0 ? reach : null;
+  const hitTick = land >= 0 ? land : null;
   return {
     ready: true,
     startHp,
+    origin: startPosition,
     targetId: creepId,
+    struckOther,
     reachTick,
-    launchTick,
-    releaseTick,
+    launchTick: launch >= 0 ? launch : null,
     hitTick,
-    attackPoint,
-    launchDelayTicks: reachTick !== null && launchTick !== null ? launchTick - reachTick : null,
+    attackPoint: point,
     latencyTicks: reachTick !== null && hitTick !== null ? hitTick - reachTick : null,
-    windowGap,
     samples,
     aborted,
     trace,
@@ -194,20 +190,21 @@ export async function firstHitLeg(config) {
 
 export function verdictFirstHit(legs) {
   const reasons = [];
+  const judgedTargets = new Set();
   for (const leg of legs) {
     if (!leg.judged) continue;
+    if (judgedTargets.has(leg.targetId)) reasons.push(`${leg.label}: target ${leg.targetId} was already judged in an earlier leg, so its strike stamp is not this leg's`);
+    judgedTargets.add(leg.targetId);
     if (!leg.ready) reasons.push(`${leg.label}: the hero did not reach the start hp of ${CONFIG.minStartHp}`);
     if (leg.lock !== "true") reasons.push(`${leg.label}: the lock was not engaged`);
     if (leg.aborted) reasons.push(`${leg.label}: the leg ended early (${leg.aborted})`);
-    if (leg.reachTick == null) reasons.push(`${leg.label}: the hero never came into reach`);
+    if (leg.reachTick == null) reasons.push(`${leg.label}: the sim never put the hero in reach of its target`);
+    if (leg.struckOther) reasons.push(`${leg.label}: the hero's first strike went to another unit`);
     if (leg.hitTick == null) {
       reasons.push(`${leg.label}: no first hit`);
       continue;
     }
-    if (leg.windowGap > CONFIG.maxWindowGapTicks) {
-      reasons.push(`${leg.label}: samples ${leg.windowGap} ticks apart in the reach-to-hit window, so the hit tick is not measured within one tick`);
-    }
-    if (!(leg.attackPoint > 0)) reasons.push(`${leg.label}: no swing attack point was observed at launch`);
+    if (!(leg.attackPoint > 0)) reasons.push(`${leg.label}: no swing attack point was stamped at launch`);
     else if (leg.latencyTicks > leg.attackPoint + CONFIG.toleranceTicks) {
       reasons.push(`${leg.label}: first hit ${leg.latencyTicks} ticks after reach, later than the attack point ${leg.attackPoint} plus ${CONFIG.toleranceTicks} tick`);
     }
@@ -218,12 +215,16 @@ export function verdictFirstHit(legs) {
 export async function runFirstHitTiming(page, config = CONFIG) {
   const lockButton = page.locator("#hero-lock");
   const legs = [];
+  const struckTargets = [];
+  let retreat = null;
   for (const leg of LEGS) {
     if ((await lockButton.getAttribute("aria-pressed")) !== String(leg.lock)) await lockButton.click();
     await page.waitForTimeout(600);
     const lock = await lockButton.getAttribute("aria-pressed");
     const legMs = leg.judged ? config.legMs : config.controlMs;
-    const measured = await page.evaluate(firstHitLeg, { ...config, walk: leg.walk, legMs });
+    const measured = await page.evaluate(firstHitLeg, { ...config, legMs, excluded: [...struckTargets], retreat });
+    if (retreat === null && measured.origin) retreat = measured.origin;
+    if (measured.targetId !== null) struckTargets.push(measured.targetId);
     legs.push({ label: leg.label, lock, judged: leg.judged, ...measured });
   }
   return { legs, verdict: verdictFirstHit(legs) };

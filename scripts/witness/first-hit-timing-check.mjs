@@ -15,14 +15,14 @@ const leg = (overrides) => ({
   attackPoint: 7,
   latencyTicks: 8,
   samples: 40,
-  windowGap: 1,
+  struckOther: false,
   ...overrides,
 });
 
 const stoppedAndWalking = (walkOverrides = {}, stopOverrides = {}) => [
-  leg({ label: "stopped, lock on", ...stopOverrides }),
-  leg({ label: "walking, lock on", ...walkOverrides }),
-  leg({ label: "walking, lock off (control)", lock: "false", judged: false, hitTick: null, latencyTicks: null, reachTick: null }),
+  leg({ label: "first target, lock on", ...stopOverrides }),
+  leg({ label: "second target, lock on", targetId: 8, ...walkOverrides }),
+  leg({ label: "lock off (control)", lock: "false", judged: false, hitTick: null, latencyTicks: null, reachTick: null }),
 ];
 
 const cases = [
@@ -37,9 +37,10 @@ const cases = [
   { name: "a judged leg with the lock not engaged fails", legs: stoppedAndWalking({ lock: "false" }), ok: false },
   { name: "an aborted judged leg fails", legs: stoppedAndWalking({ aborted: "hero dead" }), ok: false },
   { name: "a late lock-off control does not fail the verdict", legs: stoppedAndWalking({}, {}).map((l) => (l.judged ? l : { ...l, latencyTicks: 50, hitTick: 150 })), ok: true },
-  { name: "a judged leg sampled every tick in its window passes", legs: stoppedAndWalking({ windowGap: 1 }), ok: true },
-  { name: "a judged leg sampled two ticks apart in its window fails", legs: stoppedAndWalking({ windowGap: 2 }), ok: false },
-  { name: "a coarsely sampled lock-off control does not fail the verdict", legs: stoppedAndWalking({}, {}).map((l) => (l.judged ? l : { ...l, windowGap: 5 })), ok: true },
+  { name: "a judged leg whose first strike went to another unit fails", legs: stoppedAndWalking({ struckOther: true }), ok: false },
+  { name: "a lock-off control whose first strike went to another unit does not fail", legs: stoppedAndWalking({}, {}).map((l) => (l.judged ? l : { ...l, struckOther: true })), ok: true },
+  { name: "a judged leg whose launch stamp is the reach tick passes", legs: stoppedAndWalking({ reachTick: 100, launchTick: 100, latencyTicks: 8, hitTick: 108 }), ok: true },
+  { name: "a walking leg that reuses the stopped leg's target fails, since its stamp is the earlier leg's", legs: stoppedAndWalking({ targetId: 7 }), ok: false },
 ];
 
 for (const c of cases) {
@@ -50,7 +51,7 @@ for (const c of cases) {
 const late = verdictFirstHit(stoppedAndWalking({}, { latencyTicks: 9, hitTick: 109 }));
 assert.equal(
   late.reasons[0],
-  "stopped, lock on: first hit 9 ticks after reach, later than the attack point 7 plus 1 tick",
+  "first target, lock on: first hit 9 ticks after reach, later than the attack point 7 plus 1 tick",
 );
 
 console.log(`first-hit-timing verdict checks ok (${cases.length} cases)`);
