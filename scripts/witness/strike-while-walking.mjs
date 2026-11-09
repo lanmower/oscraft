@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 export const LEGS = [
   { label: "lock on", lock: true },
   { label: "lock off", lock: false },
@@ -18,6 +20,12 @@ export const CONFIG = {
   attackCells: 2.5,
   arriveCells: 0.8,
   oscillateCells: 1.6,
+  stopCells: 2,
+  isolationCells: 4,
+  laneCells: 10,
+  placeTarget: true,
+  placeRadii: [8, 12, 16],
+  placeStepDeg: 15,
 };
 
 export async function strikeWhileWalkingLeg(config) {
@@ -27,6 +35,18 @@ export async function strikeWhileWalkingLeg(config) {
   const roster = () => window.__ciRoster();
   const heroUnit = () => roster().find((u) => u.player === me && window.__ciIsHero(u.id));
   const unitById = (id) => roster().find((u) => u.id === id);
+  const rule = () => ({
+    isolationCells: config.isolationCells,
+    reachCells: config.stopCells,
+    laneCells: config.laneCells,
+    targetOwner: config.targetOwner,
+    excluded: [],
+    placeTarget: config.placeTarget,
+    placeRadii: config.placeRadii,
+    placeStepDeg: config.placeStepDeg,
+    alive: (u) => window.__ciHp(u.id) > 0,
+    hostile: (u) => window.__ciHostile(me, u.player),
+  });
   const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   function overlapLength(previous, now) {
     for (let k = Math.min(previous.length, now.length); k > 0; k -= 1) {
@@ -106,17 +126,12 @@ export async function strikeWhileWalkingLeg(config) {
       break;
     }
     if (!creep || window.__ciHp(creep.id) <= 0) {
-      creep = null;
-      let nearestDistance = Infinity;
-      for (const u of roster()) {
-        if (u.id === heroId || u.player === me || u.player !== config.targetOwner || window.__ciHp(u.id) <= 0) continue;
-        if (!window.__ciHostile(me, u.player)) continue;
-        const d = distance(u, config.stage);
-        if (d < nearestDistance) {
-          nearestDistance = d;
-          creep = u;
-        }
+      const picked = window.clearTarget.choose(rule(), () => roster(), h, heroId, (kind, x, z) => window.__ciSpawnNeutral(kind, x, z));
+      if (picked.creep === null) {
+        aborted = picked.aborted;
+        break;
       }
+      creep = picked.creep;
     }
     if (creep && Date.now() - lastOrderAt > config.orderEveryMs) {
       const stations = { a: { x: creep.x, z: creep.z }, b: pointToward(creep, config.stage, config.oscillateCells) };
@@ -199,6 +214,7 @@ export function verdict(legs) {
 
 export async function runWitness(page, config = CONFIG) {
   const lockButton = page.locator("#hero-lock");
+  await page.addScriptTag({ path: fileURLToPath(new URL("./clear-target.js", import.meta.url)) });
   const lockState = () => lockButton.getAttribute("aria-pressed");
   const legs = [];
   for (const leg of LEGS) {
