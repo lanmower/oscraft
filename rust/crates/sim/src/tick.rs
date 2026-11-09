@@ -135,7 +135,9 @@ impl Sim {
                 self.steer(i);
                 self.integrate(i);
                 self.advance_patrol(i);
-                self.face_move(i, before.0, before.1);
+                if !self.turns_to_strike(i) {
+                    self.face_move(i, before.0, before.1);
+                }
             }
             if (self.pos_x[i], self.pos_y[i], self.tgt_x[i], self.tgt_y[i]) != before {
                 self.touch(i);

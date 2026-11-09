@@ -3771,6 +3771,7 @@ if (params.get("ci") === "1") {
   window.__ciStrikeOf = (unitId) => (localGame ? localGame.unit_strike_of(unitId) : null);
   window.__ciSwingPoint = (unitId) => (localGame ? localGame.unit_swing_point(unitId) : null);
   window.__ciStrikeStamp = (unitId) => (localGame ? Array.from(localGame.unit_strike_stamp(unitId)) : null);
+  window.__ciWalkProbe = (unitId) => (localGame ? Array.from(localGame.unit_walk_probe(unitId)) : null);
   window.__ciTicks = () => (localGame ? localGame.ticks() : null);
   window.__ciFocus = (x, z) => { if (renderer3d) renderer3d.setCamera({ target: [x, groundAt(x, z), z] }); };
   window.__ciToScreen = (x, z) => worldToScreen(x, z, groundAt(x, z));

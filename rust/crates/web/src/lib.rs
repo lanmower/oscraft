@@ -196,6 +196,15 @@ impl Game {
         }
     }
 
+    pub fn unit_walk_probe(&self, unit: u32) -> Vec<u32> {
+        let i = unit as usize;
+        if i < self.host.sim().count() {
+            self.host.sim().walk_probe_of(i).to_vec()
+        } else {
+            Vec::new()
+        }
+    }
+
     pub fn attack_terms(&self, unit: u32, target: u32) -> Vec<i32> {
         let sim = self.host.sim();
         let (i, j) = (unit as usize, target as usize);

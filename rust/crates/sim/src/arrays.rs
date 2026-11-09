@@ -169,6 +169,7 @@ pub struct Sim {
     pub(crate) hold_override: Vec<i8>,
     pub(crate) strike_target: Vec<i32>,
     pub(crate) strike_stamp: Vec<StrikeStamp>,
+    pub(crate) walk_probe: Vec<[u32; crate::combat::WALK_PROBE_CODES]>,
     pub(crate) attack_order: Vec<i32>,
     pub(crate) swing_target: Vec<i32>,
     pub(crate) swing_left: Vec<i32>,
@@ -387,6 +388,7 @@ impl Sim {
             hold_override: vec![-1; cap],
             strike_target: vec![-1; cap],
             strike_stamp: vec![StrikeStamp::NONE; cap],
+            walk_probe: vec![[0; crate::combat::WALK_PROBE_CODES]; cap],
             attack_order: vec![-1; cap],
             swing_target: vec![-1; cap],
             swing_left: vec![0; cap],
@@ -771,6 +773,7 @@ impl Sim {
         self.hold_fire[i] = 0;
         self.strike_on_move[i] = 0;
         self.strike_stamp[i] = StrikeStamp::NONE;
+        self.walk_probe[i] = [0; crate::combat::WALK_PROBE_CODES];
         self.unit_scale[i] = DEFAULT_PERCENT;
         self.amount[i] = match self.kind[i] {
             KIND_MINERAL => self.cat.econ.resource_a_per_patch,

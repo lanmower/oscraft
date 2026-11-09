@@ -4,6 +4,11 @@ use crate::*;
 
 pub(crate) const KILL_QUEUE_CAP: usize = 256;
 pub(crate) const HITTER_SLOTS: usize = 4;
+pub const WALK_PROBE_CODES: usize = 4;
+pub const WALK_LAUNCHED: usize = 0;
+pub const WALK_COOLING: usize = 1;
+pub const WALK_NOT_COMMANDABLE: usize = 2;
+pub const WALK_OUT_OF_ARC: usize = 3;
 pub const COUNTER_DAMAGE_DEALT: &str = "sim_damage_dealt";
 pub const COUNTER_DAMAGE_TAKEN: &str = "sim_damage_taken";
 pub const COUNTER_HEALING: &str = "sim_healing";
@@ -105,23 +110,53 @@ impl Sim {
         if self.damage[i] <= 0 || self.stunned(i) || self.disarmed(i) {
             return;
         }
+        let watched = self.walk_watch(i);
         if self.cooldown[i] > 0 {
             self.cooldown[i] -= 1;
             if self.cooldown[i] > 0 {
+                if watched {
+                    self.record_walk(i, WALK_COOLING);
+                }
                 return;
             }
         }
         let Some(b) = self.commanded_strike(i) else {
+            if watched {
+                self.record_walk(i, WALK_NOT_COMMANDABLE);
+            }
             return;
         };
         if self.walking(i) && self.strike_on_move[i] == 0 {
             return;
         }
         if !self.face_target(i, b) {
+            if watched {
+                self.record_walk(i, WALK_OUT_OF_ARC);
+            }
             return;
         }
         self.cooldown[i] = self.attack_period(i);
         self.launch_strike(i, b, false);
+        if watched {
+            self.record_walk(i, WALK_LAUNCHED);
+        }
+    }
+
+    fn walk_watch(&self, i: usize) -> bool {
+        let t = self.strike_target[i];
+        self.walking(i) && self.strikes_on_move(i) && t >= 0 && (t as usize) < self.n && self.strike_ready(i, t as usize)
+    }
+
+    fn record_walk(&mut self, i: usize, code: usize) {
+        self.walk_probe[i][code] = self.walk_probe[i][code].wrapping_add(1);
+    }
+
+    pub fn walk_probe_of(&self, i: usize) -> [u32; WALK_PROBE_CODES] {
+        self.walk_probe.get(i).copied().unwrap_or([0; WALK_PROBE_CODES])
+    }
+
+    pub(crate) fn turns_to_strike(&self, i: usize) -> bool {
+        self.strikes_on_move(i) && self.commanded_strike(i).is_some()
     }
 
     fn stamp_reach(&mut self, i: usize) {

@@ -55,6 +55,11 @@ export async function strikeWhileWalkingLeg(config) {
   const roster = () => window.__ciRoster();
   const heroUnit = () => roster().find((u) => u.player === me && window.__ciIsHero(u.id));
   const unitById = (id) => roster().find((u) => u.id === id);
+  const probeCodes = ["launched", "cooling", "notCommandable", "outOfArc"];
+  const walkProbeNow = () => {
+    const raw = window.__ciWalkProbe(heroId) ?? [];
+    return Object.fromEntries(probeCodes.map((k, n) => [k, raw[n] ?? 0]));
+  };
   const waitTicks = async (ticks) => {
     const target = tickNow() + ticks;
     let last = tickNow();
@@ -241,6 +246,7 @@ export async function strikeWhileWalkingLeg(config) {
   previousFx = window.__ciRecentFx().map((effect) => JSON.stringify(effect));
 
   const legTick0 = tickNow();
+  const probeStart = walkProbeNow();
   while (aborted === null && tickNow() - legTick0 < config.legTicks) {
     const h = heroUnit();
     if (!h) {
@@ -431,6 +437,7 @@ export async function strikeWhileWalkingLeg(config) {
   }
   while (pick !== null && !pick.done) await sleep(config.pollMs);
   if (stillSamples >= config.stallRunSamples) stallRuns.push({ startTick: stillSince, samples: stillSamples });
+  const probeEnd = walkProbeNow();
 
   return {
     picks,
@@ -444,6 +451,7 @@ export async function strikeWhileWalkingLeg(config) {
     ready,
     startHp,
     ticks: tickNow() - legTick0,
+    walkProbe: Object.fromEntries(probeCodes.map((k) => [k, probeEnd[k] - probeStart[k]])),
     samples,
     movingSamples,
     strikeSamplesWhileMoving,
