@@ -216,3 +216,50 @@ fn a_move_order_cancels_a_windup_only_when_strike_on_move_is_off() {
     assert!(windup_survives_a_move_order(true), "strike on move keeps the windup through a move order");
     assert!(!windup_survives_a_move_order(false), "a move order cancels the windup when strike on move is off");
 }
+
+const ONE_CELL_SQ: i64 = (1 << 16) * (1 << 16);
+
+fn starts_while_walking(sim: &mut sim::Sim, attacker: usize, ticks: u32) -> Vec<u32> {
+    let mut previous = sim.swing_point(attacker);
+    let mut starts = Vec::new();
+    for t in 0..ticks {
+        drive_targeting(sim, attacker);
+        sim.tick();
+        let (kind, tx, ty) = sim.order_of(attacker);
+        let (px, py) = sim.position_fixed(attacker);
+        let (dx, dy) = (i64::from(px - tx), i64::from(py - ty));
+        let walking = kind == ORDER_MOVE && dx * dx + dy * dy > ONE_CELL_SQ;
+        let now = sim.swing_point(attacker);
+        if walking && previous == 0 && now > 0 {
+            starts.push(t);
+        }
+        previous = now;
+    }
+    starts
+}
+
+#[test]
+fn a_walking_unit_with_strike_on_move_off_never_starts_a_swing() {
+    let mut sim = open_field();
+    let attacker = spawn_kind(&mut sim, PLAYER, "antimage", 10, 5);
+    spawn(&mut sim, FOE, 11, 5);
+    assert!(sim.set_strike_on_move(attacker, false));
+    assert!(sim.set_heading(attacker, 0));
+    assert!(sim.set_turn_rate(attacker, 90));
+    assert!(sim.issue_order_kind(attacker, ORDER_MOVE, centre(7), centre(5)).is_ok());
+    let starts = starts_while_walking(&mut sim, attacker, 120);
+    assert!(starts.is_empty(), "a walking unit started a swing at ticks {starts:?} with strike on move off");
+}
+
+#[test]
+fn a_unit_turning_past_a_foe_on_a_move_order_does_not_start_a_swing_with_strike_on_move_off() {
+    let mut sim = open_field();
+    let attacker = spawn_kind(&mut sim, PLAYER, "antimage", 10, 5);
+    spawn(&mut sim, FOE, 10, 7);
+    assert!(sim.set_strike_on_move(attacker, false));
+    assert!(sim.set_heading(attacker, 0));
+    assert!(sim.set_turn_rate(attacker, 90));
+    assert!(sim.issue_order_kind(attacker, ORDER_MOVE, centre(7), centre(5)).is_ok());
+    let starts = starts_while_walking(&mut sim, attacker, 120);
+    assert!(starts.is_empty(), "a unit turning on a move order started a swing at ticks {starts:?} with strike on move off");
+}
