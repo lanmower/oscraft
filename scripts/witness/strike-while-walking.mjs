@@ -1,7 +1,5 @@
 import { fileURLToPath } from "node:url";
 
-const SIM_ORDER_MOVE = 0;
-
 export const LEGS = [
   { label: "lock on", lock: true },
   { label: "lock off", lock: false },
@@ -246,7 +244,7 @@ export async function strikeWhileWalkingLeg(config) {
     }
     samples += 1;
     const moved = previous !== null && Math.hypot(now.x - previous.x, now.z - previous.z) > 0.05;
-    const walkingOrder = (window.__ciOrderOf(heroId)?.[0] ?? -1) === SIM_ORDER_MOVE;
+    const walkingOrder = (window.__ciOrderOf(heroId)?.[0] ?? -1) === 0;
     const walking = moved && walkingOrder;
     if (moved) movingSamples += 1;
     if (moved) {
