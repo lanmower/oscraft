@@ -50,7 +50,7 @@ export async function strikeWhileWalkingLeg(config) {
     reachCells: config.stopCells,
     laneCells: config.laneCells,
     targetOwner: config.targetOwner,
-    excluded: [...stationBlocked],
+    excluded: [...stationBlocked, ...used],
     placeTarget: config.placeTarget,
     placeRadii: config.placeRadii,
     placeStepDeg: config.placeStepDeg,
@@ -65,6 +65,7 @@ export async function strikeWhileWalkingLeg(config) {
   const attempts = [];
   let attemptsDropped = 0;
   const legT0 = Date.now();
+  const used = (window.__ciWitnessUsed ??= []);
   const reachable = async (point) => {
     const before = heroUnit();
     if (!before) return false;
@@ -187,22 +188,19 @@ export async function strikeWhileWalkingLeg(config) {
   let launchesWhileMoving = 0;
   let lastLaunch = window.__ciStrikeStamp(heroId)?.[2] ?? -1;
   let walkTo = null;
-  const carried = window.__ciWitnessTarget ?? null;
-  const carriedUnit = carried === null ? undefined : unitById(carried);
-  const carriedInRange = carriedUnit !== undefined && window.__ciHp(carried) > 0 && distance(heroUnit() ?? first, carriedUnit) <= config.pickRangeCells;
-  const carriedState = carried === null ? null : { id: carried, known: carriedUnit !== undefined, hp: window.__ciHp(carried), distance: carriedUnit ? +distance(heroUnit() ?? first, carriedUnit).toFixed(1) : null };
-  const initial = carriedInRange ? { creep: carriedUnit, aborted: null } : await choosePicked(heroUnit() ?? first);
+  const initial = await choosePicked(heroUnit() ?? first);
   if (initial.creep === null) aborted = initial.aborted;
   else {
     creep = initial.creep;
-    window.__ciWitnessTarget = creep.id;
-    commandAttack(creep.id, carriedInRange ? "carried target" : "initial pick");
+    used.push(creep.id);
+    commandAttack(creep.id, "initial pick");
     await sleep(400);
     initialPick = {
       id: creep.id,
       type: creep.type,
       x: +creep.x.toFixed(1),
       z: +creep.z.toFixed(1),
+      hp: window.__ciHp(creep.id),
       strikeAfterAttack: window.__ciStrikeOf(heroId),
     };
   }
@@ -248,6 +246,7 @@ export async function strikeWhileWalkingLeg(config) {
         break;
       }
       creep = picked.creep;
+      used.push(creep.id);
       commandAttack(creep.id, "re-pick");
     }
     if (pick === null && creep && Date.now() - lastOrderAt > config.orderEveryMs) {
@@ -408,7 +407,6 @@ export async function strikeWhileWalkingLeg(config) {
     heroHp: heroUnit() ? window.__ciHp(heroId) : null,
     probes,
     initialPick,
-    carriedState,
     movingStrikes,
     movingLaunches,
     attempts,
@@ -432,6 +430,9 @@ export function verdict(legs) {
 export async function runWitness(page, config = CONFIG) {
   const lockButton = page.locator("#hero-lock");
   await page.addScriptTag({ path: fileURLToPath(new URL("./clear-target.js", import.meta.url)) });
+  await page.evaluate(() => {
+    window.__ciWitnessUsed = [];
+  });
   const lockState = () => lockButton.getAttribute("aria-pressed");
   const legs = [];
   for (const leg of LEGS) {
