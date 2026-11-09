@@ -283,3 +283,23 @@ fn a_walking_unit_turns_to_a_foe_behind_it_and_launches_a_strike_with_strike_on_
     assert!(sim.walk_probe_of(attacker)[0] > 0, "the walking unit turned to the foe behind it and launched a strike");
     assert!(sim.position_fixed(attacker).0 > start.0, "the unit kept walking while it turned");
 }
+
+#[test]
+fn a_moving_attack_move_unit_with_strike_on_move_on_is_walking_when_it_launches_a_strike() {
+    let mut sim = open_field();
+    let attacker = spawn_kind(&mut sim, PLAYER, "antimage", 10, 5);
+    spawn(&mut sim, FOE, 9, 5);
+    assert!(sim.set_strike_on_move(attacker, true));
+    assert!(sim.set_heading(attacker, 0));
+    assert!(sim.set_turn_rate(attacker, 1337));
+    let start = sim.position_fixed(attacker);
+    assert!(sim.issue_order_kind(attacker, sim::ORDER_ATTACK_MOVE, centre(20), centre(5)).is_ok());
+
+    for _ in 0..8 {
+        drive_targeting(&mut sim, attacker);
+        sim.tick();
+    }
+
+    assert!(sim.walk_probe_of(attacker)[0] > 0, "the moving attack-move unit launched a strike counted as walking");
+    assert!(sim.position_fixed(attacker).0 > start.0, "the unit kept moving under its attack-move order");
+}

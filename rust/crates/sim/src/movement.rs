@@ -638,7 +638,9 @@ impl Sim {
     }
 
     pub(crate) fn walking(&self, i: usize) -> bool {
-        self.order_kind[i] == ORDER_MOVE
+        let moving_order = self.order_kind[i] == ORDER_MOVE
+            || (self.order_kind[i] == ORDER_ATTACK_MOVE && self.strikes_on_move(i));
+        moving_order
             && self.attack_order[i] < 0
             && (self.vel_x[i] != 0 || self.vel_y[i] != 0)
             && self.effective_speed(i) > 0
