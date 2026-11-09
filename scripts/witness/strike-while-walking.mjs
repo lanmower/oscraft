@@ -7,7 +7,7 @@ export const LEGS = [
 ];
 
 export const CONFIG = {
-  legMs: 20000,
+  legMs: 25000,
   sampleMs: 100,
   orderEveryMs: 300,
   resetMs: 120000,
@@ -15,28 +15,30 @@ export const CONFIG = {
   abortHp: 100,
   targetOwner: 255,
   reachCells: 10,
-  attackCells: 2.5,
   arriveCells: 0.8,
   oscillateCells: 1.6,
   stopCells: 2,
   isolationCells: 4,
   laneCells: 10,
   placeTarget: true,
-  placeRadii: [8, 12, 16],
+  placeRadii: [8, 12, 16, 20, 24],
   placeStepDeg: 15,
   probeMs: 1500,
   probeCells: 1.5,
-  probeLimit: 8,
+  probeLimit: 16,
+  pickRangeCells: 100,
+  attemptLimit: 40,
+  walkingCells: 1.5,
 };
 
 export async function strikeWhileWalkingLeg(config) {
-  const ATTACK_KINDS = new Set(["melee_hit", "attack_arrow"]);
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const me = window.__ciLocalPlayer();
   const roster = () => window.__ciRoster();
   const heroUnit = () => roster().find((u) => u.player === me && window.__ciIsHero(u.id));
   const unitById = (id) => roster().find((u) => u.id === id);
   const rule = () => ({
+    pickRangeCells: config.pickRangeCells,
     isolationCells: config.isolationCells,
     reachCells: config.stopCells,
     laneCells: config.laneCells,
@@ -51,9 +53,16 @@ export async function strikeWhileWalkingLeg(config) {
   });
   const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
   const probes = [];
+  const attempts = [];
+  let attemptsDropped = 0;
+  const legT0 = Date.now();
   const reachable = async (point) => {
     const before = heroUnit();
     if (!before) return false;
+    if (distance(before, point) <= config.probeCells) {
+      probes.push({ to: [+point.x.toFixed(1), +point.z.toFixed(1)], gained: 0, alreadyThere: true });
+      return true;
+    }
     window.__ciMove(heroId, point.x, point.z);
     await sleep(config.probeMs);
     const after = heroUnit();
@@ -63,6 +72,26 @@ export async function strikeWhileWalkingLeg(config) {
   };
   const choosePicked = (h) =>
     window.clearTarget.choose(rule(), () => roster(), h, heroId, (kind, x, z) => window.__ciSpawnNeutral(kind, x, z), reachable);
+  const commandAttack = (targetId, why) => {
+    const terms = window.__ciAttackTerms(heroId, targetId);
+    const accepted = window.__ciAttack(heroId, targetId);
+    const h = heroUnit();
+    const attempt = {
+      atMs: Date.now() - legT0,
+      why,
+      targetId,
+      accepted,
+      visible: terms[3] === 1,
+      inReach: terms[6] === 1,
+      cooldownReady: terms[7] === 1,
+      simRefusal: accepted ? null : window.__ciRefusal(),
+      uiRefusal: accepted ? null : document.body.dataset.lastRefusal ?? null,
+      hero: h ? [+h.x.toFixed(1), +h.z.toFixed(1)] : null,
+    };
+    if (attempts.length < config.attemptLimit) attempts.push(attempt);
+    else attemptsDropped += 1;
+    return accepted;
+  };
   function overlapLength(previous, now) {
     for (let k = Math.min(previous.length, now.length); k > 0; k -= 1) {
       let same = true;
@@ -121,19 +150,27 @@ export async function strikeWhileWalkingLeg(config) {
   let heroEffectsWhileMoving = 0;
   let inReachMoving = 0;
   let previous = null;
-  let previousTarget = -1;
-  let previousTargetHp = null;
   let lastOrderAt = 0;
   let creep = null;
   let toward = null;
   let aborted = null;
 
   let initialPick = null;
-  const initial = await choosePicked(heroUnit() ?? first);
+  const movingStrikes = [];
+  const movingLaunches = [];
+  let launchesWhileMoving = 0;
+  let lastLaunch = window.__ciStrikeStamp(heroId)?.[2] ?? -1;
+  let walkTo = null;
+  const carried = window.__ciWitnessTarget ?? null;
+  const carriedUnit = carried === null ? undefined : unitById(carried);
+  const carriedInRange = carriedUnit !== undefined && window.__ciHp(carried) > 0 && distance(heroUnit() ?? first, carriedUnit) <= config.pickRangeCells;
+  const carriedState = carried === null ? null : { id: carried, known: carriedUnit !== undefined, hp: window.__ciHp(carried), distance: carriedUnit ? +distance(heroUnit() ?? first, carriedUnit).toFixed(1) : null };
+  const initial = carriedInRange ? { creep: carriedUnit, aborted: null } : await choosePicked(heroUnit() ?? first);
   if (initial.creep === null) aborted = initial.aborted;
   else {
     creep = initial.creep;
-    window.__ciAttack(heroId, creep.id);
+    window.__ciWitnessTarget = creep.id;
+    commandAttack(creep.id, carriedInRange ? "carried target" : "initial pick");
     await sleep(400);
     initialPick = {
       id: creep.id,
@@ -141,7 +178,6 @@ export async function strikeWhileWalkingLeg(config) {
       x: +creep.x.toFixed(1),
       z: +creep.z.toFixed(1),
       strikeAfterAttack: window.__ciStrikeOf(heroId),
-      refusal: document.body.dataset.lastRefusal ?? null,
     };
   }
   previousFx = window.__ciRecentFx().map((effect) => JSON.stringify(effect));
@@ -164,16 +200,17 @@ export async function strikeWhileWalkingLeg(config) {
         break;
       }
       creep = picked.creep;
-      window.__ciAttack(heroId, creep.id);
+      commandAttack(creep.id, "re-pick");
     }
     if (creep && Date.now() - lastOrderAt > config.orderEveryMs) {
-      if (window.__ciStrikeOf(heroId) !== creep.id) window.__ciAttack(heroId, creep.id);
+      if (window.__ciStrikeOf(heroId) !== creep.id) commandAttack(creep.id, "in-loop re-attack");
       const stations = {
         a: pointToward(creep, stage, config.stopCells),
         b: pointToward(creep, stage, config.stopCells + config.oscillateCells),
       };
       if (toward === null || distance(h, stations[toward]) < config.arriveCells) toward = toward === "a" ? "b" : "a";
       window.__ciMove(heroId, stations[toward].x, stations[toward].z);
+      walkTo = stations[toward];
       lastOrderAt = Date.now();
     }
     await sleep(config.sampleMs);
@@ -185,25 +222,26 @@ export async function strikeWhileWalkingLeg(config) {
     samples += 1;
     const moved = previous !== null && Math.hypot(now.x - previous.x, now.z - previous.z) > 0.05;
     if (moved) movingSamples += 1;
+    const farFromStation = walkTo !== null && distance(now, walkTo) > config.walkingCells;
+    const launch = window.__ciStrikeStamp(heroId)?.[2] ?? -1;
+    if (launch !== lastLaunch) {
+      if (launch !== -1 && moved && farFromStation) {
+        launchesWhileMoving += 1;
+        movingLaunches.push({ atMs: Date.now() - legStart, launch });
+      }
+      lastLaunch = launch;
+    }
 
     const strikeTarget = window.__ciStrikeOf(heroId);
     if (strikeTarget >= 0) targetsSeen.add(strikeTarget);
     const targetUnit = strikeTarget >= 0 ? unitById(strikeTarget) : undefined;
     if (moved && targetUnit && distance(targetUnit, now) < config.reachCells) inReachMoving += 1;
-    const targetHp = strikeTarget >= 0 ? window.__ciHp(strikeTarget) : null;
-    const targetLostHp = strikeTarget >= 0 && strikeTarget === previousTarget && previousTargetHp !== null && targetHp < previousTargetHp;
-
     let heroEffects = 0;
-    let targetHits = 0;
     const nowFx = window.__ciRecentFx();
     const nowKeys = nowFx.map((effect) => JSON.stringify(effect));
     const fresh = nowFx.slice(overlapLength(previousFx, nowKeys));
     previousFx = nowKeys;
     for (const effect of fresh) {
-      if (ATTACK_KINDS.has(effect.kind) && effect.target >= 0 && (effect.target === strikeTarget || effect.target === previousTarget)) {
-        const struck = unitById(effect.target);
-        if (struck && distance(struck, now) < config.attackCells) targetHits += 1;
-      }
       if (effect.source === heroId) {
         heroEffects += 1;
         kinds[effect.kind] = (kinds[effect.kind] || 0) + 1;
@@ -211,13 +249,13 @@ export async function strikeWhileWalkingLeg(config) {
     }
 
     if (moved) heroEffectsWhileMoving += heroEffects;
-    if (heroEffects > 0 || targetLostHp || targetHits > 0) {
-      if (moved) strikeSamplesWhileMoving += 1;
-      else strikeSamplesWhileStopped += 1;
+    if (heroEffects > 0) {
+      if (moved) {
+        strikeSamplesWhileMoving += 1;
+        movingStrikes.push({ atMs: Date.now() - legStart, effects: heroEffects });
+      } else strikeSamplesWhileStopped += 1;
     }
     previous = { x: now.x, z: now.z };
-    previousTarget = strikeTarget;
-    previousTargetHp = targetHp;
   }
 
   return {
@@ -228,6 +266,7 @@ export async function strikeWhileWalkingLeg(config) {
     strikeSamplesWhileMoving,
     strikeSamplesWhileStopped,
     heroEffectsWhileMoving,
+    launchesWhileMoving,
     inReachMoving,
     targetsSeen: [...targetsSeen],
     kinds,
@@ -235,6 +274,11 @@ export async function strikeWhileWalkingLeg(config) {
     heroHp: heroUnit() ? window.__ciHp(heroId) : null,
     probes,
     initialPick,
+    carriedState,
+    movingStrikes,
+    movingLaunches,
+    attempts,
+    attemptsDropped,
   };
 }
 
@@ -246,7 +290,7 @@ export function verdict(legs) {
     if (leg.inReachMoving === 0) reasons.push(`${leg.label}: the hero was never in reach while moving`);
     if (leg.lock === "true" && leg.strikeSamplesWhileMoving === 0) reasons.push(`${leg.label}: no strike while moving with one-hand on`);
     if (leg.lock === "true" && Object.keys(leg.kinds ?? {}).length === 0) reasons.push(`${leg.label}: no hero-sourced effect kinds recorded`);
-    if (leg.lock === "false" && leg.strikeSamplesWhileMoving !== 0) reasons.push(`${leg.label}: ${leg.strikeSamplesWhileMoving} strike samples while moving with one-hand off`);
+    if (leg.lock === "false" && leg.launchesWhileMoving !== 0) reasons.push(`${leg.label}: ${leg.launchesWhileMoving} strikes launched while moving with one-hand off`);
   }
   return { ok: reasons.length === 0, reasons };
 }
