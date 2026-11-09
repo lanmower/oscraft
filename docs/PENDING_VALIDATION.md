@@ -566,3 +566,16 @@ Final-witness tally: 4 of 5 green (runs 4, 5, 6, 8 pass; run 7 fails with the st
 - Defect (D1 live passes on 72e2d16d: 1 of 1 red, `lock on` 0 hits with `inReachMoving` 28, `lock off` and `lock on again` 0 hits; earlier witness versions red in 4 of 9 passes, all with no hits in the failing leg): the witness walks the hero between two stations, `stopCells` (2.0 cells) and `stopCells + oscillateCells` (3.6 cells), around the creep. The hero's melee reach is about 2 cells (the probe reports `range=2.00` for a hero), and the sim's own stop for a strike is 3/4 of the weapon range (`strike_stop`). The stations sit on or past the reach edge, so whether a strike lands depends on whether the walk happens to cross reach at the damage point. Witness defect: the stations should be inside reach.
 - Change, `scripts/witness/strike-while-walking.mjs`: `stopCells` 2 becomes 1, `oscillateCells` 1.6 becomes 0.4, so the stations are at 1.0 and 1.4 cells, inside the 2.0-cell reach. The verdict rules are unchanged.
 - Check: `node scripts/witness/strike-while-walking-check.mjs` (9 cases).
+
+## Phase B results: attack-order fix and the D1 witness, final version (2026-11-09)
+
+- `cargo test -p web --test pathing_probe` (on 72e2d16d, the sim of d3688447): `test result: ok. 28 passed; 0 failed`, with `probe stopped_attack strikes=2 order=(0, ...) attack=-1`, `probe live_stall ... order_kind=1`, `probe bundle units=40 arrived=40 stuck=[]`, `probe funnel units=60 arrived=60`, `probe spread units=40 arrived=40`, `probe reach_inside attacker_strikes=2`, `probe reach_outside attacker_strikes=0`. Exit 0.
+- `cargo test -p sim -p mod-host`: 34 `test result: ok` suites, no FAILED, exit 0.
+- Live D1 witness, one fresh match per pass, committed sim 72e2d16d with the witness at d3688447, verdict as the witness returns it:
+  - Pass 1: `verdict {"ok":true,"reasons":[]}`; lock on 1 strike while moving, 0 launches; lock off 2 strikes, 0 launches; lock on again 1 strike, 0 launches.
+  - Pass 2: `verdict {"ok":true,"reasons":[]}`; lock on 1, lock off 1, lock on again 2 strikes; 0 launches while moving.
+  - Pass 3: `verdict {"ok":true,"reasons":[]}`; lock on 1, lock off 0, lock on again 1 strike; 0 launches while moving.
+  - Pass 4: `verdict {"ok":true,"reasons":[]}`; lock off 8 refused moves, all absorbed by rotation, 0 launches; lock on again 1 launch while moving (allowed on a lock-on leg).
+  - Pass 5: `verdict {"ok":true,"reasons":[]}`; lock on 1, lock off 2, lock on again 2 strikes; 0 launches while moving.
+- Red before the station fix (same sim, witness at a22ed043 and 72e2d16d with the stations at 2.0 and 3.6 cells): 4 of 9 passes over the whole batch were red (pass 4 of the earlier batch; A1, A2, A3; B1). Each red leg had zero hits, attacks accepted and the hero in reach at the first attempt. Cause: witness defect, the stations were outside the hero's 2.0-cell melee reach (see the row above), so a strike depended on the walk's timing.
+- Sim changes in this row (the attack-order fix): the approach branch of `order_attack_or_approach` turns STOP into MOVE, witnessed by `a_stopped_hero_ordered_to_attack_a_foe_out_of_reach_walks_in_and_strikes`. Before the fix that test failed with `strikes=0 attack=-1`.
