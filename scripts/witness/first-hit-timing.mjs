@@ -51,7 +51,7 @@ export async function firstHitLeg(config) {
     return units.filter(
       (v) =>
         v.id !== heroId && v.id !== c.id && alive(v) && hostileToMe(v) &&
-        (segmentDistance(v, from, c) <= config.isolationCells || distance(v, stop) < distance(c, stop)),
+        (segmentDistance(v, from, stop) <= config.isolationCells || distance(v, stop) < distance(c, stop)),
     );
   };
   const pickCreep = (units, from, heroId) => {
@@ -89,11 +89,10 @@ export async function firstHitLeg(config) {
         );
         if (!clear) continue;
         const id = window.__ciSpawnNeutral(kind, p.x, p.z);
-        if (id < 0) return { id: -1, aborted: `could not place a creep at ${p.x.toFixed(1)}, ${p.z.toFixed(1)}` };
-        return { id, aborted: null };
+        if (id >= 0) return { id, aborted: null };
       }
     }
-    return { id: -1, aborted: "no clear point to place a creep within the placement radii" };
+    return { id: -1, aborted: "no clear point the sim accepts for a placed creep within the placement radii" };
   };
   const choose = (from, heroId) => {
     const picked = pickCreep(roster(), from, heroId);

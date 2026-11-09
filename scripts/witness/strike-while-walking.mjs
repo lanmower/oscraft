@@ -11,8 +11,6 @@ export const CONFIG = {
   sampleMs: 100,
   orderEveryMs: 300,
   resetMs: 120000,
-  stage: { x: 78.5, z: 82 },
-  stageArriveCells: 3,
   minStartHp: 200,
   abortHp: 100,
   targetOwner: 255,
@@ -26,6 +24,9 @@ export const CONFIG = {
   placeTarget: true,
   placeRadii: [8, 12, 16],
   placeStepDeg: 15,
+  probeMs: 1500,
+  probeCells: 1.5,
+  probeLimit: 8,
 };
 
 export async function strikeWhileWalkingLeg(config) {
@@ -44,10 +45,24 @@ export async function strikeWhileWalkingLeg(config) {
     placeTarget: config.placeTarget,
     placeRadii: config.placeRadii,
     placeStepDeg: config.placeStepDeg,
+    probeLimit: config.probeLimit,
     alive: (u) => window.__ciHp(u.id) > 0,
     hostile: (u) => window.__ciHostile(me, u.player),
   });
   const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+  const probes = [];
+  const reachable = async (point) => {
+    const before = heroUnit();
+    if (!before) return false;
+    window.__ciMove(heroId, point.x, point.z);
+    await sleep(config.probeMs);
+    const after = heroUnit();
+    const gained = after ? distance(before, point) - distance(after, point) : 0;
+    probes.push({ to: [+point.x.toFixed(1), +point.z.toFixed(1)], gained: +gained.toFixed(2) });
+    return gained >= config.probeCells;
+  };
+  const choosePicked = (h) =>
+    window.clearTarget.choose(rule(), () => roster(), h, heroId, (kind, x, z) => window.__ciSpawnNeutral(kind, x, z), reachable);
   function overlapLength(previous, now) {
     for (let k = Math.min(previous.length, now.length); k > 0; k -= 1) {
       let same = true;
@@ -83,18 +98,17 @@ export async function strikeWhileWalkingLeg(config) {
   const first = heroUnit();
   if (!first) return emptyLeg("no hero to start the leg");
   const heroId = first.id;
+  const stage = { x: first.x, z: first.z };
 
   let ready = false;
   while (Date.now() - resetStart < config.resetMs) {
-    const h = heroUnit();
-    if (h && distance(h, config.stage) > config.stageArriveCells) window.__ciMove(heroId, config.stage.x, config.stage.z);
-    if (h && distance(h, config.stage) <= config.stageArriveCells && window.__ciHp(heroId) >= config.minStartHp) {
+    if (heroUnit() && window.__ciHp(heroId) >= config.minStartHp) {
       ready = true;
       break;
     }
     await sleep(1000);
   }
-  if (!ready) return { ...emptyLeg("hero did not reach the stage at start hp"), heroHp: window.__ciHp(heroId) };
+  if (!ready) return { ...emptyLeg("hero below start hp"), heroHp: window.__ciHp(heroId) };
 
   const startHp = window.__ciHp(heroId);
   let previousFx = window.__ciRecentFx().map((effect) => JSON.stringify(effect));
@@ -114,8 +128,26 @@ export async function strikeWhileWalkingLeg(config) {
   let toward = null;
   let aborted = null;
 
+  let initialPick = null;
+  const initial = await choosePicked(heroUnit() ?? first);
+  if (initial.creep === null) aborted = initial.aborted;
+  else {
+    creep = initial.creep;
+    window.__ciAttack(heroId, creep.id);
+    await sleep(400);
+    initialPick = {
+      id: creep.id,
+      type: creep.type,
+      x: +creep.x.toFixed(1),
+      z: +creep.z.toFixed(1),
+      strikeAfterAttack: window.__ciStrikeOf(heroId),
+      refusal: document.body.dataset.lastRefusal ?? null,
+    };
+  }
+  previousFx = window.__ciRecentFx().map((effect) => JSON.stringify(effect));
+
   const legStart = Date.now();
-  while (Date.now() - legStart < config.legMs) {
+  while (aborted === null && Date.now() - legStart < config.legMs) {
     const h = heroUnit();
     if (!h) {
       aborted = "hero dead";
@@ -126,15 +158,20 @@ export async function strikeWhileWalkingLeg(config) {
       break;
     }
     if (!creep || window.__ciHp(creep.id) <= 0) {
-      const picked = window.clearTarget.choose(rule(), () => roster(), h, heroId, (kind, x, z) => window.__ciSpawnNeutral(kind, x, z));
+      const picked = await choosePicked(h);
       if (picked.creep === null) {
         aborted = picked.aborted;
         break;
       }
       creep = picked.creep;
+      window.__ciAttack(heroId, creep.id);
     }
     if (creep && Date.now() - lastOrderAt > config.orderEveryMs) {
-      const stations = { a: { x: creep.x, z: creep.z }, b: pointToward(creep, config.stage, config.oscillateCells) };
+      if (window.__ciStrikeOf(heroId) !== creep.id) window.__ciAttack(heroId, creep.id);
+      const stations = {
+        a: pointToward(creep, stage, config.stopCells),
+        b: pointToward(creep, stage, config.stopCells + config.oscillateCells),
+      };
       if (toward === null || distance(h, stations[toward]) < config.arriveCells) toward = toward === "a" ? "b" : "a";
       window.__ciMove(heroId, stations[toward].x, stations[toward].z);
       lastOrderAt = Date.now();
@@ -196,6 +233,8 @@ export async function strikeWhileWalkingLeg(config) {
     kinds,
     aborted,
     heroHp: heroUnit() ? window.__ciHp(heroId) : null,
+    probes,
+    initialPick,
   };
 }
 

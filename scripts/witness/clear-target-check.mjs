@@ -100,10 +100,55 @@ for (const c of cases) {
     extra.push(unit(300, x, z, 255, kind));
     return 300;
   };
-  const r = choose(rule(), () => [...units, ...extra], hero, HERO, spawn);
+  const r = await choose(rule(), () => [...units, ...extra], hero, HERO, spawn);
   assert.equal(extra.length, 1, "with no clear creep, one creep is placed");
   assert.equal(r.creep.id, 300, "the placed creep is the one picked");
   assert.equal(r.aborted, null);
+}
+
+{
+  const units = [hero, unit(10, 10, 0), unit(11, 9, 0)];
+  const extra = [];
+  const attempts = [];
+  const spawn = (kind, x, z) => {
+    attempts.push([x, z]);
+    if (attempts.length < 3) return -1;
+    extra.push(unit(302, x, z, 255, kind));
+    return 302;
+  };
+  const r = await choose(rule(), () => [...units, ...extra], hero, HERO, spawn);
+  assert.ok(attempts.length >= 3, "a refused point is followed by the next clear point");
+  assert.equal(attempts[0][0] === attempts[1][0] && attempts[0][1] === attempts[1][1], false, "each attempt is a different point");
+  assert.equal(r.creep.id, 302, "the first point the sim accepts is the one picked");
+  assert.equal(r.aborted, null);
+}
+
+{
+  const units = [hero, unit(10, 10, 0), unit(11, 9, 0)];
+  const spawn = () => -1;
+  const r = await choose(rule(), () => units, hero, HERO, spawn);
+  assert.match(r.aborted, /^no placed point was both reachable and accepted by the sim \(\d+ tried\)$/, "when the sim refuses every point, the refusal names it");
+}
+
+{
+  const units = [hero, unit(10, 10, 0), unit(20, 0, 20)];
+  const probed = [];
+  const reachable = async (p) => {
+    probed.push(`${p.x.toFixed(1)},${p.z.toFixed(1)}`);
+    return !(p.x.toFixed(1) === "8.0" && p.z.toFixed(1) === "0.0");
+  };
+  const r = await choose(rule(), () => units, hero, HERO, () => -1, reachable);
+  assert.equal(r.creep.id, 20, "a creep whose stop point is not reachable is excluded, and the next clear creep is picked");
+  assert.deepEqual(probed, ["8.0,0.0", "0.0,18.0"], "each creep is probed at its stop point, nearer creep first");
+}
+
+{
+  const units = [hero, unit(10, 10, 0), unit(11, 9, 0)];
+  const spawn = () => {
+    throw new Error("no point is reachable, so the sim must not be asked to spawn");
+  };
+  const r = await choose(rule({ probeLimit: 3 }), () => units, hero, HERO, spawn, async () => false);
+  assert.match(r.aborted, /^no placed point was both reachable and accepted by the sim \(3 tried\)$/, "the probe limit bounds the placement attempts");
 }
 
 {
@@ -113,7 +158,7 @@ for (const c of cases) {
     extra.push(unit(301, x, z, 255, kind));
     return 301;
   };
-  const r = choose(rule(), () => [...units, ...extra], hero, HERO, spawn);
+  const r = await choose(rule(), () => [...units, ...extra], hero, HERO, spawn);
   assert.equal(r.creep.id, 10, "a clear creep is chosen before any placement");
   assert.equal(extra.length, 0, "no creep is placed when a clear one exists");
 }
@@ -123,8 +168,8 @@ for (const c of cases) {
   const spawn = () => {
     throw new Error("placement must not spawn when placement is off");
   };
-  const r = choose(rule({ placeTarget: false }), () => units, hero, HERO, spawn);
+  const r = await choose(rule({ placeTarget: false }), () => units, hero, HERO, spawn);
   assert.match(r.aborted, /^no clear creep/, "with placement off, the refusal stands");
 }
 
-console.log(`clear-target checks ok (${cases.length + 5} cases)`);
+console.log("clear-target checks ok");

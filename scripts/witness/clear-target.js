@@ -41,11 +41,12 @@
       aborted: `no clear creep: all ${candidates.length} candidates are blocked; nearest ${first.id} is blocked by ${blockers.join("; ")}`,
     };
   };
-  const place = (rule, units, from, heroId) => {
+  const placements = (rule, units, from, heroId) => {
     const hostiles = units.filter((v) => v.id !== heroId && rule.alive(v) && rule.hostile(v));
     const owned = units.filter((u) => u.player === rule.targetOwner && u.id !== heroId);
-    if (owned.length === 0) return { point: null, kind: null, aborted: "no neutral creep kind to place" };
+    if (owned.length === 0) return { points: [], kind: null, aborted: "no neutral creep kind to place" };
     const kind = owned[0].type;
+    const points = [];
     for (const radius of rule.placeRadii) {
       for (let deg = 0; deg < 360; deg += rule.placeStepDeg) {
         const angle = (deg * Math.PI) / 180;
@@ -56,19 +57,34 @@
             segmentDistance(v, from, p) > rule.isolationCells &&
             (v.player === rule.targetOwner || distance(v, p) > rule.laneCells),
         );
-        if (clear) return { point: p, kind, aborted: null };
+        if (clear) points.push(p);
       }
     }
-    return { point: null, kind, aborted: "no clear point to place a creep within the placement radii" };
+    return { points, kind, aborted: points.length > 0 ? null : "no clear point to place a creep within the placement radii" };
   };
-  const choose = (rule, roster, from, heroId, spawn) => {
-    const picked = pick(rule, roster(), from, heroId);
+  const place = (rule, units, from, heroId) => {
+    const found = placements(rule, units, from, heroId);
+    return { point: found.points[0] ?? null, kind: found.kind, aborted: found.aborted };
+  };
+  const choose = async (rule, roster, from, heroId, spawn, reachable = async () => true) => {
+    const excluded = [...rule.excluded];
+    const pickAmong = () => pick({ ...rule, excluded }, roster(), from, heroId);
+    let picked = pickAmong();
+    while (picked.creep !== null && !(await reachable(stopPointOf(from, picked.creep, rule.reachCells)))) {
+      excluded.push(picked.creep.id);
+      picked = pickAmong();
+    }
     if (picked.creep !== null || !rule.placeTarget) return picked;
-    const placed = place(rule, roster(), from, heroId);
-    if (placed.point === null) return { creep: null, aborted: placed.aborted };
-    const id = spawn(placed.kind, placed.point.x, placed.point.z);
-    if (id < 0) return { creep: null, aborted: `could not place a creep at ${placed.point.x.toFixed(1)}, ${placed.point.z.toFixed(1)}` };
-    return pick(rule, roster(), from, heroId);
+    const found = placements(rule, roster(), from, heroId);
+    if (found.aborted !== null) return { creep: null, aborted: found.aborted };
+    const tried = found.points.slice(0, rule.probeLimit ?? found.points.length);
+    for (const p of tried) {
+      if (!(await reachable(p))) continue;
+      const id = spawn(found.kind, p.x, p.z);
+      const placed = id >= 0 ? roster().find((u) => u.id === id) : undefined;
+      if (placed !== undefined) return { creep: placed, aborted: null };
+    }
+    return { creep: null, aborted: `no placed point was both reachable and accepted by the sim (${tried.length} tried)` };
   };
-  globalThis.clearTarget = { distance, segmentDistance, stopPointOf, blockersOf, pick, place, choose };
+  globalThis.clearTarget = { distance, segmentDistance, stopPointOf, blockersOf, pick, place, placements, choose };
 })();
