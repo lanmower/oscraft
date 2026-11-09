@@ -784,3 +784,72 @@ Final-witness tally: 4 of 5 green (runs 4, 5, 6, 8 pass; run 7 fails with the st
 - Step 7 (witness walking definition): not decided. The sim now counts a moving attack-move unit as walking when strike on move is on. The witness's `walkingOrder` (strike-while-walking.mjs:352) still counts kind 0 only, so `strikeSamplesWhileMoving` on attack-move legs stays as it was. Prediction to check with the eight passes: if the red legs still show zero strikes while moving with kind-2 samples, the witness's kind-0 definition is the cause and the witness change is to count the sim's walking definition. Not changed in this pass.
 - Earlier D1 data, read in this pass: passes 2 to 5 red, `lock on again: no strike while moving with one-hand on`, `strikeSamplesWhileMoving` 0 in each red lock-on-again leg (176 in-reach samples in passes 4 and 5). Passes 6 to 8 green with 1 to 4 such samples. These are at sha 30deda62 (before the walking change), not the new code.
 - Push: held. The owner's rule pushes once every witness is green, and the D1 witness for c5e9fab0 has not run. The ledger and the test change are committed locally as lanmower, without trailer.
+
+## Phase A audit: allocations in hot paths and reuse plan (2026-11-09, read-only)
+
+Scope: Rust sim and replay (tick path and host read APIs), and the JS frame loop, pointer input and HUD in js/client. No source edit, build, test, gate or witness ran in this pass. Each site is `file:line` with the enclosing function. Sampled, not exhaustive: play.js has 372 allocation-token matches, most outside the frame, and only the per-frame chain and its helpers were read in full.
+
+Result of the tick-path check: `rust/crates/sim/src/tick.rs` has no allocation token, and neither do the per-unit loop body or the `tick_*` systems. The allocations are in host read APIs, in per-call helpers, and in string keys.
+
+### Rust (15 rows, 19 locations)
+
+| # | Site | Allocation | Frequency | Reuse | Behaviour change? |
+|---|---|---|---|---|---|
+| R1 | sim/src/attributes.rs:207, 211 | `name.to_string()` on every counter get and set | every mod counter call | intern counter names at load to a `u32` id, key the map by `(usize, u32)` | yes: the key order and `state_hash` change, so bump `STATE_VERSION` and note it in the commit body |
+| R2 | sim/src/obstacles.rs:148 `dead_props` | `collect` into a Vec, the wasm return | every frame from play.js:1187 | a sim-side death generation counter; JS compares the number | no, if the generation changes exactly when the set does |
+| R3 | sim/src/aggro.rs:132 `units_near` | `collect` | per call; caller not found in sim/src | `units_near_into(&mut Vec)` with the caller holding the buffer | no |
+| R4 | sim/src/combat.rs:579 `drain_kill_events` | `collect` of `kill_queue.drain` | per host drain | drain into a caller buffer | no |
+| R5 | sim/src/spell.rs:1631 `take_procs`, sim/src/rules.rs:555 `take_casts`, sim/src/waypoints.rs:92 `take_destination_requests` | `mem::take` moves the Vec out (its capacity is lost), then `collect` | per host drain | keep the Vec in the Sim, `drain(..)` into a caller buffer | no (order is kept); re-entrancy must be checked |
+| R6 | rust/crates/replay/src/lib.rs:1087-1097 `hash_later` | `sim.clone()` sent to the hasher thread | every `CHECK_EVERY` = 64 ticks, native only (wasm hashes in place at :1078) | a pre-allocated snapshot the hasher copies into (`copy_from`) | no result change; cost only |
+| R7 | sim/src/hash.rs:92 `pool`, :180, :184, :304, :308 | `Vec::new` and `bytes` collects inside `state_hash(&self)` | per `state_hash` call (replay checkpoint, web :147) | a scratch Vec held in the Sim, `state_hash` taking `&mut self` or an interior cell | no; the signature changes at web/src/lib.rs:147 and replay/src/lib.rs |
+| R8 | sim/src/astar.rs:56, :89 `route`, `search` | `Vec::new` for the output path | per route request (movement.rs:495, per move order) | route into a caller-held Vec; the thread-local scratch is already reused | no |
+| R9 | sim/src/obstacles.rs:162 `clear_trees_square`, :189 `trees_near` | `felled` and `out` Vecs | per teleport (movement.rs:291); `trees_near` caller not found | a held buffer per call site | no |
+| R10 | sim/src/fog.rs:110-114 `vision_plane` | returns a new Vec<u8> per call | caller not confirmed; the JS fog view may call it per frame | write into a caller-owned `&mut [u8]` | no |
+| R11 | sim/src/combat.rs:236 `attack_terms` | `vec![]` | per call; used by the witness hooks | fixed array return `[i32; N]` | no |
+| R12 | sim/src/combat.rs:526, :534 `recent_hitters` | `Vec::new` and `collect` | per death or hit window | a held buffer | no |
+| R13 | sim/src/order_queue.rs:108 `queued_orders` | `collect` | per call; resync at order_queue.rs:113 | iterate without collecting, or a held buffer | no |
+| R14 | sim/src/ground.rs:70 `pickup_ground_item` | `before` collect | per pickup command | a held buffer | no |
+| R15 | sim/src/carry.rs:7 `carry_from` | `filter().collect()` | per carry event | a held buffer | no |
+
+Not reused, deliberately: the pathfinding scratch (pathfinding.rs:155-157 `cur`, `n1`, `n2`) and the astar thread-local are already reused, and the constructors (arrays.rs, spell.rs, aggro.rs, attributes.rs) run once. R4, R5 and R12 change which buffer the host reads from; the witness is a parity check (below).
+
+### JS (15 rows, 17 locations)
+
+| # | Site | Allocation | Frequency | Reuse | Behaviour change? |
+|---|---|---|---|---|---|
+| J1 | js/client/play.js:1187-1190 `syncDeadProps` | `localGame.dead_props()` every frame (wasm Vec), `dead.join(",")` key string | every frame from drawWorld3d:1215 | the generation from R2; no join | no, if R2 lands |
+| J2 | play.js:955 `currentUnits` | `netState.units.map(anchored)`, a new `out` array and one new object per unit (`anchored`, :950) | every frame from drawWorld3d:1219 | a held `out` array (`length = 0`) and pooled unit records | yes if any caller keeps a unit across frames; check the readers |
+| J3 | play.js:1082 `collectUnitDraws` | `list`, `clips`, `yaws`, `new Map(units.map(...))` | every frame | module-level arrays cleared per frame, a Map held and `clear()`ed | yes if a caller keeps the list |
+| J4 | play.js:1151 `emitUnitDraws` | draw objects; the body was not read in full | every frame | held draw records | to confirm |
+| J5 | play.js:1196 `podiumUnitDraws`, :1208 `podiumTransform` | a list and a new transform per entry | podium only | held transforms per seat | no |
+| J6 | play.js drawWorld3d, the shadow branch | `{ ...drawCounts }` spread every shadow frame | every shadow frame | a module-level counts object, `Object.assign` back | no |
+| J7 | play.js drawWorld3d, podium branch | `{ ...podium.plinth, color: [0.32, 0.38, 0.5] }` | podium frames | hoist the object and the colour constant | no |
+| J8 | js/client/render3d.js:105, :509 | `[...opts.target]` each camera set | every camera set, including drags | copy into a held `camera.target` array | no |
+| J9 | render3d.js:1114 `figureOf` | `new Set(clips.map(...))`, `SCENE_SWITCHES.filter` | caller frequency to confirm | a held Set, cleared and refilled | no |
+| J10 | js/client/moba_input.js:47 `onMove` | `box = {x0, y0, x1, y1}` per pointermove | every pointer move | mutate one `box` object | yes if any reader keeps `box` between events |
+| J11 | js/client/ui_minimap.js:149 `playerFill` | a template-string colour per unit per draw (called at :171) | per unit per minimap draw | memoise per player in the existing `fillByPlayer` Map | no |
+| J12 | js/client/hud.js:200-205 `viewRect` | a 4-element `corners` array with `map` and spreads into `Math.min` | caller frequency to confirm | four scalar min and max, no arrays | no |
+| J13 | js/client/hud_canvas.js:129-133 `place` | `dom.map` and spreads into `Math.min` and `Math.max` | per place call, caller at :157 | reuse a held rect array | no |
+| J14 | js/client/hud.js:263 `gameMaxHps` | a new Map per call | caller frequency to confirm | a held Map, cleared | no |
+| J15 | js/client/ui_minimap.js:88-89 `fit` | two new Maps per fit | per resize (:86, :282) | low; held Maps | no |
+
+Also seen and not a site: render3d.js:1-17 and 276 already hold module scratch matrices, and drawLod (render3d.js:737) caches its tier buffer per batch. Those are the pattern for J2 to J9.
+
+### Reuse that changes behaviour (owner decision before any edit)
+
+- R1 changes the state hash and the persisted layout: it needs a STATE_VERSION bump and a replay parity check.
+- R7 changes the `state_hash` signature (web/src/lib.rs:147 and replay). The hash value must not change.
+- J2, J3 and J10 change what a caller may hold across frames. Each needs a reader check before the change.
+- R5 and R4 move the read buffer into the caller: the capacity and ordering must be preserved.
+
+### Witnesses each reuse needs (Phase B)
+
+- Rust sites R1 to R15: `cargo test -p sim` and `cargo test -p replay`, plus the replay parity check (`mod-host/src/bin/parity_hash.rs`) on a fixed seed. R1 and R7 also need the hash equal to the pre-change hash on the same run, and STATE_VERSION bumped with the reason in the commit body.
+- R6: a native replay test that asserts the same `chk` lines before and after.
+- JS sites J1 to J15: `node js/client/camera-target-audit-check.mjs`, `js/client/hero-trajectory-check.mjs`, `js/client/movement-sequence-check.mjs` and `js/client/lock-engage-order-check.mjs` (each must still pass), plus a playwriter run that counts GC or heap growth per 600 frames before and after on the staged site (the baseline is the current build).
+
+### Playwriter step (step 5 of this pass)
+
+- Error recorded (run 2026-11-09-18-42-10-98e4bc, next_context events seq 3-4): `mcp-server playwriter state down, reason exited with code 128`, stderr empty. The same happened in run 2026-11-09-19-03-09-ae5a08 until its `restart` at 19:08:10 (event seq 11, "restarted without a reason"). After that restart the server reported `connected`, tools 3, protocol 2025-11-25 (seq 13).
+- Cause: not established. The logs carry no stderr. The launch command is `npx -y -p github:AnEntrypoint/pw#1488a92 playwriter-project` (defaults/mcp.json). The shell run of `playwriter-project --help` and `status` worked, so the failure was in the gm launch, not the package. The restart cleared it. Treat a repeat as an open defect.
+- Session started through gm `playwriter_execute` on the staged site (sha c5e9fab0, port 8832, my server PID 2148909): the project gate pid 2148462, browser pid 2149052, page `http://localhost:8832/js/client/play.html?ci=1&fresh=session1`, title `oscraft net client`, `window.oscraft` is an object, `body[data-phase]` is `lobby`. No D1 pass ran.
