@@ -196,6 +196,16 @@ impl Game {
         }
     }
 
+    pub fn attack_terms(&self, unit: u32, target: u32) -> Vec<i32> {
+        let sim = self.host.sim();
+        let (i, j) = (unit as usize, target as usize);
+        if i < sim.count() && j < sim.count() {
+            sim.attack_terms(i, j)
+        } else {
+            Vec::new()
+        }
+    }
+
     pub fn unit_swing_point(&self, unit: u32) -> i32 {
         let i = unit as usize;
         if i < self.host.sim().count() {

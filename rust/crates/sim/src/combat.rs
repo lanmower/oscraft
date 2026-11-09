@@ -195,6 +195,22 @@ impl Sim {
         !self.stunned(i) && !self.disarmed(i) && self.strike_ready(i, j)
     }
 
+    pub fn attack_terms(&self, i: usize, j: usize) -> Vec<i32> {
+        let reach = (self.range_sq[i] as i64) << fixed::SHIFT;
+        let (_, d2) = self.strike_measure(i, j);
+        vec![
+            i32::from(self.alive[j] != 0),
+            i32::from(self.hostile(self.player[i], self.player[j])),
+            i32::from((self.targets[i] & self.layer_of(j)) != 0),
+            i32::from(self.visible(self.player[i], j)),
+            i32::from(self.targetable(self.player[i], j)),
+            i32::from(self.damage[i] > 0),
+            i32::from(d2 <= reach),
+            i32::from(self.cooldown[i] <= 1),
+            i32::from(self.stunned(i) || self.disarmed(i)),
+        ]
+    }
+
     pub fn weapon(&self, i: usize) -> (i32, i32) {
         (self.damage[i], self.range_q[i])
     }
