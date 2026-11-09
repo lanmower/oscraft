@@ -167,7 +167,7 @@ function targeting.strike_choice(unit)
   if ordered >= 0 and unit_alive(ordered) and game.can_target(unit, ordered) then return ordered end
   local last = game.strike_of(unit)
   local last_died_since_picked = (died_at_tick[last] or -1) >= (picked_at_tick[unit] or 0)
-  if last >= 0 and not last_died_since_picked and unit_alive(last) and within(unit, last, range) and game.can_target(unit, last) then return last end
+  if last >= 0 and not last_died_since_picked and unit_alive(last) and game.can_strike(unit, last) and game.can_target(unit, last) then return last end
   local pick = best_in_reach(unit, range, game.aggro_target(unit))
   if pick >= 0 then picked_at_tick[unit] = game.ticks() end
   return pick

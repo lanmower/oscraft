@@ -108,3 +108,26 @@ fn a_hero_in_reach_starts_its_first_swing_within_one_advance() {
         "the hero came into reach at advance {reached} and launched its first swing at advance {launched}, more than {MAX_LATENCY_ADVANCES} advance later"
     );
 }
+
+#[test]
+fn a_strike_stamp_records_the_reach_and_launch_ticks_and_the_attack_point() {
+    let mut host = pack_host();
+    let hero = spawn_hero(&mut host, fixed::from_int(HERO_X) + HALF, fixed::from_int(HERO_Y) + HALF);
+    let target = place_target(&mut host, fixed::from_int(HERO_X) + HALF + TARGET_OFFSET, fixed::from_int(HERO_Y) + HALF);
+    let mut stamp = None;
+    for _ in 0..TICKS {
+        let (x, y) = host.sim().position_fixed(hero);
+        host.sim_mut().order(hero, x, y);
+        host.advance().expect("advance the match");
+        let seen = host.sim().strike_stamp_of(hero);
+        if seen[2] >= 0 {
+            stamp = Some(seen);
+            break;
+        }
+    }
+    let [struck, reach, launch, point, _land] = stamp.expect("the hero's first swing launches within the window");
+    assert_eq!(struck, target as i32, "the stamped strike is on the target");
+    assert!(reach >= 0 && launch >= reach, "the swing launches on or after the reach tick: reach {reach}, launch {launch}");
+    assert!(launch - reach <= MAX_LATENCY_ADVANCES as i32, "the swing launches within {MAX_LATENCY_ADVANCES} tick of reach: reach {reach}, launch {launch}");
+    assert!(point > 0, "the attack point is stamped at launch, got {point}");
+}

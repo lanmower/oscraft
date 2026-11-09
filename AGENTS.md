@@ -102,7 +102,7 @@ No comments in source: durable facts live here, names carry intent.
 ## Sim core (rust/crates/sim)
 
 - `persist.rs`: bump `STATE_VERSION` with every layout change and say what changed in the commit body. Catalog, bucket planes and scratch are not saved.
-- Transient (not hashed or saved): `casting_slot`, request log, fired-behaviour queue, fx queue and hit log, cast logs, kill events, last killer, item generation counter. Hashed once set: aggro class/hold/strike target, ground items, facing. Named unit counters (`game.set_counter`, zeros omitted), per-slot item drop locks and per-unit borrowed spell blocks are hashed and saved.
+- Transient (not hashed or saved): `casting_slot`, request log, fired-behaviour queue, fx queue and hit log, cast logs, kill events, last killer, item generation counter, strike stamps (`strike_stamp`: the tick a unit's strike target first came in reach, and the tick and point of its launch and landing; read by the timed witness through `unit_strike_stamp`). Hashed once set: aggro class/hold/strike target, ground items, facing. Named unit counters (`game.set_counter`, zeros omitted), per-slot item drop locks and per-unit borrowed spell blocks are hashed and saved.
 - `Instant::now` traps on wasm32-unknown-unknown.
 - Sim cells are 64 units, blocked when any 2x2 6.88g pathing cell is. Elevation is unused by movement, vision, combat.
 - Loader: `0_names.osd` (both packs) sorts first and fixes list positions: changing a name or order changes the image, and the sim refuses a map whose lists differ. A pack resolves a definition only in files its manifest `data` lists (an effect naming a unit from an unlisted `.osd` fails `mapexport`).

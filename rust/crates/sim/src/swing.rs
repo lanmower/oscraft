@@ -56,6 +56,7 @@ impl Sim {
             self.land_swing(i);
         }
         let point = self.cat.unit_ext.get(self.type_of[i] as usize).map_or(0, |e| self.attack_ticks(i, e.attack_point));
+        self.stamp_launch(i, b, point);
         self.swing_target[i] = b as i32 | if ordered { ORDERED } else { 0 };
         if point <= 0 {
             self.release_swing(i);
@@ -214,6 +215,7 @@ impl Sim {
         if !missile && (self.stunned(i) || self.disarmed(i) || !self.strike_ready(i, b)) {
             return;
         }
+        self.stamp_land(i, b);
         self.strike(i, b);
     }
 }

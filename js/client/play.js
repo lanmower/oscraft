@@ -3723,7 +3723,7 @@ if (params.get("ci") === "1") {
   window.__ciHeldLobbyCalls = () => heldLobbyCalls.length;
   window.__ciFrames = [];
   window.__ciUnits = () => currentUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player, type: u.type, modeled: !!unitMeshes[u.type] }));
-  window.__ciRoster = () => simUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player, type: u.type }));
+  window.__ciRoster = () => simUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player, type: u.type, heading: u.simHeading }));
   window.__ciOrder = (unitId, x, z) => session.broadcast(sendOrder(unitId, x, z));
   window.__ciMove = (unitId, x, z) => commands.order(unitId, x, z);
   window.__ciAttack = (unitId, targetId) => commands.attack(unitId, targetId);
@@ -3767,6 +3767,7 @@ if (params.get("ci") === "1") {
   window.__ciRecentFx = () => (fx ? fx.recentEffects() : []);
   window.__ciStrikeOf = (unitId) => (localGame ? localGame.unit_strike_of(unitId) : null);
   window.__ciSwingPoint = (unitId) => (localGame ? localGame.unit_swing_point(unitId) : null);
+  window.__ciStrikeStamp = (unitId) => (localGame ? Array.from(localGame.unit_strike_stamp(unitId)) : null);
   window.__ciTicks = () => (localGame ? localGame.ticks() : null);
   window.__ciFocus = (x, z) => { if (renderer3d) renderer3d.setCamera({ target: [x, groundAt(x, z), z] }); };
   window.__ciToScreen = (x, z) => worldToScreen(x, z, groundAt(x, z));

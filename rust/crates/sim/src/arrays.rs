@@ -38,6 +38,19 @@ impl Default for Stats {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct StrikeStamp {
+    pub(crate) target: i32,
+    pub(crate) reach: i32,
+    pub(crate) launch: i32,
+    pub(crate) point: i32,
+    pub(crate) land: i32,
+}
+
+impl StrikeStamp {
+    pub(crate) const NONE: StrikeStamp = StrikeStamp { target: -1, reach: -1, launch: -1, point: 0, land: -1 };
+}
+
 #[derive(Clone)]
 pub struct Sim {
     pub(crate) grid: Grid,
@@ -155,6 +168,7 @@ pub struct Sim {
     pub(crate) class_override: Vec<i8>,
     pub(crate) hold_override: Vec<i8>,
     pub(crate) strike_target: Vec<i32>,
+    pub(crate) strike_stamp: Vec<StrikeStamp>,
     pub(crate) attack_order: Vec<i32>,
     pub(crate) swing_target: Vec<i32>,
     pub(crate) swing_left: Vec<i32>,
@@ -372,6 +386,7 @@ impl Sim {
             class_override: vec![-1; cap],
             hold_override: vec![-1; cap],
             strike_target: vec![-1; cap],
+            strike_stamp: vec![StrikeStamp::NONE; cap],
             attack_order: vec![-1; cap],
             swing_target: vec![-1; cap],
             swing_left: vec![0; cap],
@@ -755,6 +770,7 @@ impl Sim {
         self.turn_step[i] = 0;
         self.hold_fire[i] = 0;
         self.strike_on_move[i] = 0;
+        self.strike_stamp[i] = StrikeStamp::NONE;
         self.unit_scale[i] = DEFAULT_PERCENT;
         self.amount[i] = match self.kind[i] {
             KIND_MINERAL => self.cat.econ.resource_a_per_patch,

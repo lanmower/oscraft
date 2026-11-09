@@ -187,6 +187,15 @@ impl Game {
         }
     }
 
+    pub fn unit_strike_stamp(&self, unit: u32) -> Vec<i32> {
+        let i = unit as usize;
+        if i < self.host.sim().count() {
+            self.host.sim().strike_stamp_of(i).to_vec()
+        } else {
+            vec![-1, -1, -1, 0, -1]
+        }
+    }
+
     pub fn unit_swing_point(&self, unit: u32) -> i32 {
         let i = unit as usize;
         if i < self.host.sim().count() {

@@ -1,4 +1,4 @@
-use crate::arrays::{dist2, Sim};
+use crate::arrays::{dist2, Sim, StrikeStamp};
 use crate::fixed;
 use crate::*;
 
@@ -101,6 +101,7 @@ impl Sim {
     }
 
     pub(crate) fn attack(&mut self, i: usize) {
+        self.stamp_reach(i);
         if self.damage[i] <= 0 || self.stunned(i) || self.disarmed(i) {
             return;
         }
@@ -121,6 +122,41 @@ impl Sim {
         }
         self.cooldown[i] = self.attack_period(i);
         self.launch_strike(i, b, false);
+    }
+
+    fn stamp_reach(&mut self, i: usize) {
+        let t = self.strike_target[i];
+        if t >= 0 && self.strike_stamp[i].target != t {
+            self.strike_stamp[i] = StrikeStamp { target: t, ..StrikeStamp::NONE };
+        }
+        if self.strike_stamp[i].reach >= 0 || t < 0 || t as usize >= self.n {
+            return;
+        }
+        if self.strike_ready(i, t as usize) {
+            self.strike_stamp[i].reach = self.ticks as i32;
+        }
+    }
+
+    pub(crate) fn stamp_launch(&mut self, i: usize, b: usize, point: i32) {
+        let now = self.ticks as i32;
+        let stamp = &mut self.strike_stamp[i];
+        if stamp.target == b as i32 && stamp.reach >= 0 && stamp.launch < 0 {
+            stamp.launch = now;
+            stamp.point = point;
+        }
+    }
+
+    pub(crate) fn stamp_land(&mut self, i: usize, b: usize) {
+        let now = self.ticks as i32;
+        let stamp = &mut self.strike_stamp[i];
+        if stamp.target == b as i32 && stamp.launch >= 0 && stamp.land < 0 {
+            stamp.land = now;
+        }
+    }
+
+    pub fn strike_stamp_of(&self, i: usize) -> [i32; 5] {
+        let s = self.strike_stamp.get(i).copied().unwrap_or(StrikeStamp::NONE);
+        [s.target, s.reach, s.launch, s.point, s.land]
     }
 
     pub(crate) fn engaged(&self, i: usize) -> bool {
