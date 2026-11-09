@@ -3726,6 +3726,7 @@ if (params.get("ci") === "1") {
   window.__ciRoster = () => simUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player, type: u.type, heading: u.simHeading }));
   window.__ciOrder = (unitId, x, z) => session.broadcast(sendOrder(unitId, x, z));
   window.__ciMove = (unitId, x, z) => commands.order(unitId, x, z);
+  window.__ciSpawnNeutral = (kind, x, z) => (localGame ? localGame.spawn_attributed(255, kind, x, z) : -1);
   window.__ciAttack = (unitId, targetId) => commands.attack(unitId, targetId);
   window.__ciCast = (unitId, slot, target, x, z) => session.broadcast(sendCast(unitId, slot, target, x, z));
   window.__ciLearn = (unitId, slot) => (localGame ? localGame.skill_up(unitId, slot) : false);

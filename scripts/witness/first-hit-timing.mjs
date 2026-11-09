@@ -19,6 +19,10 @@ export const CONFIG = {
   excluded: [],
   retreat: null,
   retreatMs: 240000,
+  placeTarget: true,
+  placeRadii: [8, 12, 16],
+  placeStepDeg: 15,
+  laneClearanceCells: 10,
 };
 
 export async function firstHitLeg(config) {
@@ -68,6 +72,36 @@ export async function firstHitLeg(config) {
       aborted: `no clear creep: all ${candidates.length} candidates are blocked; nearest ${nearest.id} is blocked by ${blockers.join("; ")}`,
     };
   };
+  const placeClearTarget = (units, from, heroId) => {
+    const hostiles = units.filter((v) => v.id !== heroId && alive(v) && hostileToMe(v));
+    const owned = units.filter((u) => u.player === config.targetOwner && u.id !== heroId);
+    const kind = owned.length > 0 ? owned[0].type : null;
+    if (kind === null) return { id: -1, aborted: "no neutral creep kind to place" };
+    for (const radius of config.placeRadii) {
+      for (let deg = 0; deg < 360; deg += config.placeStepDeg) {
+        const angle = (deg * Math.PI) / 180;
+        const p = { x: from.x + radius * Math.cos(angle), z: from.z + radius * Math.sin(angle) };
+        const clear = hostiles.every(
+          (v) =>
+            distance(v, p) > config.isolationCells &&
+            segmentDistance(v, from, p) > config.isolationCells &&
+            (v.player === config.targetOwner || distance(v, p) > config.laneClearanceCells),
+        );
+        if (!clear) continue;
+        const id = window.__ciSpawnNeutral(kind, p.x, p.z);
+        if (id < 0) return { id: -1, aborted: `could not place a creep at ${p.x.toFixed(1)}, ${p.z.toFixed(1)}` };
+        return { id, aborted: null };
+      }
+    }
+    return { id: -1, aborted: "no clear point to place a creep within the placement radii" };
+  };
+  const choose = (from, heroId) => {
+    const picked = pickCreep(roster(), from, heroId);
+    if (picked.creep !== null || !config.placeTarget) return picked;
+    const placed = placeClearTarget(roster(), from, heroId);
+    if (placed.id < 0) return { creep: null, aborted: placed.aborted };
+    return pickCreep(roster(), from, heroId);
+  };
   const nextTick = async (after, until) => {
     while (window.__ciTicks() === after && Date.now() < until) await sleep(config.tickPollMs);
     return window.__ciTicks();
@@ -114,7 +148,7 @@ export async function firstHitLeg(config) {
     units = roster();
   }
   const origin = units.find((u) => u.id === heroId);
-  const start = pickCreep(units, origin, heroId);
+  const start = choose(origin, heroId);
   if (start.creep === null) return { ...empty(start.aborted), ready: true, startHp, origin: startPosition };
   let creepId = start.creep.id;
 
@@ -142,7 +176,7 @@ export async function firstHitLeg(config) {
     }
     let creep = units.find((u) => u.id === creepId);
     if ((stamp === null || stamp[0] !== creepId || stamp[1] < 0) && (!creep || window.__ciHp(creepId) <= 0)) {
-      const picked = pickCreep(units, h, heroId);
+      const picked = choose(h, heroId);
       if (picked.creep === null) {
         aborted = picked.aborted;
         break;
@@ -194,6 +228,7 @@ export async function firstHitLeg(config) {
     hitTick,
     attackPoint: point,
     latencyTicks: reachTick !== null && hitTick !== null ? hitTick - reachTick : null,
+    targetHp: creepId !== null ? window.__ciHp(creepId) : null,
     samples,
     aborted,
     trace,
