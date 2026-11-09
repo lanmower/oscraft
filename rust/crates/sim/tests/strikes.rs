@@ -188,3 +188,31 @@ fn a_unit_on_a_move_order_does_not_strike_without_the_strike_on_move_flag() {
 
     assert_eq!(sim.hp(foe), foe_hp, "a plain move order does not strike");
 }
+
+const ORDER_MOVE: u8 = 0;
+
+fn windup_survives_a_move_order(strike_on_move: bool) -> bool {
+    let mut sim = open_field();
+    let attacker = spawn_kind(&mut sim, PLAYER, "antimage", 10, 5);
+    let foe = spawn(&mut sim, FOE, 11, 5);
+    assert!(sim.set_strike_on_move(attacker, strike_on_move));
+    assert_eq!(sim.order_attack_or_approach(attacker, foe), Ok(true));
+    let mut in_windup = false;
+    for _ in 0..30 {
+        drive_targeting(&mut sim, attacker);
+        sim.tick();
+        if sim.swing_point(attacker) > 0 {
+            in_windup = true;
+            break;
+        }
+    }
+    assert!(in_windup, "the attacker is in its windup before the move");
+    assert!(sim.issue_order_kind(attacker, ORDER_MOVE, centre(9), centre(5)).is_ok());
+    sim.swing_point(attacker) > 0
+}
+
+#[test]
+fn a_move_order_cancels_a_windup_only_when_strike_on_move_is_off() {
+    assert!(windup_survives_a_move_order(true), "strike on move keeps the windup through a move order");
+    assert!(!windup_survives_a_move_order(false), "a move order cancels the windup when strike on move is off");
+}
