@@ -344,6 +344,28 @@ The H2 witness was pushed in f964cf11 with its verdict still failing. This pass 
 - Run 18's control cause (creep 248 lost mid-leg) is addressed by the lane clearance and the re-pick placement. Run 19 did not lose any target.
 - Status: H2 closed on the witness verdict of run 19. The judged legs measure the sim's first hit within the attack point plus one tick, with the placed target clear of the lanes. check-all: `RESULT gates=73 ok=73 failed=0 drift=0 skipped=6 strict=false` (/tmp/witness-driver/check-all-h2.out, `CHECK_EXIT 0`).
 
+## D1 pass: clear-target rule for the one-hand witness (Phase A, 2026-11-09)
+
+- Ranked remaining work, from this doc, with status:
+  1. D1, one-hand walking-strike witness (owner rank 1): module and verdict check written; target rule defective (below); not run.
+  2. G2, cargo test sim and mod-host, plus check-all, for the 2026-11-09 Lua and Rust changes: check-all 73/73 at 3dd9924a; cargo tests not re-run since the F-series; not run.
+  3. G3 and A2, strikes tests after F5, staged wasm, strike-while-walking check: not run.
+  4. F5, first-hit latency: H2 run 19 is the live first-hit timing; the row still says open; docs only.
+  5. F1, F2, F3, melee attribution, kinds rule, neutral heroes: written, not run.
+  6. F4, lobby order: owner accepted; live run not done.
+  7. E2, sequence gate with the real pad path: written, not run; changes gate behaviour.
+  8. E1, Lua cast_at tests, and C1, twin-stick pure-logic check: written, not run; C1 is not in the gate.
+  9. E3, control scheme review against a running client: committed, not reviewed.
+  10. A5, browser witness spec: written, not run.
+  11. Process: the H2 runs used playwright-core directly, not the gm playwriter that invariant 11 requires. Owner decision; not changed here.
+- Defect found on review: `scripts/witness/strike-while-walking.mjs` picks its target as the nearest creep to a fixed stage, with no clear-target rule. That is the H2 failure: a leg can fight a camp-mate or a lane unit and count it as its own walking strike. Its verdict does not check the target.
+- Phase A change: `scripts/witness/clear-target.js` holds the H2 rule as a plain script (interceptors on the approach or nearer the stop point, the 10-cell lane clearance for placement, and the named refusal). The one-hand module uses it for its target choice at leg start and again when a target dies, with the same placement fallback as H2 (`__ciSpawnNeutral`). A refused leg aborts with its named blocker, and the verdict fails on it.
+- Witness for this change: `node scripts/witness/clear-target-check.mjs` (node tests of the pure rule, no browser); the live one-hand run is Phase B. Not built or run in Phase A.
+- H2 is unchanged in this pass; moving its witness onto the shared file is a separate change.
+- Corridor correction (found while writing this pass): the H2 rule's approach corridor ran from the hero to the candidate itself. Every creep within 4 cells of the candidate is then within 4 cells of that segment's end, so the candidate's own camp-mates on the far side blocked it. Run 16c's stop-point rule kept that corridor, which is why all 44 candidates stayed blocked. The shared file's corridor runs from the hero to the stop point, which matches the owner's decision that a camp-mate counts when it is on the approach or nearer the stop point. H2's witness still has the old corridor; its first clear target (run 19) was found under the old rule, so a re-run of H2 under the corrected corridor is a follow-up, not part of this pass.
+- Known risk for the one-hand module: each leg resets to the stage before it picks, so a creep still alive beside the stage from an earlier leg blocks the pick, and the leg refuses with its named blocker. Nothing in this pass changes that; the first live run shows whether it happens.
+- Changes in this pass, each committed locally as lanmower: (1) `scripts/witness/clear-target.js` and `scripts/witness/clear-target-check.mjs`, the shared rule and its node tests (witness: `node scripts/witness/clear-target-check.mjs`, not run in Phase A); (2) `scripts/witness/strike-while-walking.mjs`, the one-hand target choice through the shared rule with placement and a named refusal (witness: the live one-hand run in Phase B, not run in Phase A); (3) this entry.
+
 ## Notes for Phase B (observations, not validation)
 
 - A hero walks about 4.7 cells per second on the live map. Reads taken one second apart can look like a stalled hero; use the position log over several seconds.
