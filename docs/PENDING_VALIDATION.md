@@ -486,3 +486,15 @@ Final-witness tally: 4 of 5 green (runs 4, 5, 6, 8 pass; run 7 fails with the st
 - Fix used: `TMPDIR=/workspace/d1-tmp node scripts/check-all.mjs` (the workspace disk has 554G free). The empty `/workspace/oscraft/.tmp-d1` was removed before the run, so the tree stays clean.
 - Witness: `RESULT gates=73 ok=73 failed=0 drift=0 skipped=6 strict=false`, `CHECKALL_EXIT 0` (log /tmp/b-checkall2.log). The six skipped gates each name a missing input: G688_LNI, --src for war3map.j, and ref-heroes-src, among others.
 - Still open and not changed here: the live bundling stall (run 7 above) and the owner's reach-value decision (the melee row, commit 18913805).
+
+## Phase A row: bundling, funnelled through a gap (owner defect, 2026-11-09, reopened)
+
+- Defect: pathfinding fails when characters bundle up. The row closed at the last push was left open with one live stall (D1 run 7) and no cause.
+- What the code reading rules in or out (no run in Phase A):
+  - The field pool (pathfinding.rs, DEFAULT_MAX_FIELDS 32) is not the limit for the existing 40-unit bundle: units with goals 1 cell apart share one field (`can_serve`, drift MOVE_THRESHOLD 4), so the bundle needs few fields. This is why `a_bundle_larger_than_the_path_field_cache...` passes.
+  - `route_for` already re-requests the field each tick for a routed unit (movement.rs:28-50), so a blocked unit does not keep another goal's field. Not the cause; no change made there.
+  - Body radius does not block a gap: creep radius 250 milli = 0.25 cell, cells are 1 world unit, so a 5-cell gap clears every body (units.osd line 4, `fixed::from_milli`).
+  - Live candidate, not yet shown: `steer` drops a unit's target (`tgt = pos`) when it is within one step of its goal and a friendly footprint sits on that goal (movement.rs, `snap_clear` branch). A bundle ordered to one area can stop short that way.
+- Change in this row: `pathing_probe.rs` gets `march_bundle` (the march the bundle witness already ran, factored out) and the new witness `a_bundle_funnelled_through_a_gap_reaches_each_goal_behind_the_wall`: 60 units, a 5-cell gap (y 237 to 241) in the wall at x 98, 6000 ticks, stall limit 400. The thresholds are set before any run and any change to them is recorded.
+- No sim change in Phase A: no reproduction exists yet, and a fix made without one would not be witnessed. Phase B runs this witness and the two bundle witnesses; a failure is diagnosed from the stuck unit's order, target, velocity and field state, and the fix follows from that.
+- Witness: `cargo test -p web --test pathing_probe bundle` (three tests: the 40-unit bundle, the 30-unit chase, and the 60-unit funnel).

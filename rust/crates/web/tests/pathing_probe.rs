@@ -676,28 +676,23 @@ fn open_cells_in(host: &ModHost, rect: (i32, i32, i32, i32), count: usize) -> Ve
     cells.into_iter().take(count).collect()
 }
 
-#[test]
-fn a_bundle_larger_than_the_path_field_cache_reaches_each_goal_behind_a_wall() {
-    let mut host = pack_host();
-    raise_wall(&mut host);
-    let starts = open_cells_in(&host, BUNDLE_FROM, BUNDLE_SIZE);
-    let goals = open_cells_in(&host, BUNDLE_TO, BUNDLE_SIZE);
-    let units: Vec<usize> = starts.iter().map(|&c| spawn(&mut host, PLAYER, GROUND, false, c)).collect();
-    for (&unit, &goal) in units.iter().zip(&goals) {
+fn march_bundle(host: &mut ModHost, starts: &[(i32, i32)], goals: &[(i32, i32)], ticks: u32) -> (Vec<Option<u32>>, Vec<u32>) {
+    let units: Vec<usize> = starts.iter().map(|&c| spawn(host, PLAYER, GROUND, false, c)).collect();
+    for (&unit, &goal) in units.iter().zip(goals) {
         let (gx, gy) = fixed_point(goal);
         host.sim_mut().issue_order_kind(unit, ORDER_MOVE, gx, gy).expect("the move order is accepted");
     }
-    let mut prev: Vec<(f64, f64)> = units.iter().map(|&u| at(&host, u)).collect();
+    let mut prev: Vec<(f64, f64)> = units.iter().map(|&u| at(host, u)).collect();
     let mut arrived: Vec<Option<u32>> = vec![None; units.len()];
     let mut run = vec![0u32; units.len()];
     let mut longest = vec![0u32; units.len()];
-    for t in 1..=BUNDLE_TICKS {
+    for t in 1..=ticks {
         host.advance().expect("advance the match");
         for (k, &unit) in units.iter().enumerate() {
             if arrived[k].is_some() {
                 continue;
             }
-            let now = at(&host, unit);
+            let now = at(host, unit);
             if dist(now, cell_point(goals[k])) <= ARRIVE_CELLS {
                 arrived[k] = Some(t);
             } else if dist(prev[k], now) <= 1e-3 {
@@ -712,11 +707,47 @@ fn a_bundle_larger_than_the_path_field_cache_reaches_each_goal_behind_a_wall() {
             break;
         }
     }
-    let stuck: Vec<usize> = (0..units.len()).filter(|&k| arrived[k].is_none()).collect();
+    (arrived, longest)
+}
+
+#[test]
+fn a_bundle_larger_than_the_path_field_cache_reaches_each_goal_behind_a_wall() {
+    let mut host = pack_host();
+    raise_wall(&mut host);
+    let starts = open_cells_in(&host, BUNDLE_FROM, BUNDLE_SIZE);
+    let goals = open_cells_in(&host, BUNDLE_TO, BUNDLE_SIZE);
+    let (arrived, longest) = march_bundle(&mut host, &starts, &goals, BUNDLE_TICKS);
+    let stuck: Vec<usize> = (0..starts.len()).filter(|&k| arrived[k].is_none()).collect();
     let worst = longest.iter().copied().max().unwrap_or(0);
-    println!("probe bundle units={} arrived={} stuck={stuck:?} longest_stall_run={worst}", units.len(), units.len() - stuck.len());
-    assert!(stuck.is_empty(), "{} of {} units never reached their goal behind the wall within {BUNDLE_TICKS} ticks (first stuck unit index {:?})", stuck.len(), units.len(), stuck.first());
+    println!("probe bundle units={} arrived={} stuck={stuck:?} longest_stall_run={worst}", starts.len(), starts.len() - stuck.len());
+    assert!(stuck.is_empty(), "{} of {} units never reached their goal behind the wall within {BUNDLE_TICKS} ticks (first stuck unit index {:?})", stuck.len(), starts.len(), stuck.first());
     assert!(worst <= BUNDLE_STALL_LIMIT, "a unit stalled {worst} ticks in a row while the bundle moved");
+}
+
+const FUNNEL_SIZE: usize = 60;
+const FUNNEL_GAP: (i32, i32) = (237, 241);
+const FUNNEL_TICKS: u32 = 6000;
+const FUNNEL_STALL_LIMIT: u32 = 400;
+
+fn raise_wall_with_gap(host: &mut ModHost, gap: (i32, i32)) {
+    let mut sim = host.sim_mut();
+    for y in (WALL_TOP..WALL_TOP + WALL_LEN).filter(|&y| y < gap.0 || y > gap.1) {
+        sim.set_cell_blocked(WALL_X, y, true).expect("the wall cell is on the map");
+    }
+}
+
+#[test]
+fn a_bundle_funnelled_through_a_gap_reaches_each_goal_behind_the_wall() {
+    let mut host = pack_host();
+    raise_wall_with_gap(&mut host, FUNNEL_GAP);
+    let starts = open_cells_in(&host, BUNDLE_FROM, FUNNEL_SIZE);
+    let goals = open_cells_in(&host, BUNDLE_TO, FUNNEL_SIZE);
+    let (arrived, longest) = march_bundle(&mut host, &starts, &goals, FUNNEL_TICKS);
+    let stuck: Vec<usize> = (0..starts.len()).filter(|&k| arrived[k].is_none()).collect();
+    let worst = longest.iter().copied().max().unwrap_or(0);
+    println!("probe funnel units={} arrived={} stuck={stuck:?} longest_stall_run={worst}", starts.len(), starts.len() - stuck.len());
+    assert!(stuck.is_empty(), "{} of {} units never reached their goal through the gap within {FUNNEL_TICKS} ticks (first stuck unit index {:?})", stuck.len(), starts.len(), stuck.first());
+    assert!(worst <= FUNNEL_STALL_LIMIT, "a unit stalled {worst} ticks in a row in the funnel");
 }
 
 fn hitter_detail(host: &ModHost, target: usize) -> Vec<(u32, u8, u32, (f64, f64), f64)> {
