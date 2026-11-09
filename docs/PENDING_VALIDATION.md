@@ -628,3 +628,18 @@ Final-witness tally: 4 of 5 green (runs 4, 5, 6, 8 pass; run 7 fails with the st
 - The owner's decision, made by the agent under the delegation recorded in the Phase A decision above: the bundling row closes as `resolved`.
 - Evidence: `cargo test -p web --test pathing_probe` (29 passed, exit 0) including `bundle units=40 arrived=40 stuck=[] longest_stall_run=0`, `funnel units=60 arrived=60 stuck=[]`, `spread units=40 arrived=40 stuck=[]`, `a_hero_ordered_to_a_live_station_reaches_it_or_is_refused`, and `a_stopped_hero_ordered_to_attack_a_foe_out_of_reach_walks_in_and_strikes` (`strikes=2 attack=-1`); the five fresh-match D1 passes above (seq 104 to 132, all ok).
 - Scope of the close: the row tracked the live stall of run 7 (a hero holding MOVE for 48 moving samples). It reproduces headlessly at the live coordinates and is fixed by 70d12611 and 72e2d16d. The D1 red shape above (zero hits, hero moving) is a separate open item and does not reopen this row.
+
+## Phase A pass: open items of the 2026-11-09 pass (dispatcher order)
+
+- Item 1, pages.yml modulepreload. Committed and pushed in 0d1f636d (origin/main contains it); the ledger had no row for it, so this row records it. Phase B: witness the Pages build locally (bundle-client.mjs into a staged _site, check-site-bundle.mjs) and push with the rest.
+- Item 2, D1 zero-hit red, candidate: the 300 ms move reissue (scripts/witness/strike-while-walking.mjs, orderEveryMs) cancels a swing still in windup. Code reading, not yet run: Sim::issue_order_kind (movement.rs) interrupts a windup on a move only when strike_on_move is off (movement.rs `549); controls.lua:526 sets strike_on_move from the lock state; the witness move goes through order_move (web lib.rs) into that path. So with lock on the reissue should not cancel. Test added in Phase A: sim tests/strikes.rs a_move_order_cancels_a_windup_only_when_strike_on_move_is_off. Phase B runs it first. The witness changes (no reissue during windup) only if the test shows a cancel with lock on. The red passes are otherwise open until a red pass with a trace is read.
+- Item 3, melee reach, decision: one shared constant, MELEE_CUTOFF_UNITS = 128 in scenarios/moba/tools/gen-melee-reach.mjs. Reason: 6.88g rangeN1 <= 128 is the melee cutoff (AGENTS.md); antimage's data already sits at weapon_range_milli=2000 (128 units); the generic unit("hero") at 2344 (150 units) was the outlier. The generator writes units.osd unit("hero") weapon_range_milli=2000 and melee_reach.lua (cutoff_q16 = 131072), which effects.lua reads as its melee_hit cutoff (was a literal 170394 Q16, 2.6 cells, 166 units). Not changed: attr_rules melee_range_q16 (blind miss gate, unit_rules.lua:123, a different rule) and hero_melee_688g.tsv (the 6.88g flags, data).
+- Item 4, check-all on HEAD: Phase B, run once on the final HEAD before the push; gate count is now 74 with gen-melee-reach.mjs.
+
+## Phase B items (2026-11-09 open-items pass)
+
+- B-a: cargo build for mapexport, refresh scenarios/moba/moba.osdt (the units.osd and effects.lua change), commit it.
+- B-b: run the new strikes test and the pathing_probe reach tests; record each result.
+- B-c: D1 candidate decision from the B-b result; then D1 live passes (scripts/witness/strike-while-walking.mjs, lock on, off, on) until one is red, read its strikeTrace, fix the cause shown, rerun.
+- B-d: check-all on the final HEAD, quoted in the report.
+- B-e: Pages build witness and one push.
