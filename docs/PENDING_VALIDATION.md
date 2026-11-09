@@ -387,8 +387,8 @@ The H2 witness was pushed in f964cf11 with its verdict still failing. This pass 
 - Run with fixes 1 to 4 (before the attack order): all three legs started (`aborted: null`), no strike target, `movingSamples` 2 to 6, the hero did not walk. Cause: the walk went to the creep's centre (fix 3).
 - Run with fix 3 and the stage at the hero's spawn: the hero walks (movingSamples 188, 190, 169), the leg picks creep 118 (type 6, 1.6 cells from the hero), and `probes` shows the approach gained 6.39, 5.49 and 2.74 cells.
 - Run with fix 5 and the `initialPick` record: leg 1 `strikeAfterAttack` -1, leg 2 -1, leg 3 118 (`inReach` 10, `targetsSeen` [118]). Verdict: `ok: false`, with `never in reach while moving` for legs 1 and 2, and no strike or kinds on any leg. Last verdict line: `lock on: the hero was never in reach while moving; lock on: no strike while moving with one-hand on; lock on: no hero-sourced effect kinds recorded; lock off: never in reach while moving; lock on again: no strike while moving with one-hand on; lock on again: no hero-sourced effect kinds recorded`.
-- Open cause (not found): `order_attack_or_approach` (rust/crates/sim/src/movement.rs:443) refuses an attack with `InvalidOrderTarget` (not hostile, no matching target layer, or not visible to the player) or `Stunned`. The attack order on creep 118 was refused in legs 1 and 2 and accepted in leg 3. The witness does not record the refusal, so which condition fired is unknown. Next: read the refusal log (`rec` refusal lines) for the attack in legs 1 and 2, or add the refusal reason to the leg result, then rerun.
-- D1 status: not witnessed. Its verdict is red, and the red verdict is an honest failure of the one-hand walking strike, not a witness defect.
+- Superseded by the D1 green pass below. The refusal was not capture-able before this pass: each attempt now records the sim's terms and its refusal (`attack_terms`, `simRefusal`, `uiRefusal`).
+- D1 status at this point: red, an honest failure of the one-hand walking strike, not a witness defect.
 
 ### H2 re-run under the corrected corridor
 
@@ -402,7 +402,38 @@ The H2 witness was pushed in f964cf11 with its verdict still failing. This pass 
 - `cargo test -p sim`: all test binaries ok. `cargo test -p sim --test strikes`: 9 passed. `cargo test -p mod-host --test pad_cast_at`: 6 passed. `cargo test -p mod-host` (full rerun, detached, `/tmp/gm-modhost2.log`): `MODHOST_EXIT 0`, no FAILED or panicked lines.
 - `node scripts/witness/clear-target-check.mjs`: ok. `node scripts/witness/strike-while-walking-check.mjs`: 8 cases ok. `node scripts/witness/first-hit-timing-check.mjs`: 15 cases ok. `node js/client/twin-stick-check.mjs` (C1): ok. `node scripts/check-browser-witnesses.mjs` (A5): `browser witness spec ok (4 witnesses, 4 bounded-run rules)`.
 - Not run in this pass: E3 (control scheme doc review against a running client; a review item, not a gate).
-- D1 (one-hand walking strike, live): RED, not witnessed. Open cause as above.
+- D1 (one-hand walking strike, live): RED at this point; the green pass below supersedes it.
+
+## D1 green pass (2026-11-09)
+
+Commits, all lanmower, no trailers, in order: `5996938e` (sim and web `attack_terms`), `521e38e2` (page: `__ciAttack` is the UI path, refusal and terms hooks), `87e71eff` (clear-target: range-bounded pick, unreachable creeps excluded), `2c0786f1` (strike-while-walking: attempt terms, launch-based control).
+
+Diagnosis, legs 1 and 2 against leg 3:
+- The refusal is captured per attempt: `accepted`, `visible`, `inReach`, `cooldownReady`, `simRefusal`, `uiRefusal`. The attempt records come from `attack_terms` (combat.rs) and `last_refusal` (sim).
+- In the green run, the judged legs' initial attacks were accepted (initial picks: creep 169 for lock on, 169 for lock off, 225 for lock on again). Every refused attempt on the judged legs was `Cooldown` with `visible` true and `inReach` true: a re-issue while the hero's own swing was running (`order_attack`, combat.rs). That is the sim's normal answer, not an illegal target.
+- The earlier refusal of creep 118 in legs 1 and 2 (`InvalidOrderTarget`, the visibility clause of `order_attack_or_approach`, movement.rs:454) came from the pick having no range bound: the witness ordered a creep the hero could not see. `pickRangeCells` (100) bounds the pick, so the attack is ordered only on a visible creep. That refusal was not reproduced in this pass.
+- The lock-off control failed before this pass for a measurement reason, not a sim one. It counted landed hits, and a swing launched while the hero stood still can land while it walks on. The sim launches a swing only when the unit is not walking (combat.rs `attack`). The control now counts launches: a launch counts when the hero moved and is more than 1.5 cells from its commanded station (movement.rs `walking` is false within one cell of the target).
+
+Witness output, `runWitness(state.page)` on a live match (lobby: All Pick, slot 0 PUD, Fill with bots, Ready, Start match, `body[data-phase=live]`):
+
+    legs: lock on      aborted null  strikeWhileMoving 1  launchesWhileMoving 3  moving 82  inReach 14  accepted 22/26
+          lock off     aborted null  strikeWhileMoving 0  launchesWhileMoving 0  moving 47  inReach 4   accepted 17/19
+          lock on again aborted null strikeWhileMoving 1  launchesWhileMoving 2  moving 131 inReach 2   accepted 36/40
+    verdict {"ok":true,"reasons":[]}
+
+H2 (`runFirstHitTiming(state.page)`, fresh match): verdict `{"ok":true,"reasons":[]}`. First target 118 `latencyTicks` 6, `attackPoint` 7, `struckOther` false; second target 248 `latencyTicks` 6, `attackPoint` 7; lock-off control 252 not judged.
+
+Gates:
+- `node scripts/check-all.mjs`: `RESULT gates=73 ok=73 failed=0 drift=0 skipped=6 strict=false`, `CHECKALL_EXIT 0`.
+- `cargo test -p sim`: 12 result blocks, 40 passed, 0 failed, `SIM_EXIT 0`.
+- `cargo test -p mod-host`: 22 result blocks, 48 passed, 0 failed, `MODHOST_EXIT 0` (log `/tmp/d1-modhost.log`).
+
+## Defect: 83ba7ed1 pushed with D1 red (2026-11-09)
+
+- What: commit 83ba7ed1 went to origin main while D1 (the one-hand walking strike witness) was red. The rule is that every defect is fixed before a push, so this push breaks it. The push itself is recorded here, not hidden in the D1 red note.
+- Cause of the red: the page assigned `window.__ciAttack` twice (js/client/play.js, the second assignment at the old line 3739 used `session.broadcast(sendAttack(...))`). The second assignment overrode the first, which is the path a click takes (`commands.attack`, with refusal recording). So the witness's attack order went out as a session frame that the local sim does not apply in a solo match, and the strike target never set.
+- Fix (commit 521e38e2): the duplicate is removed, so `__ciAttack` is `commands.attack`. Two debug hooks are added beside `__ciLocalAttack`: `__ciRefusal` (the sim's last refusal, `localGame.last_refusal()`) and `__ciOrderOf` (the unit's current order, `localGame.current_order()`).
+- Note for the same class: `window.__ciCast` (play.js) still uses `session.broadcast(sendCast(...))`, not the UI path. Not used by D1 or H2; left as it is, to be checked when a witness calls it.
 
 ## Notes for Phase B (observations, not validation)
 
