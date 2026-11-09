@@ -725,3 +725,32 @@ Final-witness tally: 4 of 5 green (runs 4, 5, 6, 8 pass; run 7 fails with the st
 - Phase B decision rule. Keep the fix only if: (a) the new strikes test is red with the guard removed and green with it; (b) the lock-on legs show walking launches at full sampling; (c) the probe's `outOfArc` count falls in those legs while `launched` rises. If `outOfArc` stays dominant with the fix, the arc is not the only cause; record the probe and the next cause, and do not loosen any verdict. If `cooling` dominates the in-reach ticks and `launched` stays low, the limit is the cooldown, the facing candidate is refuted, and the guard is reverted and recorded as refuted.
 - Phase B order: stage (`WASM=1 SKIP_PACKS=1 bash scripts/dev/stage.sh`), `cargo test -p sim --test strikes`, the guard-removed run of the same test, the self-check (`node scripts/witness/strike-while-walking-check.mjs`), `cargo test -p web --test pathing_probe` and `cargo test -p mod-host`, eight fresh-import D1 passes on port 8832 (each verdict, each red trace with `walkProbe`), `node scripts/check-all.mjs` (74 gates), then one push.
 - Remaining work, ranked, in the final report.
+
+## Phase B results: D1 at the sim-side facing fix, eight passes (2026-11-09)
+
+- Process defect, recorded: commit 34357ade pushed the Phase B ledger during the Phase A window (a rule break; no code was affected). This pass pushes once, after Phase B.
+- Test change, committed: `rust/crates/sim/tests/strikes.rs` (commit after 30deda62, lanmower). The facing test asserts the walking launch (`walk_probe_of(attacker)[0] > 0`), not a hit: a unit walking away from a foe behind it leaves reach during the windup, and `tick_point` cancels that swing, so the hit cannot land. Discriminating witness: with the `turns_to_strike` guard removed from `tick.rs`, `cargo test -p sim --test strikes a_walking_unit_turns` fails (`the walking unit turned to the foe behind it and launched a strike`); with the guard, it passes. Phase B: `cargo test -p sim --test strikes` 13 passed; `cargo test -p sim` all suites ok; `cargo test -p web --test pathing_probe` ok; `cargo test -p mod-host` 22 suites ok; `node scripts/witness/strike-while-walking-check.mjs`: `strike-while-walking verdict checks ok (11 cases, leg timing in sim ticks)`.
+- The eight D1 passes, one fresh import each on port 8832 at sha 30deda62 (the fix is in), verdict as the witness returns it:
+  - Pass 1: `verdict: { ok: true, reasons: [] }`, trace `d1-2026-11-09T17-09-22-406Z-ok.json`.
+  - Pass 2: red, `lock on again: no strike while moving with one-hand on`, trace `d1-2026-11-09T17-12-08-606Z-red.json`.
+  - Pass 3: red, same reason, trace `d1-2026-11-09T17-14-45-622Z-red.json`.
+  - Pass 4: red, same reason, trace `d1-2026-11-09T17-34-02-650Z-red.json`.
+  - Pass 5: red, same reason, trace `d1-2026-11-09T17-36-22-071Z-red.json`.
+  - Pass 6: `verdict: { ok: true, reasons: [] }`, trace `d1-2026-11-09T17-38-45-662Z-ok.json`.
+  - Pass 7: `verdict: { ok: true, reasons: [] }`, trace `d1-2026-11-09T17-41-10-231Z-ok.json`.
+  - Pass 8: `verdict: { ok: true, reasons: [] }`, trace `d1-2026-11-09T17-43-50-324Z-ok.json`.
+  - Tally: 4 ok, 4 red. Every red fails the lock-on-again leg; the lock-on leg passes in all eight.
+- The reds, from the `walkProbe` counts of the failing leg (lock on again, 320 samples, zero walking strikes in each):
+
+  | Pass | launched | cooling | notCommandable | outOfArc | walking-watched ticks | in-loop re-attacks |
+  |---|---|---|---|---|---|---|
+  | 2 | 3 | 53 | 0 | 0 | 56 | 0 |
+  | 3 | 2 | 36 | 0 | 0 | 38 | 0 |
+  | 4 | 0 | 12 | 0 | 0 | 12 | 25 |
+  | 5 | 1 | 75 | 0 | 0 | 76 | 0 |
+
+  Green lock-on-again legs (passes 6 and 8) show 108 and 125 walking-watched ticks, with 4 and 5 launches. Pass 4's green counterpart in the lock-on-again leg has 0 re-attacks.
+- Cause, from the counts. The sim's rule is right: in the failing legs `outOfArc` and `notCommandable` are 0, so every walking-watched tick where the weapon was ready launched a strike. The shortfall is the number of walking-watched ticks (12 to 76 in the red legs, against 108 to 130 in the green ones). Why they are fewer: the sim counts a unit as walking only with order kind 0 (`ORDER_MOVE`). In pass 4's lock-on-again leg, 231 of 300 samples are in kind 2 (`ORDER_ATTACK_MOVE`) and only 10 are in kind 0. In green pass 6's lock-on-again leg, 226 of 300 are in kind 2, and 73 of the other samples are kind 0 with motion. The difference is the witness's in-loop re-attack (`commandAttack`, issued when the strike target is lost), which sets kind 2 again after each move order. Pass 4's lock-on-again leg had 25 such re-attacks; green pass 6's had none (only the initial pick and one re-pick). So the red is a witness effect: its re-attack path turns a move into an attack-move, which the sim does not count as walking.
+- Decision: the sim rules stay (the windup cancel and the launch rule). Evidence against the windup cancel: across the lock legs of passes 1, 2, 3, the windup starts are 25 to 26 per leg and 0 to 1 are cancelled, so the cancel rule does not leave legal walking strikes unlanded. The facing fix holds: the arc failures in green lock legs are 1 to 8 per leg, and none in the failing legs. The witness's in-loop re-attack is the open item (below); changing it changes what the verdict measures, so it is an owner decision, not made in this pass. The verdict is unchanged.
+- Status: NOT closed. The D1 red is 4 of 8 at sha 30deda62. Cause: the witness's in-loop re-attack moves the hero from a move order to an attack-move, so the walking-watched ticks fall; the sim launches on every ready walking tick.
+- check-all, at this commit: `RESULT gates=74 ok=74 failed=0 drift=0 skipped=6 strict=false`, `EXIT=0` (`.gm/witness-traces/checkall.log`).
