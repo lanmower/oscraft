@@ -479,3 +479,10 @@ D1 five-run rerun, live, one fresh match each (lobby: All Pick, slot 0 PUD, Fill
 - Run 8 (final witness): `verdict {"ok":true,"reasons":[]}`. Lock on: 126 moving samples, 1 strike while moving, kinds `melee_hit` 1; lock off: 0 launches; lock on again: 5 strikes while moving, kinds `melee_hit` 6, 36/40 accepted.
 
 Final-witness tally: 4 of 5 green (runs 4, 5, 6, 8 pass; run 7 fails with the stall).
+
+## Phase B gate: check-all after the disk fix (2026-11-09)
+
+- Cause of the earlier failures: the root overlay (`/`, which holds `/tmp`) was 100% full, so every gate that makes a temp directory failed with ENOSPC. Nothing was deleted: the other sessions' `/tmp` targets and worktrees are untouched.
+- Fix used: `TMPDIR=/workspace/d1-tmp node scripts/check-all.mjs` (the workspace disk has 554G free). The empty `/workspace/oscraft/.tmp-d1` was removed before the run, so the tree stays clean.
+- Witness: `RESULT gates=73 ok=73 failed=0 drift=0 skipped=6 strict=false`, `CHECKALL_EXIT 0` (log /tmp/b-checkall2.log). The six skipped gates each name a missing input: G688_LNI, --src for war3map.j, and ref-heroes-src, among others.
+- Still open and not changed here: the live bundling stall (run 7 above) and the owner's reach-value decision (the melee row, commit 18913805).
