@@ -605,3 +605,26 @@ Final-witness tally: 4 of 5 green (runs 4, 5, 6, 8 pass; run 7 fails with the st
 - Test change, recorded: the Phase A test asserted the target equalled the position after 20 ticks. The trace shows the target and position differ after the tick's own integration (the pin happens before the separation move), so that assertion was the wrong criterion. The test now asserts the STOP kind and uses the existing jitter helpers (`settle_and_measure`, `assert_settles`), which is the actual defect.
 - Evidence after the fix: `probe friendly_goal kind=1 radius=0.000 reversals=0`; `test result: ok. 1 passed` for the test alone.
 - Full suites on the Phase B tree: `cargo test -p web --test pathing_probe`: `test result: ok. 29 passed; 0 failed`, exit 0, including `probe stopped_attack strikes=2 ... attack=-1`, `probe bundle units=40 arrived=40 stuck=[]`, `probe funnel units=60 arrived=60 stuck=[]`, `probe spread units=40 arrived=40 stuck=[]`, `probe live_stall ... order_kind=1`. `cargo test -p sim -p mod-host`: 34 `test result: ok` suites, exit 0.
+
+## Phase B results: D1 live passes on the committed sim 0c8a808d (2026-11-09)
+
+- Sim tree: 0c8a808d (no sim change since). The witness gained a read-only per-sample trace of the lock-on leg (`strikeTrace`: position, creep, distance, creep hp, order, swing point, launch stamp). Verdict logic is unchanged; the self-check prints `strike-while-walking verdict checks ok (9 cases)`.
+- One fresh match per pass, verdict as the witness returns it (lock-on hits are `melee_hit` effects, counted per leg):
+  - Q1: ok. Q2: ok. Q3: red, zero hits in all three legs.
+  - seq 24: red, zero hits in all three legs; the first attack was accepted at 1521 ms with `inReach: true` and `cooldownReady: true`. No trace (the trace was added after this pass).
+  - seq 31: ok. seq 38: ok.
+  - seq 97: red, zero hits in all three legs, same shape as seq 24. No trace.
+  - seq 104: ok (2, 2, 2 strikes while moving, `melee_hit` 2 per leg).
+  - seq 111: ok (lock on 5 strikes, `melee_hit` 14; lock off 0; lock on again 5, `melee_hit` 16).
+  - seq 118: ok (lock on 4, `melee_hit` 14; lock off 0; lock on again 5, `melee_hit` 17).
+  - seq 125: ok (lock on 6, `melee_hit` 15; lock off 0; lock on again 5, `melee_hit` 17).
+  - seq 132: ok (lock on 7, `melee_hit` 16; lock off 0; lock on again 5, `melee_hit` 17).
+- Tally: 9 ok, 3 red over 12 passes. The last five passes (seq 104 to 132) are consecutive and all ok; they are the five fresh-match passes on the committed sim.
+- Trace evidence from the ok passes: the lock-on leg walks in to 1.0 to 1.4 cells of the creep and its `creepHp` falls while the hero moves (for example 6888 to 59 over about 4.5 s). The lock-off leg runs at the same stations and records no hero effects (the verdict does not require hits there).
+- Open, not closed by the above: the three red passes have zero hits in every leg for the whole match, which is a different shape from the bundling stall (see the bundling close below). No trace was kept for any red pass. Cause not established. Candidate, untested: the witness reissues a move order every 300 ms (`orderEveryMs`), which may cancel a swing that is still in windup when the cadence and the swing duration line up. The trace build is in place; the next red pass will show the order, swing point and creep hp for each sample.
+
+## Phase B close: the bundling row is resolved (2026-11-09)
+
+- The owner's decision, made by the agent under the delegation recorded in the Phase A decision above: the bundling row closes as `resolved`.
+- Evidence: `cargo test -p web --test pathing_probe` (29 passed, exit 0) including `bundle units=40 arrived=40 stuck=[] longest_stall_run=0`, `funnel units=60 arrived=60 stuck=[]`, `spread units=40 arrived=40 stuck=[]`, `a_hero_ordered_to_a_live_station_reaches_it_or_is_refused`, and `a_stopped_hero_ordered_to_attack_a_foe_out_of_reach_walks_in_and_strikes` (`strikes=2 attack=-1`); the five fresh-match D1 passes above (seq 104 to 132, all ok).
+- Scope of the close: the row tracked the live stall of run 7 (a hero holding MOVE for 48 moving samples). It reproduces headlessly at the live coordinates and is fixed by 70d12611 and 72e2d16d. The D1 red shape above (zero hits, hero moving) is a separate open item and does not reopen this row.
