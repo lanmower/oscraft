@@ -49,7 +49,7 @@ export async function strikeWhileWalkingLeg(config) {
     reachCells: config.stopCells,
     laneCells: config.laneCells,
     targetOwner: config.targetOwner,
-    excluded: [],
+    excluded: [...stationBlocked],
     placeTarget: config.placeTarget,
     placeRadii: config.placeRadii,
     placeStepDeg: config.placeStepDeg,
@@ -166,6 +166,8 @@ export async function strikeWhileWalkingLeg(config) {
   let refusedMoves = 0;
   const moveRefusals = [];
   let moveRefusalsDropped = 0;
+  let refusalRun = 0;
+  const stationBlocked = [];
   let stillSamples = 0;
   let stillSince = 0;
   const stallRuns = [];
@@ -246,6 +248,14 @@ export async function strikeWhileWalkingLeg(config) {
         stationTurn = (stationTurn + 1) % config.stationTurns;
         stationRotations += 1;
         refusedMoves += 1;
+        refusalRun += 1;
+        if (refusalRun >= config.stationTurns) {
+          stationBlocked.push(creep.id);
+          creep = null;
+          refusalRun = 0;
+        }
+      } else {
+        refusalRun = 0;
       }
       walkTo = stations[toward];
       lastOrderAt = Date.now();
