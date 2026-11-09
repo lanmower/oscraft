@@ -9,14 +9,22 @@ export const LEGS = [
 ];
 
 export const CONFIG = {
-  legMs: 40000,
-  sampleMs: 100,
+  legTicks: 640,
+  sampleTicks: 2,
+  sampleFloor: 288,
+  legReruns: 2,
+  pollMs: 25,
+  stallPolls: 200,
+  slowPollMs: 500,
+  resetPolls: 240,
   stallRunSamples: 8,
   stallTraceCap: 400,
   strikeTraceCap: 300,
   stationTurns: 8,
-  orderEveryMs: 300,
-  resetMs: 120000,
+  orderEveryTicks: 5,
+  orderSettleTicks: 4,
+  initialSettleTicks: 6,
+  replaceFraction: 0.25,
   minStartHp: 200,
   abortHp: 100,
   targetOwner: 255,
@@ -30,23 +38,40 @@ export const CONFIG = {
   placeRetries: 10,
   placeRetryMs: 400,
   placeStepDeg: 15,
-  probeMs: 1500,
+  probeTicks: 24,
   probeCells: 1.5,
   probeLimit: 16,
   pickRangeCells: 100,
   attemptLimit: 40,
   walkingCells: 1.5,
   arrivedCells: 1,
-  orderSettleMs: 250,
   traceDir: fileURLToPath(new URL("../../.gm/witness-traces/", import.meta.url)),
 };
 
 export async function strikeWhileWalkingLeg(config) {
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const tickNow = () => window.__ciTicks();
   const me = window.__ciLocalPlayer();
   const roster = () => window.__ciRoster();
   const heroUnit = () => roster().find((u) => u.player === me && window.__ciIsHero(u.id));
   const unitById = (id) => roster().find((u) => u.id === id);
+  const waitTicks = async (ticks) => {
+    const target = tickNow() + ticks;
+    let last = tickNow();
+    let idle = 0;
+    while (tickNow() < target) {
+      await sleep(config.pollMs);
+      const now = tickNow();
+      if (now === last) {
+        idle += 1;
+        if (idle >= config.stallPolls) return false;
+      } else {
+        idle = 0;
+        last = now;
+      }
+    }
+    return true;
+  };
   const rule = (avoid = []) => ({
     pickRangeCells: config.pickRangeCells,
     isolationCells: config.isolationCells,
@@ -68,7 +93,7 @@ export async function strikeWhileWalkingLeg(config) {
   const probes = [];
   const attempts = [];
   let attemptsDropped = 0;
-  const legT0 = Date.now();
+  const startTick = tickNow();
   const used = (window.__ciWitnessUsed ??= []);
   const reachable = async (point) => {
     const before = heroUnit();
@@ -78,7 +103,7 @@ export async function strikeWhileWalkingLeg(config) {
       return true;
     }
     window.__ciMove(heroId, point.x, point.z);
-    await sleep(config.probeMs);
+    await waitTicks(config.probeTicks);
     const after = heroUnit();
     const gained = after ? distance(before, point) - distance(after, point) : 0;
     probes.push({ to: [+point.x.toFixed(1), +point.z.toFixed(1)], gained: +gained.toFixed(2) });
@@ -91,7 +116,7 @@ export async function strikeWhileWalkingLeg(config) {
     const accepted = window.__ciAttack(heroId, targetId);
     const h = heroUnit();
     const attempt = {
-      atMs: Date.now() - legT0,
+      atTick: tickNow() - startTick,
       why,
       targetId,
       accepted,
@@ -139,20 +164,19 @@ export async function strikeWhileWalkingLeg(config) {
     heroHp: null,
   });
 
-  const resetStart = Date.now();
-  while (!heroUnit() && Date.now() - resetStart < config.resetMs) await sleep(500);
+  for (let polls = 0; !heroUnit() && polls < config.resetPolls; polls += 1) await sleep(config.slowPollMs);
   const first = heroUnit();
   if (!first) return emptyLeg("no hero to start the leg");
   const heroId = first.id;
   const stage = { x: first.x, z: first.z };
 
   let ready = false;
-  while (Date.now() - resetStart < config.resetMs) {
+  for (let polls = 0; polls < config.resetPolls; polls += 1) {
     if (heroUnit() && window.__ciHp(heroId) >= config.minStartHp) {
       ready = true;
       break;
     }
-    await sleep(1000);
+    await sleep(config.slowPollMs);
   }
   if (!ready) return { ...emptyLeg("hero below start hp"), heroHp: window.__ciHp(heroId) };
 
@@ -179,11 +203,13 @@ export async function strikeWhileWalkingLeg(config) {
   const stallRuns = [];
   const stallTrace = [];
   const strikeTrace = [];
-  let lastOrderAt = 0;
+  let lastOrderTick = -Infinity;
   let creep = null;
   let toward = null;
   let aborted = null;
   let pick = null;
+  let pickEntry = null;
+  let replaceHp = 0;
   const picks = [];
 
   let initialPick = null;
@@ -198,22 +224,24 @@ export async function strikeWhileWalkingLeg(config) {
   if (initial.creep === null) aborted = initial.aborted;
   else {
     creep = initial.creep;
+    replaceHp = Math.ceil(window.__ciHp(creep.id) * config.replaceFraction);
     used.push(creep.id);
     commandAttack(creep.id, "initial pick");
-    await sleep(400);
+    await waitTicks(config.initialSettleTicks);
     initialPick = {
       id: creep.id,
       type: creep.type,
       x: +creep.x.toFixed(1),
       z: +creep.z.toFixed(1),
       hp: window.__ciHp(creep.id),
+      replaceHp,
       strikeAfterAttack: window.__ciStrikeOf(heroId),
     };
   }
   previousFx = window.__ciRecentFx().map((effect) => JSON.stringify(effect));
 
-  const legStart = Date.now();
-  while (aborted === null && Date.now() - legStart < config.legMs) {
+  const legTick0 = tickNow();
+  while (aborted === null && tickNow() - legTick0 < config.legTicks) {
     const h = heroUnit();
     if (!h) {
       aborted = "hero dead";
@@ -223,24 +251,30 @@ export async function strikeWhileWalkingLeg(config) {
       aborted = "hero below abort hp";
       break;
     }
-    if (pick === null && (!creep || window.__ciHp(creep.id) <= 0)) {
+    const creepHp = creep ? window.__ciHp(creep.id) : 0;
+    if (pick === null && (!creep || creepHp <= replaceHp)) {
       const started = { done: false, value: null };
       pick = started;
-      const syncStart = Date.now();
-      const entry = { atMs: Date.now() - legStart, syncMs: null, doneMs: null };
-      const running = choosePicked(h);
-      entry.syncMs = Date.now() - syncStart;
-      if (picks.length < 200) picks.push(entry);
-      running.then(
+      pickEntry = {
+        atTick: tickNow() - legTick0,
+        reason: creep === null ? "no creep" : creepHp <= 0 ? "dead" : "below replace hp",
+        from: creep ? creep.id : null,
+        fromHp: creep ? creepHp : null,
+        to: null,
+        doneTick: null,
+      };
+      if (picks.length < 200) picks.push(pickEntry);
+      const entry = pickEntry;
+      choosePicked(h, creep ? [creep.id] : []).then(
         (value) => {
           started.value = value;
           started.done = true;
-          entry.doneMs = Date.now() - legStart;
+          entry.doneTick = tickNow() - legTick0;
         },
         (error) => {
           started.value = { creep: null, aborted: String(error) };
           started.done = true;
-          entry.doneMs = Date.now() - legStart;
+          entry.doneTick = tickNow() - legTick0;
         },
       );
     }
@@ -248,14 +282,20 @@ export async function strikeWhileWalkingLeg(config) {
       const picked = pick.value;
       pick = null;
       if (picked.creep === null) {
-        aborted = picked.aborted;
-        break;
+        if (creep !== null && window.__ciHp(creep.id) > 0) replaceHp = 0;
+        else {
+          aborted = picked.aborted;
+          break;
+        }
+      } else {
+        pickEntry.to = picked.creep.id;
+        creep = picked.creep;
+        replaceHp = Math.ceil(window.__ciHp(creep.id) * config.replaceFraction);
+        used.push(creep.id);
+        commandAttack(creep.id, "re-pick");
       }
-      creep = picked.creep;
-      used.push(creep.id);
-      commandAttack(creep.id, "re-pick");
     }
-    if (pick === null && creep && Date.now() - lastOrderAt > config.orderEveryMs) {
+    if (pick === null && creep && tickNow() - lastOrderTick >= config.orderEveryTicks) {
       if (window.__ciStrikeOf(heroId) !== creep.id) commandAttack(creep.id, "in-loop re-attack");
       const stations = {
         a: pointToward(creep, stage, config.stopCells, stationTurn),
@@ -266,7 +306,7 @@ export async function strikeWhileWalkingLeg(config) {
       if (!accepted) {
         if (moveRefusals.length < config.attemptLimit) {
           moveRefusals.push({
-            atMs: Date.now() - legT0,
+            atTick: tickNow() - startTick,
             turn: stationTurn,
             station: [+stations[toward].x.toFixed(2), +stations[toward].z.toFixed(2)],
             creep: [+creep.x.toFixed(2), +creep.z.toFixed(2)],
@@ -289,9 +329,12 @@ export async function strikeWhileWalkingLeg(config) {
         refusalRun = 0;
       }
       walkTo = stations[toward];
-      lastOrderAt = Date.now();
+      lastOrderTick = tickNow();
     }
-    await sleep(config.sampleMs);
+    if (!(await waitTicks(config.sampleTicks))) {
+      aborted = "sim stopped ticking";
+      break;
+    }
     const now = heroUnit();
     if (!now) {
       aborted = "hero dead";
@@ -304,21 +347,21 @@ export async function strikeWhileWalkingLeg(config) {
     const walking = moved && walkingOrder;
     if (moved) movingSamples += 1;
     if (moved) {
-      if (stillSamples >= config.stallRunSamples) stallRuns.push({ startMs: stillSince, samples: stillSamples });
+      if (stillSamples >= config.stallRunSamples) stallRuns.push({ startTick: stillSince, samples: stillSamples });
       stillSamples = 0;
     } else {
-      if (stillSamples === 0) stillSince = Date.now() - legStart;
+      if (stillSamples === 0) stillSince = tickNow() - legTick0;
       stillSamples += 1;
       if (stillSamples >= config.stallRunSamples && stallTrace.length < config.stallTraceCap) {
         stallTrace.push({
-          atMs: Date.now() - legStart,
+          atTick: tickNow() - legTick0,
           run: stillSamples,
           pos: [+now.x.toFixed(2), +now.z.toFixed(2)],
           walkTo: walkTo ? [+walkTo.x.toFixed(2), +walkTo.z.toFixed(2)] : null,
           order: window.__ciOrderOf(heroId),
           swingPoint: window.__ciSwingPoint(heroId),
           strikeTarget: window.__ciStrikeOf(heroId),
-          tick: window.__ciTicks(),
+          tick: tickNow(),
           hp: window.__ciHp(heroId),
           refusal: window.__ciRefusal(),
           stationTurn,
@@ -328,17 +371,17 @@ export async function strikeWhileWalkingLeg(config) {
     const farFromStation = walkTo !== null && distance(now, walkTo) > config.walkingCells;
     const launch = window.__ciStrikeStamp(heroId)?.[2] ?? -1;
     if (launch !== lastLaunch) {
-      const settled = Date.now() - lastOrderAt >= config.orderSettleMs;
+      const settled = tickNow() - lastOrderTick >= config.orderSettleTicks;
       if (launch !== -1 && walking && farFromStation && settled) {
         launchesWhileMoving += 1;
         movingLaunches.push({
-          atMs: Date.now() - legStart,
+          atTick: tickNow() - legTick0,
           launch,
           pos: [+now.x.toFixed(2), +now.z.toFixed(2)],
           walkTo: walkTo ? [+walkTo.x.toFixed(2), +walkTo.z.toFixed(2)] : null,
           order: window.__ciOrderOf(heroId),
           strikeTarget: window.__ciStrikeOf(heroId),
-          tick: window.__ciTicks(),
+          tick: tickNow(),
         });
       }
       lastLaunch = launch;
@@ -350,7 +393,7 @@ export async function strikeWhileWalkingLeg(config) {
     if (moved && targetUnit && distance(targetUnit, now) < config.reachCells) inReachMoving += 1;
     if (creep && strikeTrace.length < config.strikeTraceCap) {
       strikeTrace.push({
-        atMs: Date.now() - legStart,
+        atTick: tickNow() - legTick0,
         moved,
         pos: [+now.x.toFixed(2), +now.z.toFixed(2)],
         creep: [+creep.x.toFixed(2), +creep.z.toFixed(2)],
@@ -381,13 +424,13 @@ export async function strikeWhileWalkingLeg(config) {
     if (heroEffects > 0) {
       if (walking) {
         strikeSamplesWhileMoving += 1;
-        movingStrikes.push({ atMs: Date.now() - legStart, effects: heroEffects });
+        movingStrikes.push({ atTick: tickNow() - legTick0, effects: heroEffects });
       } else strikeSamplesWhileStopped += 1;
     }
     previous = { x: now.x, z: now.z };
   }
-  while (pick !== null && !pick.done) await sleep(config.sampleMs);
-  if (stillSamples >= config.stallRunSamples) stallRuns.push({ startMs: stillSince, samples: stillSamples });
+  while (pick !== null && !pick.done) await sleep(config.pollMs);
+  if (stillSamples >= config.stallRunSamples) stallRuns.push({ startTick: stillSince, samples: stillSamples });
 
   return {
     picks,
@@ -400,6 +443,7 @@ export async function strikeWhileWalkingLeg(config) {
     moveRefusalsDropped,
     ready,
     startHp,
+    ticks: tickNow() - legTick0,
     samples,
     movingSamples,
     strikeSamplesWhileMoving,
@@ -423,8 +467,10 @@ export async function strikeWhileWalkingLeg(config) {
 export function verdict(legs) {
   const reasons = [];
   for (const leg of legs) {
+    const attempts = (leg.reruns ?? []).length + 1;
     if (!leg.ready) reasons.push(`${leg.label}: the hero did not reach the stage at ${CONFIG.minStartHp} hp`);
     if (leg.aborted) reasons.push(`${leg.label}: the leg ended early (${leg.aborted})`);
+    if (!(leg.samples >= CONFIG.sampleFloor)) reasons.push(`${leg.label}: ${leg.samples} samples, below the floor of ${CONFIG.sampleFloor} after ${attempts} attempts`);
     if (leg.inReachMoving === 0) reasons.push(`${leg.label}: the hero was never in reach while moving`);
     if (leg.lock === "true" && leg.strikeSamplesWhileMoving === 0) reasons.push(`${leg.label}: no strike while moving with one-hand on`);
     if (leg.lock === "true" && Object.keys(leg.kinds ?? {}).length === 0) reasons.push(`${leg.label}: no hero-sourced effect kinds recorded`);
@@ -445,8 +491,19 @@ export async function runWitness(page, config = CONFIG) {
     if ((await lockState()) !== String(leg.lock)) await lockButton.click();
     await page.waitForTimeout(600);
     const lock = await lockState();
-    const measured = await page.evaluate(strikeWhileWalkingLeg, config);
-    legs.push({ label: leg.label, lock, ...measured });
+    const reruns = [];
+    let measured = await page.evaluate(strikeWhileWalkingLeg, config);
+    while (measured.samples < config.sampleFloor && reruns.length < config.legReruns) {
+      reruns.push({
+        attempt: reruns.length + 1,
+        samples: measured.samples,
+        ticks: measured.ticks,
+        aborted: measured.aborted,
+        picks: measured.picks,
+      });
+      measured = await page.evaluate(strikeWhileWalkingLeg, config);
+    }
+    legs.push({ label: leg.label, lock, reruns, ...measured });
   }
   const result = { legs, verdict: verdict(legs) };
   result.traceFile = writeTrace(result, config);
