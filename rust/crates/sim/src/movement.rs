@@ -169,7 +169,7 @@ impl Sim {
                     || (self.grid.walkable(cell_of(tx), cy) && self.grid.walkable(cx, cell_of(ty))))
                     && !self.friendly_footprint_at(i, tx, ty);
                 if dist > 0 && dist <= speed as i64 {
-                    if snap_clear {
+                    if snap_clear && self.order_kind[i] != ORDER_STOP {
                         vx = dx;
                         vy = dy;
                     } else {

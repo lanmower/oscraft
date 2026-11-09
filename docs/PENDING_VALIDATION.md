@@ -596,3 +596,12 @@ Final-witness tally: 4 of 5 green (runs 4, 5, 6, 8 pass; run 7 fails with the st
 ## Phase A note: the attack walk-in change is gameplay-visible (2026-11-09)
 
 - An attack ordered to a unit that was stopped now walks in to strike; before 72e2d16d the attack was dropped and the unit stood still. Rationale: an attack command should chase its target, and the old drop only happened because a stop left by an unreachable move was not cleared (see the rows above).
+
+## Phase B results: steer fallback (2026-11-09)
+
+- Evidence before the fix (pre-fix movement.rs from HEAD~1, the rewritten test): `probe friendly_goal kind=0 radius=0.074 reversals=26`; the test failed on `the hero holds a move order to a goal a friendly body holds`. The hero held MOVE and jittered by about 0.07 cells, 26 direction reversals in the sample.
+- What the trace showed (with the STOP fix from Phase A): the STOP was applied on the first tick, but each later tick `steer` found the target within one step and the snap clear again (the hero had been moved off the blocker's footprint by the same tick), and stepped back toward the stale target, the previous position. The unit cycled between two points about 0.4 cells apart.
+- Fix (`rust/crates/sim/src/movement.rs`, `steer`, the within-one-step branch): a STOP unit no longer steps toward its target on that branch; it pins to its position. The MOVE-to-STOP conversion (Phase A) is unchanged.
+- Test change, recorded: the Phase A test asserted the target equalled the position after 20 ticks. The trace shows the target and position differ after the tick's own integration (the pin happens before the separation move), so that assertion was the wrong criterion. The test now asserts the STOP kind and uses the existing jitter helpers (`settle_and_measure`, `assert_settles`), which is the actual defect.
+- Evidence after the fix: `probe friendly_goal kind=1 radius=0.000 reversals=0`; `test result: ok. 1 passed` for the test alone.
+- Full suites on the Phase B tree: `cargo test -p web --test pathing_probe`: `test result: ok. 29 passed; 0 failed`, exit 0, including `probe stopped_attack strikes=2 ... attack=-1`, `probe bundle units=40 arrived=40 stuck=[]`, `probe funnel units=60 arrived=60 stuck=[]`, `probe spread units=40 arrived=40 stuck=[]`, `probe live_stall ... order_kind=1`. `cargo test -p sim -p mod-host`: 34 `test result: ok` suites, exit 0.
