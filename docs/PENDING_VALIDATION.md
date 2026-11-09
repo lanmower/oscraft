@@ -340,6 +340,10 @@ The H2 witness was pushed in f964cf11 with its verdict still failing. This pass 
 - Phase A fix: placement also keeps 10 cells from every living hostile that is not neutral (lanes, towers, enemy units), which is the owner's "clear of the lanes". The mid-leg re-pick uses the same choice as the start, so a lost target is replaced under the same rule. Each leg also reports `targetHp` at its end, so a lost target shows whether it died.
 - Phase A has no witness result. Phase B runs the witness until the legs and the control show `aborted: null`, with distinct targets.
 
+- Run 19 (witness output /tmp/witness-driver/run19.out, `RUN_EXIT 0`, commit 6b780fbc, dev server PID 104780 on port 8831): `ok: true`, all three legs `aborted: null`, distinct targets. Leg 1 (creep 118): reach 795, launch 795, hit 801, latency 6, `targetHp` 7448, struckOther false. Leg 2 (placed creep 223): reach 1389, launch 1389, hit 1395, latency 6, `targetHp` 1231, struckOther false. Control (placed creep 249, lock off): reach 1702, launch 1702, hit 1709, latency 7, `targetHp` 1231, 23 samples, struckOther false.
+- Run 18's control cause (creep 248 lost mid-leg) is addressed by the lane clearance and the re-pick placement. Run 19 did not lose any target.
+- Status: H2 closed on the witness verdict of run 19. The judged legs measure the sim's first hit within the attack point plus one tick, with the placed target clear of the lanes. check-all: `RESULT gates=73 ok=73 failed=0 drift=0 skipped=6 strict=false` (/tmp/witness-driver/check-all-h2.out, `CHECK_EXIT 0`).
+
 ## Notes for Phase B (observations, not validation)
 
 - A hero walks about 4.7 cells per second on the live map. Reads taken one second apart can look like a stalled hero; use the position log over several seconds.
