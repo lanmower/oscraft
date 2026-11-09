@@ -15,6 +15,7 @@ const leg = (overrides) => ({
   attackPoint: 7,
   latencyTicks: 8,
   samples: 40,
+  windowGap: 1,
   ...overrides,
 });
 
@@ -36,6 +37,9 @@ const cases = [
   { name: "a judged leg with the lock not engaged fails", legs: stoppedAndWalking({ lock: "false" }), ok: false },
   { name: "an aborted judged leg fails", legs: stoppedAndWalking({ aborted: "hero dead" }), ok: false },
   { name: "a late lock-off control does not fail the verdict", legs: stoppedAndWalking({}, {}).map((l) => (l.judged ? l : { ...l, latencyTicks: 50, hitTick: 150 })), ok: true },
+  { name: "a judged leg sampled every tick in its window passes", legs: stoppedAndWalking({ windowGap: 1 }), ok: true },
+  { name: "a judged leg sampled two ticks apart in its window fails", legs: stoppedAndWalking({ windowGap: 2 }), ok: false },
+  { name: "a coarsely sampled lock-off control does not fail the verdict", legs: stoppedAndWalking({}, {}).map((l) => (l.judged ? l : { ...l, windowGap: 5 })), ok: true },
 ];
 
 for (const c of cases) {
