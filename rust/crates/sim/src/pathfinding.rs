@@ -195,6 +195,13 @@ impl Field {
         Some((NB_FX[k], NB_FY[k]))
     }
 
+    pub fn unreachable_from(&self, x: i32, y: i32) -> bool {
+        if x < 0 || y < 0 || x >= self.w || y >= self.h || !self.ready {
+            return false;
+        }
+        self.dist[(y * self.w + x) as usize] < 0
+    }
+
     pub fn discard(&mut self) {
         self.building = false;
         self.ready = false;

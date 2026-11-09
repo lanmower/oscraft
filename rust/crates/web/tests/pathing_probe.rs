@@ -921,3 +921,28 @@ fn a_target_just_inside_melee_reach_takes_melee_damage() {
     println!("probe reach_inside gap={gap:.2} reach={reach:.2} attacker_strikes={strikes} foe_hp={}", host.sim().hp(foe));
     assert!(strikes > 0, "the melee unit never struck a target {gap:.2} cells away, just inside its {reach:.2}-cell reach");
 }
+
+const LIVE_STALL_FROM: (i32, i32) = (71, 276);
+const LIVE_STALL_TO: (i32, i32) = (73, 280);
+const LIVE_STALL_TICKS: u32 = 400;
+
+#[test]
+fn a_hero_ordered_to_a_live_station_reaches_it_or_is_refused() {
+    let mut host = pack_host();
+    let hero = spawn(&mut host, PLAYER, "hero", true, LIVE_STALL_FROM);
+    let (gx, gy) = fixed_point(LIVE_STALL_TO);
+    let accepted = host.sim_mut().issue_order_kind(hero, ORDER_MOVE, gx, gy).is_ok();
+    let start = at(&host, hero);
+    let mut arrived_at = None;
+    for t in 1..=LIVE_STALL_TICKS {
+        host.advance().expect("advance the match");
+        if dist(at(&host, hero), cell_point(LIVE_STALL_TO)) <= ARRIVE_CELLS {
+            arrived_at = Some(t);
+            break;
+        }
+    }
+    let end = at(&host, hero);
+    let order = host.sim().order_of(hero).0;
+    println!("probe live_stall accepted={accepted} start={start:?} end={end:?} arrived_at={arrived_at:?} order_kind={order} reachable={:?}", shortest_cells(&host.sim(), LIVE_STALL_FROM, LIVE_STALL_TO));
+    assert!(!accepted || arrived_at.is_some() || order != ORDER_MOVE, "the hero holds a move order to ({}, {}) it cannot reach, and stands at {end:?}", LIVE_STALL_TO.0, LIVE_STALL_TO.1);
+}

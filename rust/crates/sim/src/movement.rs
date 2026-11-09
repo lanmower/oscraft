@@ -37,6 +37,13 @@ impl Sim {
                 self.routed[i] = 0;
             } else {
                 let slot = self.route_slot(i);
+                if self.flying[i] == 0 && self.paths.field(slot).unreachable_from(cell_of(self.pos_x[i]), cell_of(self.pos_y[i])) {
+                    self.routed[i] = 0;
+                    if self.order_kind[i] == ORDER_MOVE && self.attack_order[i] < 0 {
+                        self.order_kind[i] = ORDER_STOP;
+                    }
+                    return;
+                }
                 let wanted = (fixed::round(self.tgt_x[i]), fixed::round(self.tgt_y[i]));
                 let served_elsewhere = (self.paths.want_x[slot], self.paths.want_y[slot]) != wanted;
                 if served_elsewhere && self.blocked[i] == 0 && !self.needs_route(i, self.tgt_x[i], self.tgt_y[i]) {
