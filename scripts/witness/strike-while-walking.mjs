@@ -7,7 +7,7 @@ export const LEGS = [
 ];
 
 export const CONFIG = {
-  legMs: 25000,
+  legMs: 40000,
   sampleMs: 100,
   stallRunSamples: 8,
   stallTraceCap: 400,
@@ -20,7 +20,6 @@ export const CONFIG = {
   targetOwner: 255,
   reachCells: 10,
   arriveCells: 0.8,
-  oscillateCells: 0.4,
   stopCells: 1,
   isolationCells: 4,
   laneCells: 4,
@@ -35,6 +34,7 @@ export const CONFIG = {
   pickRangeCells: 100,
   attemptLimit: 40,
   walkingCells: 1.5,
+  arrivedCells: 1,
   orderSettleMs: 250,
 };
 
@@ -178,6 +178,8 @@ export async function strikeWhileWalkingLeg(config) {
   let creep = null;
   let toward = null;
   let aborted = null;
+  let pick = null;
+  const picks = [];
 
   let initialPick = null;
   const movingStrikes = [];
@@ -217,8 +219,30 @@ export async function strikeWhileWalkingLeg(config) {
       aborted = "hero below abort hp";
       break;
     }
-    if (!creep || window.__ciHp(creep.id) <= 0) {
-      const picked = await choosePicked(h);
+    if (pick === null && (!creep || window.__ciHp(creep.id) <= 0)) {
+      const started = { done: false, value: null };
+      pick = started;
+      const syncStart = Date.now();
+      const entry = { atMs: Date.now() - legStart, syncMs: null, doneMs: null };
+      const running = choosePicked(h);
+      entry.syncMs = Date.now() - syncStart;
+      if (picks.length < 200) picks.push(entry);
+      running.then(
+        (value) => {
+          started.value = value;
+          started.done = true;
+          entry.doneMs = Date.now() - legStart;
+        },
+        (error) => {
+          started.value = { creep: null, aborted: String(error) };
+          started.done = true;
+          entry.doneMs = Date.now() - legStart;
+        },
+      );
+    }
+    if (pick !== null && pick.done) {
+      const picked = pick.value;
+      pick = null;
       if (picked.creep === null) {
         aborted = picked.aborted;
         break;
@@ -226,11 +250,11 @@ export async function strikeWhileWalkingLeg(config) {
       creep = picked.creep;
       commandAttack(creep.id, "re-pick");
     }
-    if (creep && Date.now() - lastOrderAt > config.orderEveryMs) {
+    if (pick === null && creep && Date.now() - lastOrderAt > config.orderEveryMs) {
       if (window.__ciStrikeOf(heroId) !== creep.id) commandAttack(creep.id, "in-loop re-attack");
       const stations = {
         a: pointToward(creep, stage, config.stopCells, stationTurn),
-        b: pointToward(creep, stage, config.stopCells + config.oscillateCells, stationTurn),
+        b: pointToward(creep, stage, config.stopCells, stationTurn + config.stationTurns / 2),
       };
       if (toward === null || distance(h, stations[toward]) < config.arriveCells) toward = toward === "a" ? "b" : "a";
       const accepted = window.__ciMove(heroId, stations[toward].x, stations[toward].z);
@@ -270,7 +294,8 @@ export async function strikeWhileWalkingLeg(config) {
     }
     samples += 1;
     const moved = previous !== null && Math.hypot(now.x - previous.x, now.z - previous.z) > 0.05;
-    const walkingOrder = (window.__ciOrderOf(heroId)?.[0] ?? -1) === 0;
+    const order = window.__ciOrderOf(heroId);
+    const walkingOrder = order?.[0] === 0 && distance({ x: order[1] / 65536, z: order[2] / 65536 }, now) > config.arrivedCells;
     const walking = moved && walkingOrder;
     if (moved) movingSamples += 1;
     if (moved) {
@@ -331,6 +356,8 @@ export async function strikeWhileWalkingLeg(config) {
         swing: window.__ciSwingPoint(heroId),
         launch: window.__ciStrikeStamp(heroId),
         walkTo: walkTo ? [+walkTo.x.toFixed(2), +walkTo.z.toFixed(2)] : null,
+        terms: window.__ciAttackTerms(heroId, creep.id),
+        swingLeft: window.__ciSwingPoint(heroId),
       });
     }
     let heroEffects = 0;
@@ -354,9 +381,11 @@ export async function strikeWhileWalkingLeg(config) {
     }
     previous = { x: now.x, z: now.z };
   }
+  while (pick !== null && !pick.done) await sleep(config.sampleMs);
   if (stillSamples >= config.stallRunSamples) stallRuns.push({ startMs: stillSince, samples: stillSamples });
 
   return {
+    picks,
     stallRuns,
     stallTrace,
     strikeTrace,
