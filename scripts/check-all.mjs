@@ -86,6 +86,7 @@ const GATE_GENERATORS = [
   "apply-pathing-688g.mjs",
   "gen-ability-fx.mjs",
   "gen-lane-routes-688g.mjs",
+  "gen-melee-reach.mjs",
 ];
 
 const DRIFT = [];

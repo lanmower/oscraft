@@ -2,7 +2,7 @@ local units = require("units")
 local xp = require("xp")
 
 local FIXED_POINT_UNIT = 65536
-local MELEE_RANGE_FIXED = 170394
+local MELEE_RANGE_FIXED = require("melee_reach").cutoff_q16
 
 local function fixed_to_whole_units(v)
   return math.floor(v / FIXED_POINT_UNIT + 0.5)
