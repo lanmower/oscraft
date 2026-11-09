@@ -175,6 +175,9 @@ impl Sim {
                     } else {
                         self.tgt_x[i] = self.pos_x[i];
                         self.tgt_y[i] = self.pos_y[i];
+                        if self.order_kind[i] == ORDER_MOVE && self.attack_order[i] < 0 {
+                            self.order_kind[i] = ORDER_STOP;
+                        }
                     }
                 } else if dist > 0 {
                     vx = ((dx as i64 * speed as i64) / dist) as i32;

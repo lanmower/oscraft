@@ -941,6 +941,28 @@ fn a_stopped_hero_ordered_to_attack_a_foe_out_of_reach_walks_in_and_strikes() {
     assert!(strikes > 0, "the stopped unit never walked in to strike the foe it was ordered to attack");
 }
 
+const FRIENDLY_GOAL_GAP_MILLI: i32 = 200;
+const FRIENDLY_GOAL_TICKS: u32 = 20;
+
+#[test]
+fn a_move_whose_goal_is_held_by_a_friendly_body_ends_as_stop_not_as_a_move_to_its_own_position() {
+    let mut host = pack_host();
+    let hero = spawn(&mut host, PLAYER, HERO, true, START);
+    let blocker = spawn(&mut host, PLAYER, GROUND, false, (START.0 + MELEE_FOE_CELL_GAP, START.1));
+    let (hx, hy) = host.sim().position_fixed(hero);
+    let (gx, gy) = (hx + fixed::from_milli(FRIENDLY_GOAL_GAP_MILLI), hy);
+    assert!(host.sim_mut().teleport(blocker, gx, gy), "the blocker moves onto the goal");
+    host.sim_mut().issue_order_kind(hero, ORDER_MOVE, gx, gy).expect("the move order is accepted");
+    for _ in 0..FRIENDLY_GOAL_TICKS {
+        host.advance().expect("advance the match");
+    }
+    let (kind, tx, ty) = host.sim().order_of(hero);
+    let (px, py) = host.sim().position_fixed(hero);
+    println!("probe friendly_goal kind={kind} target=({tx}, {ty}) position=({px}, {py})");
+    assert_ne!(kind, ORDER_MOVE, "the hero holds a move order after its goal was held by a friendly body");
+    assert_eq!((tx, ty), (px, py), "the stopped hero keeps its own position as its target");
+}
+
 const LIVE_STALL_FROM: (i32, i32) = (71, 276);
 const LIVE_STALL_TO: (i32, i32) = (73, 280);
 const LIVE_STALL_TICKS: u32 = 400;

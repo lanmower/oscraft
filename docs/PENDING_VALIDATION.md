@@ -579,3 +579,20 @@ Final-witness tally: 4 of 5 green (runs 4, 5, 6, 8 pass; run 7 fails with the st
   - Pass 5: `verdict {"ok":true,"reasons":[]}`; lock on 1, lock off 2, lock on again 2 strikes; 0 launches while moving.
 - Red before the station fix (same sim, witness at a22ed043 and 72e2d16d with the stations at 2.0 and 3.6 cells): 4 of 9 passes over the whole batch were red (pass 4 of the earlier batch; A1, A2, A3; B1). Each red leg had zero hits, attacks accepted and the hero in reach at the first attempt. Cause: witness defect, the stations were outside the hero's 2.0-cell melee reach (see the row above), so a strike depended on the walk's timing.
 - Sim changes in this row (the attack-order fix): the approach branch of `order_attack_or_approach` turns STOP into MOVE, witnessed by `a_stopped_hero_ordered_to_attack_a_foe_out_of_reach_walks_in_and_strikes`. Before the fix that test failed with `strikes=0 attack=-1`.
+
+## Phase A row: the steer fallback held MOVE on the unit's own position (2026-11-09)
+
+- Defect: `steer` (movement.rs, the branch where a unit is within one step of its target and the straight snap is not clear, because a friendly body holds the target or a corner is blocked) set the target to the unit's own position and left the order MOVE. A MOVE with its target on its own position never resolves, so the order reports an active move that is finished. Not reproduced in a live run; the code reading is the cause.
+- Change, `rust/crates/sim/src/movement.rs` (`steer`): the same branch now turns an open MOVE with no attack into STOP. The target is kept at the position, as before; the order kind is the only change. Rationale: a unit that cannot reach its target ends its move as STOP.
+- Witness: `a_move_whose_goal_is_held_by_a_friendly_body_ends_as_stop_not_as_a_move_to_its_own_position` (`rust/crates/web/tests/pathing_probe.rs`): a blocker is teleported onto a goal 0.2 cells from the hero, the move is issued, and after 20 ticks the order must not be MOVE and the target must equal the position. Phase B runs this test red before the fix (fix temporarily removed) and green after, and quotes both.
+- Gate: the existing `a_stopped_hero_ordered_to_attack_a_foe_out_of_reach_walks_in_and_strikes` and the full `pathing_probe` suite must still pass.
+
+## Phase A decision: the bundling row is resolved (2026-11-09)
+
+- Decision (owner delegated the call to the agent): the bundling row closes as `resolved`. The close is committed in Phase B, with its commit body carrying `Row:`, `Witness:` and `Status: resolved`, and only after the witnesses listed below have run and been quoted.
+- Evidence for the close: the live stall the row tracked (D1 run 7) reproduced headlessly with its exact coordinates as `a_hero_ordered_to_a_live_station_reaches_it_or_is_refused`. Two causes, both fixed: (1) the sim accepted a walkable goal in a separate region and a routed unit held an open MOVE forever (70d12611); (2) an attack ordered after such a STOP was dropped (72e2d16d). A third cause, the witness's own station refusals and station geometry, is fixed in the witness (a22ed043, d3688447).
+- Witnesses for the close, all run in Phase B: `pathing_probe bundle` (40-unit bundle), `funnel` (60-unit funnel through a 5-cell gap), `spread` (40 goals past the field cache), `a_hero_ordered_to_a_live_station`, `a_stopped_hero_ordered_to_attack`, and five fresh-match D1 live passes on the final commit.
+
+## Phase A note: the attack walk-in change is gameplay-visible (2026-11-09)
+
+- An attack ordered to a unit that was stopped now walks in to strike; before 72e2d16d the attack was dropped and the unit stood still. Rationale: an attack command should chase its target, and the old drop only happened because a stop left by an unreachable move was not cleared (see the rows above).
