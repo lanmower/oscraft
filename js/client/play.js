@@ -45,7 +45,7 @@ import { chainFrame } from "./frame_chain.js";
 import { readItem, writeItem, removeItem } from "./safe_storage.js";
 import { keyNameOf } from "./key_names.js";
 import { LOBBY_LINK_WAIT_MS, lobbyInputRoute, heldCallsAfterSettle, replayHeldCalls } from "./lobby_link.js";
-import { createGuiFlow } from "./gui_flow.js";
+import { createGuiFlow, packMenuBackdrop } from "./gui_flow.js";
 import { createPodium, podiumScene, podiumCameraStep, podiumPlinthTransforms } from "./podium.js";
 import { saveReplayFile } from "./replay_save.js";
 import { attachButtonClicks, createSfx, createVoices } from "./audio.js";
@@ -1765,6 +1765,7 @@ function mountGuiFlow() {
     me: () => auth.pubkey || LOCAL_OWNER_ID,
     act: (call, args) => sendInput("ui", { call, args }),
     iconUrl: flowIconUrl,
+    menuBackdrop: packMenuBackdrop(UI, assetUrl),
     onPodium: flowPodium,
   });
   window.__oscraftFlow = guiFlow;

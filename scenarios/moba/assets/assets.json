@@ -1,7 +1,16 @@
 {
- "count": 3124,
- "total_bytes": 82765628,
+ "count": 3125,
+ "total_bytes": 83202579,
  "items": [
+  {
+   "id": "menu-backdrop",
+   "kind": "texture",
+   "path": "textures/menu-backdrop.jpg",
+   "placed_by": "moba_ui.json",
+   "bytes": 436951,
+   "role": "menu_backdrop",
+   "status": "pack_asset"
+  },
   {
    "id": "rock",
    "kind": "model",

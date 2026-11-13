@@ -181,7 +181,8 @@
       "path_earth": "textures/lane_earth_256.jpg",
       "path_earth_disp": "textures/lane_disp.jpg",
       "rock": "textures/rock024_color.jpg",
-      "rockDisp": "textures/rock024_disp.jpg"
+      "rockDisp": "textures/rock024_disp.jpg",
+      "menu_backdrop": "textures/menu-backdrop.jpg"
     },
     "models": "models",
     "catalogue": "assets.json",

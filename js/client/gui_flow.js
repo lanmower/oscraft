@@ -1,4 +1,9 @@
 import { sceneWidget } from "./widgets.js";
+export function packMenuBackdrop(packUi, resolveAsset) {
+  const key = packUi?.menuBackdrop;
+  if (typeof key !== "string" || typeof resolveAsset !== "function") return null;
+  return new URL(resolveAsset(key), location.href).href;
+}
 const TEAM_SIZE = 5;
 const GROUPS = [
   { id: 1, name: "Strength" },
@@ -6,19 +11,20 @@ const GROUPS = [
   { id: 3, name: "Intelligence" },
 ];
 
-export function createGuiFlow({ root, iconUrl, lobby, me, act, onPodium, teamNames = ["The Sentinel", "The Scourge"] }) {
+export function createGuiFlow({ root, iconUrl, lobby, me, act, onPodium, menuBackdrop = null, teamNames = ["The Sentinel", "The Scourge"] }) {
   const el = document.createElement("div");
   el.id = "gui-flow";
   el.dataset.stage = "";
   el.hidden = true;
   root.append(el);
   const style = document.createElement("style");
+  const backdrop = menuBackdrop ? `url("${menuBackdrop.replace(/["\\]/g, "\\$&")}") center / cover no-repeat, ` : "";
   style.textContent = `
 #gui-flow { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 3vh;
-  background: radial-gradient(ellipse at 50% 30%, rgba(10,14,22,.86), rgba(6,8,12,.96)); color: #e8ecf4;
+  background: ${backdrop}radial-gradient(ellipse at 50% 30%, rgba(10,14,22,.86), rgba(6,8,12,.96)); color: #e8ecf4;
   font: 15px system-ui, sans-serif; }
-#gui-flow[data-stage="podium"], #gui-flow[data-stage="wait"] { background: linear-gradient(to bottom, rgba(8,10,16,.92) 0, transparent 45%, rgba(8,10,16,.92) 100%); pointer-events: none; }
+#gui-flow[data-stage="podium"], #gui-flow[data-stage="wait"] { background: ${backdrop}linear-gradient(to bottom, rgba(8,10,16,.92) 0, transparent 45%, rgba(8,10,16,.92) 100%); pointer-events: none; }
 #gui-flow h1 { font-size: 34px; font-weight: 600; letter-spacing: .04em; margin: 0; text-align: center; }
 #gui-flow[data-stage="podium"] h1, #gui-flow[data-stage="wait"] h1 { font-size: 22px; text-shadow: 0 2px 18px rgba(0,0,0,.7); }
 #gui-flow[data-stage="podium"] .flow-hero-bar, #gui-flow[data-stage="podium"] .flow-board,

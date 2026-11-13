@@ -5,6 +5,7 @@
     "Naga Siren": "NAG",
     "Earth Spirit": "ESP"
   },
+  "menuBackdrop": "textures.menu_backdrop",
   "roles": ["Carry", "Support", "Nuker", "Disabler", "Jungler", "Durable", "Escape", "Pusher", "Initiator"],
   "keys": {
     "attackMove": [
