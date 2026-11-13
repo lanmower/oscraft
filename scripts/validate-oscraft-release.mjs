@@ -31,9 +31,9 @@ if (!artifact.evidenceFiles?.["scenarios/bota/cross-contract-snapshot.json"] || 
 if (artifact.crossContracts?.driftStale !== 0 || artifact.crossContracts?.required !== 8) fail("cross-contract counts invalid");
 const regimes = artifact.identifierRegimes ?? {};
 if (regimes.default?.packParam !== "scenarios/moba-acronyms" || regimes.default?.pack !== "moba-acronyms" || regimes.default?.activeIds !== 127 || regimes.default?.acronymOnly !== true || artifact.packParam !== "scenarios/moba-acronyms") fail("default identifier regime invalid");
-if (regimes.bota?.pack !== "bota" || regimes.bota?.activeIds !== 26 || regimes.bota?.fullnameOnly !== true) fail("BOTA identifier regime invalid");
+if (regimes.bota?.pack !== "bota" || regimes.bota?.activeIds !== 24 || regimes.bota?.fullnameOnly !== true) fail("BOTA identifier regime invalid");
 if (regimes.historical?.pack !== "moba") fail("historical pack invalid");
-if (!Array.isArray(artifact.botaModels?.hashes) || artifact.botaModels.hashes.length !== 26 || artifact.botaModels.joints !== 28 || artifact.botaModels.clips !== 8) fail("26-model hash proof invalid");
+if (!Array.isArray(artifact.botaModels?.hashes) || artifact.botaModels.hashes.length !== 24 || artifact.botaModels.joints !== 28 || artifact.botaModels.clips !== 8) fail("26-model hash proof invalid");
 const skinned = JSON.parse(fs.readFileSync(path.join(root, "scenarios", "bota", "bota-skinned.json"), "utf8"));
 let matched = 0;
 for (const [id, row] of Object.entries(skinned.heroes ?? {})) {
@@ -41,12 +41,12 @@ for (const [id, row] of Object.entries(skinned.heroes ?? {})) {
   if (!fs.existsSync(file) || sha256(fs.readFileSync(file)) !== row.skinnedSha256) fail(`${id}: live model hash differs`);
   matched += 1;
 }
-if (matched !== 26) fail(`only ${matched}/26 live model hashes match`);
+if (matched !== 24) fail(`only ${matched}/24 live model hashes match`);
 if (artifact.menuBackdrop?.bytes !== 3654481 || artifact.menuBackdrop?.sha256 !== "431b1f861938c26edb7ce226e75d1c66a433c701d70a59463e064c402a077549") fail("menuBackdrop evidence invalid");
 const backdropHash = sha256(fs.readFileSync(path.join(root, "scenarios", "bota", "assets", "textures", "menu-backdrop.jpg")));
 if (backdropHash !== artifact.menuBackdrop.sha256) fail("live backdrop hash differs");
 const browser = artifact.browser ?? {};
-if (browser.ok !== true || browser.uSkinned !== 1 || browser.jointFloats !== 448 || browser.models !== 28 || browser.heroes !== 26 || browser.joints !== 28 || browser.clips !== 8 || browser.motion !== "walk/run" || browser.backdropHits < 1 || browser.other404s !== 0) fail(`browser/WebGL evidence invalid: ${JSON.stringify(browser)}`);
+if (browser.ok !== true || browser.uSkinned !== 1 || browser.jointFloats !== 448 || browser.models !== 26 || browser.heroes !== 24 || browser.joints !== 28 || browser.clips !== 8 || browser.motion !== "walk/run" || browser.backdropHits < 1 || browser.other404s !== 0) fail(`browser/WebGL evidence invalid: ${JSON.stringify(browser)}`);
 const gate = artifact.gateCounts ?? {};
 if (gate.gates < 78 || gate.ok !== gate.gates || gate.failed !== 0) fail(`gate counts invalid: ${JSON.stringify(gate)}`);
 if (!Array.isArray(artifact.checks) || artifact.checks.some((row) => row.exit !== 0)) fail("one or more included checks had non-zero exit");

@@ -1,0 +1,250 @@
+{
+  "schema": 1,
+  "sourceManifest": "/workspace/hy3d/output/bota-ready.json",
+  "rig": "roshan-skinned.glb",
+  "animationLibrary": "assets/anim/library.json",
+  "boneMap": "assets/anim/maps/humanoid.json",
+  "clips": 8,
+  "heroes": {
+    "neckbeard": {
+      "slot": "001",
+      "sourceStaticSha256": "ea89469a969a4feecddd6edccc8f39dbc4435bb1a47232f47ce53863846af6c2",
+      "sourceStaticBytes": 883084,
+      "skinnedSha256": "c4486208f48e9a3d70c3448eb1c4881ee25deda8f03f026dd2bcc69a6921b6a6",
+      "skinnedBytes": 1260884,
+      "skinJoints": 28,
+      "vertices": 15423,
+      "libraryClips": 8
+    },
+    "wojak": {
+      "slot": "004",
+      "sourceStaticSha256": "3b808bc6704a62c8eff572e1bb82f93f4f08eb717c726e6e0339e1e1c1ba4749",
+      "sourceStaticBytes": 749868,
+      "skinnedSha256": "9c701f0c08bff46f8c6371f7f373bd38abda658f1cbd490fa12a9de79f636682",
+      "skinnedBytes": 1122600,
+      "skinJoints": 28,
+      "vertices": 15212,
+      "libraryClips": 8
+    },
+    "bloomer": {
+      "slot": "005",
+      "sourceStaticSha256": "6f8de1a65e339424f0d05cd9da21f431a10d97a21b113e33371bf11bf7637cb0",
+      "sourceStaticBytes": 864008,
+      "skinnedSha256": "9652a0f6968b7edcc59797b46bf4c5bc67180df8ad7074c39c3895a52a8d38c8",
+      "skinnedBytes": 1232924,
+      "skinJoints": 28,
+      "vertices": 15053,
+      "libraryClips": 8
+    },
+    "tradwife": {
+      "slot": "006",
+      "sourceStaticSha256": "a0a1102ee208368a536d3e466a0ea2081b9d7de52f8645995d0dd48c1a263c3a",
+      "sourceStaticBytes": 988804,
+      "skinnedSha256": "807c0f474ad78afbcb6ef58ff61180023a2ee0cceb7318f9c01e37ddf3b055bd",
+      "skinnedBytes": 1401668,
+      "skinJoints": 28,
+      "vertices": 16884,
+      "libraryClips": 8
+    },
+    "boomer": {
+      "slot": "007",
+      "sourceStaticSha256": "bb006bf306719fd84844e830d8e6c558002edd39f58e24836a7ab778c36db415",
+      "sourceStaticBytes": 1095600,
+      "skinnedSha256": "3c16c7eb05620cbbb83bb65401d3a8ac990b490ed91c1de1e70337060a9db186",
+      "skinnedBytes": 1592752,
+      "skinJoints": 28,
+      "vertices": 20396,
+      "libraryClips": 8
+    },
+    "coomer": {
+      "slot": "008",
+      "sourceStaticSha256": "34d958c0e851c48367a107a4f1a0ec41ae1ae705277719eeb0c31a4e568dd9d7",
+      "sourceStaticBytes": 882996,
+      "skinnedSha256": "e9ce0cf132d9230992935ebf8fd6fe793020d9223914998398cdc4913b372cc2",
+      "skinnedBytes": 1270516,
+      "skinJoints": 28,
+      "vertices": 15828,
+      "libraryClips": 8
+    },
+    "gondola": {
+      "slot": "009",
+      "sourceStaticSha256": "a816ab877989a123c51e0f7793e81049992a5f995af7780ac243af2f1a42ba9d",
+      "sourceStaticBytes": 873576,
+      "skinnedSha256": "6e00ba21d41e2b0b1bcbbabb0b1c5e633882c8e133cec8c58dea112ceaeb2354",
+      "skinnedBytes": 1242396,
+      "skinJoints": 28,
+      "vertices": 15049,
+      "libraryClips": 8
+    },
+    "spurdo": {
+      "slot": "010",
+      "sourceStaticSha256": "9b89d4418b4c25c51ea46deea1d9774d9ed0ed8d9cead7144d75514e2033797c",
+      "sourceStaticBytes": 887892,
+      "skinnedSha256": "4fcd632ab3b961e75757cdf6e5697ffc166378c12ae0ebf90cf1e328cd898c50",
+      "skinnedBytes": 1272508,
+      "skinJoints": 28,
+      "vertices": 15707,
+      "libraryClips": 8
+    },
+    "howard": {
+      "slot": "012",
+      "sourceStaticSha256": "4159c6761f4d3de55ac7dfa06ece2473ac3ea01b6accf534f21ecd998955adfc",
+      "sourceStaticBytes": 984856,
+      "skinnedSha256": "b25b3e06d2ffc00fc7e33caf39ec8fd5967001e7598509220233216c91fcea97",
+      "skinnedBytes": 1414304,
+      "skinJoints": 28,
+      "vertices": 17575,
+      "libraryClips": 8
+    },
+    "sanic": {
+      "slot": "013",
+      "sourceStaticSha256": "955cd71df746df2e7f56ed748097b05e1188b54659d07070a923d5639cfdc3f0",
+      "sourceStaticBytes": 851508,
+      "skinnedSha256": "7211dab419f30a0f74c3a5a99558732cf3c0b4dfdebced61551718b4a6e878f3",
+      "skinnedBytes": 1228320,
+      "skinJoints": 28,
+      "vertices": 15382,
+      "libraryClips": 8
+    },
+    "lankdad": {
+      "slot": "014",
+      "sourceStaticSha256": "36b5b0ac3fb26039ac8c5bdedbf812f23a2221f395cc556e82381aaed5c59de5",
+      "sourceStaticBytes": 821028,
+      "skinnedSha256": "2fa27c5f1a5d108e13eaf3238f338d21e8cc3779215973437ba7ba9f9ebd4fba",
+      "skinnedBytes": 1228372,
+      "skinJoints": 28,
+      "vertices": 16654,
+      "libraryClips": 8
+    },
+    "finger_dan": {
+      "slot": "015",
+      "sourceStaticSha256": "eb218e82e2215d1f71b682d3effb1e4001181b76dec178977c00594fc51094ae",
+      "sourceStaticBytes": 891780,
+      "skinnedSha256": "4d71bdc4ef495ff9d904a45021aef593cabb713a61be41d48da2d353a0e4c1b5",
+      "skinnedBytes": 1288828,
+      "skinJoints": 28,
+      "vertices": 16225,
+      "libraryClips": 8
+    },
+    "willie": {
+      "slot": "016",
+      "sourceStaticSha256": "90bd6c26e2a12220e4cfa8c56821618f303944ecd5c96cf8637673cded8f892f",
+      "sourceStaticBytes": 800444,
+      "skinnedSha256": "4f9dc165564903849149b9d76203571b0b760845a121692bc785a60a724bf879",
+      "skinnedBytes": 1167800,
+      "skinJoints": 28,
+      "vertices": 14988,
+      "libraryClips": 8
+    },
+    "noscope": {
+      "slot": "017",
+      "sourceStaticSha256": "07f36386557552cde1785f9c8e4495ff8adf9abfe8220fbd7261435d9a58b561",
+      "sourceStaticBytes": 1151512,
+      "skinnedSha256": "c8cbe05c06e04a034fae2ebb603503c8ec4834d6040a8e957d6659fa6762608e",
+      "skinnedBytes": 1665608,
+      "skinJoints": 28,
+      "vertices": 21102,
+      "libraryClips": 8
+    },
+    "dino": {
+      "slot": "018",
+      "sourceStaticSha256": "892fb0189fe9842cad0dbbcc6b7b937fa6fe3017f7a1f8c4549fb9a007f3d793",
+      "sourceStaticBytes": 983884,
+      "skinnedSha256": "6ac497f173d3c1ee20d5aaa1efe0083d721bb616af03b8622e3c2fcaf90c7c29",
+      "skinnedBytes": 1414892,
+      "skinJoints": 28,
+      "vertices": 17640,
+      "libraryClips": 8
+    },
+    "ecce": {
+      "slot": "019",
+      "sourceStaticSha256": "0dfdbf833755306d5a428dcaf42fe7ab8e0a73b18c546f1e3331694b431eb1a3",
+      "sourceStaticBytes": 1046760,
+      "skinnedSha256": "2af4c1111aa532a24bb6a6c0eb32a9e7e62b7b28792ceb7bbe72d1f1bd14d45b",
+      "skinnedBytes": 1517320,
+      "skinJoints": 28,
+      "vertices": 19288,
+      "libraryClips": 8
+    },
+    "bot_bernard": {
+      "slot": "020",
+      "sourceStaticSha256": "8258fa5478866391cb81ae1d0f833ab1ea8424f5564cd793e9496a8570a16aae",
+      "sourceStaticBytes": 969072,
+      "skinnedSha256": "507946470c7715d1760d1952ffd83cb70f57baa0b3ffb8bbe84e283054afbb50",
+      "skinnedBytes": 1381260,
+      "skinJoints": 28,
+      "vertices": 16856,
+      "libraryClips": 8
+    },
+    "shoop": {
+      "slot": "021",
+      "sourceStaticSha256": "6d00a3c6134fded1242940b24c36142d2c0f5abc5a8c31034f9a9c513300fdca",
+      "sourceStaticBytes": 984376,
+      "skinnedSha256": "795cfe8b30d93950cb19c46961e7761f49b7546b80f9ef87631f1c3a91599fbe",
+      "skinnedBytes": 1399396,
+      "skinJoints": 28,
+      "vertices": 16974,
+      "libraryClips": 8
+    },
+    "npc": {
+      "slot": "022",
+      "sourceStaticSha256": "25351c161219317f2e4194a019a65e75885e014865a4115ba2bac3845b8f97fb",
+      "sourceStaticBytes": 888324,
+      "skinnedSha256": "2ae33af4bf22b586b437246cf48ac5a5aa9e2c75494573cbf5bc429bab60410e",
+      "skinnedBytes": 1279516,
+      "skinJoints": 28,
+      "vertices": 15981,
+      "libraryClips": 8
+    },
+    "forever": {
+      "slot": "023",
+      "sourceStaticSha256": "3a4117dba44b41c4bde82264111e8267a09401ff24519e779d169b74052b26a7",
+      "sourceStaticBytes": 969544,
+      "skinnedSha256": "db49ddb78ba125f480995df76bcc53d10c53e10e21a5bccc13dd81ee8d346ee5",
+      "skinnedBytes": 1367456,
+      "skinJoints": 28,
+      "vertices": 16261,
+      "libraryClips": 8
+    },
+    "cole": {
+      "slot": "024",
+      "sourceStaticSha256": "c376dee34eb5df56bd2788084785d8916bdff54c303566f8f65d084e49ddc829",
+      "sourceStaticBytes": 1086648,
+      "skinnedSha256": "143593f53b5d7b107864a4b228cb5b5ab61e691942f8f675656a3cc0641201c5",
+      "skinnedBytes": 1559584,
+      "skinJoints": 28,
+      "vertices": 19387,
+      "libraryClips": 8
+    },
+    "grey": {
+      "slot": "025",
+      "sourceStaticSha256": "7fc7cfcc05d5738d68111a19b4c012a18c5743503b672a01c844c588902d4de5",
+      "sourceStaticBytes": 1052848,
+      "skinnedSha256": "1582e8597915bfea5684935d48b183d3895eb6a5f0ae8976d25e0511bbd4d804",
+      "skinnedBytes": 1490816,
+      "skinJoints": 28,
+      "vertices": 17930,
+      "libraryClips": 8
+    },
+    "ghillie": {
+      "slot": "026",
+      "sourceStaticSha256": "a08da90877d12ddd79eab28588546aebec894d223808dcd9dc9b5d45b6c4deed",
+      "sourceStaticBytes": 1074548,
+      "skinnedSha256": "853df7621bb160220167bda1076463f3b6c652174abd5b3319043e3167963560",
+      "skinnedBytes": 1514316,
+      "skinJoints": 28,
+      "vertices": 18005,
+      "libraryClips": 8
+    },
+    "gothgirl": {
+      "slot": "027",
+      "sourceStaticSha256": "1e4b1bc264f62468361a43ad71b2efeefe51a783209269df4416cbef31395496",
+      "sourceStaticBytes": 942088,
+      "skinnedSha256": "ac7cea0927ae6b920088608bab18dea1703f4c5b42dc0febc9a49eb777c31720",
+      "skinnedBytes": 1433236,
+      "skinJoints": 28,
+      "vertices": 20146,
+      "libraryClips": 8
+    }
+  }
+}

@@ -119,7 +119,7 @@ try {
   const loader = fs.readFileSync(path.join(root, "js", "client", "pack_load.js"), "utf8");
   if (!/PACK_PARAM[^\n]*"scenarios\/moba-acronyms"/.test(loader)) fail("PACK_PARAM default is not scenarios/moba-acronyms");
   if (defaultManifest.name !== "moba-acronyms" || defaultUi.identifierMode !== "default-dota-acronyms" || defaultIds.length !== 127 || defaultIds.some((id) => !/^[a-z]{1,3}$/.test(id))) fail("default runtime pack is not 127 acronym-only IDs");
-  if (botaManifest.name !== "bota" || botaUi.identifierMode !== "bota-fullname" || botaUi.menuBackdrop !== "textures.menu_backdrop" || botaIds.length !== 26 || botaIds.some((id) => /^[a-z]{1,3}$/.test(id) && id !== "npc")) fail("BOTA runtime pack is not 26 fullname IDs with menuBackdrop");
+  if (botaManifest.name !== "bota" || botaUi.identifierMode !== "bota-fullname" || botaUi.menuBackdrop !== "textures.menu_backdrop" || botaIds.length !== 24 || botaIds.some((id) => /^[a-z]{1,3}$/.test(id) && id !== "npc")) fail("BOTA runtime pack is not 24 fullname IDs with menuBackdrop");
   if (historicalManifest.name !== "moba" || historicalManifest.ui !== "moba_ui.json") fail("historical source pack manifest mismatch");
   const backdrop = await fetchOk(urls.backdrop);
   const backdropHash = sha256(backdrop.bytes);
@@ -137,13 +137,13 @@ try {
     if (!fs.existsSync(file) || sha256(fs.readFileSync(file)) !== row.skinnedSha256) fail(`${id}: bota-skinned.json hash mismatch`);
     localHashMatches += 1;
   }
-  if (localHashMatches !== 26) fail(`only ${localHashMatches}/26 BOTA skinned hashes match local GLBs`);
+  if (localHashMatches !== 24) fail(`only ${localHashMatches}/24 BOTA skinned hashes match local GLBs`);
   const browserSummary = runNode(path.join(root, "scripts", "check-bota-browser.mjs"), ["--all", "--from-cross-runtime"]);
   const browserText = `${browserSummary.stdout ?? ""}${browserSummary.stderr ?? ""}`.trim();
   if (browserSummary.status !== 0) { console.error(browserText); fail(`browser summary exited ${browserSummary.status}`); }
   let browser;
   try { browser = JSON.parse(browserText.split("\n").filter(Boolean).at(-1)); } catch { fail(`browser summary is not compact JSON: ${browserText.slice(-300)}`); }
-  if (!browser.ok || browser.uSkinned !== 1 || browser.jointFloats !== 448 || browser.models !== 28 || browser.heroes !== 26 || browser.joints !== 28 || browser.clips !== 8 || browser.motion !== "walk/run" || browser.backdropHits < 1 || browser.other404s !== 0) fail(`browser/WebGL summary failed: ${JSON.stringify(browser)}`);
+  if (!browser.ok || browser.uSkinned !== 1 || browser.jointFloats !== 448 || browser.models !== 26 || browser.heroes !== 24 || browser.joints !== 28 || browser.clips !== 8 || browser.motion !== "walk/run" || browser.backdropHits < 1 || browser.other404s !== 0) fail(`browser/WebGL summary failed: ${JSON.stringify(browser)}`);
   const evidence = {
     schema: "oscraft.cross-runtime-evidence/v1",
     generatedAt: new Date().toISOString(),
@@ -162,7 +162,7 @@ try {
     },
     backdrop: { status: backdrop.status, bytes: backdrop.bytes.length, sha256: backdropHash, key: botaUi.menuBackdrop },
     heroModel: { id: "neckbeard", status: heroGlb.status, bytes: heroGlb.bytes.length, sha256: heroHash, magic: "glTF", version: 2 },
-    botaSkinnedHashRows: { expected: 26, matched: localHashMatches, clips: skinned.clips },
+    botaSkinnedHashRows: { expected: 24, matched: localHashMatches, clips: skinned.clips },
     browser,
     crossContracts: { required: snapshot.counts.required, optionalPresent: Number(optionalPresent), optionalMissing: Number(optionalMissing), extraPresent: Number(extraPresent), extraMissing: Number(extraMissing), hashBearingRowsVerified: Number(hashRows), driftStale: 0 },
     optionalPeerStatus: { optionalPresent: snapshot.optionalPresent, optionalMissing: snapshot.optionalMissing, extraPresent: snapshot.extraPresent, extraMissing: snapshot.extraMissing, extraSummary: snapshot.extraSummary },
@@ -172,7 +172,7 @@ try {
   fs.writeFileSync(evidenceFile, JSON.stringify(evidence, null, 2) + "\n");
   console.log(`runtime evidence: path=scenarios/bota/runtime-evidence.json snapshotHash=${snapshotHash} ok=true`);
   console.log(`cross-runtime PASS: default=${defaultManifest.name}/${defaultIds.length} acronyms; bota=${botaManifest.name}/${botaIds.length} fullnames; historical=${historicalManifest.name}`);
-  console.log(`cross-runtime PASS: backdrop sha256=${backdropHash} heroModel=${heroHash} skinnedHashRows=${localHashMatches}/26`);
+  console.log(`cross-runtime PASS: backdrop sha256=${backdropHash} heroModel=${heroHash} skinnedHashRows=${localHashMatches}/24`);
   console.log(`cross-runtime PASS: browser=${browser.browser} uSkinned=${browser.uSkinned} jointFloats=${browser.jointFloats} models=${browser.models} heroes=${browser.heroes} clips=${browser.clips} motion=${browser.motion} backdropHits=${browser.backdropHits} other404s=${browser.other404s}`);
   console.log(`cross-runtime PASS: snapshot not stale, optionalPresent=${optionalPresent} optionalMissing=${optionalMissing} extraPresent=${extraPresent} extraMissing=${extraMissing} hash-bearing rows=${hashRows}`);
   for (const row of evidence.extractionSummaries) console.log(`extraction evidence ${row.peer}: present=${row.present} classes=${row.classes ?? "?"} complete=${row.complete ?? "?"} blocked=${row.blocked ?? "?"} informational=true`);

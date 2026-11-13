@@ -68,7 +68,7 @@ try {
   const botaUi = await fetchJson(urls.botaUi);
   const botaIds = Object.keys(botaUi.heroes ?? {});
   if (botaManifest.name !== "bota" || botaUi.identifierMode !== "bota-fullname") fail("BOTA HTTP pack is not the fullname pack");
-  if (botaIds.length !== 26 || botaIds.some((id) => /^[a-z]{1,3}$/.test(id) && id !== "npc")) fail(`BOTA HTTP active IDs are not 26 fullnames (${botaIds.length})`);
+  if (botaIds.length !== 24 || botaIds.some((id) => /^[a-z]{1,3}$/.test(id) && id !== "npc")) fail(`BOTA HTTP active IDs are not 24 fullnames (${botaIds.length})`);
   const historicalManifest = await fetchJson(urls.historicalManifest);
   if (historicalManifest.name !== "moba" || historicalManifest.ui !== "moba_ui.json") fail("historical source pack is not available over HTTP");
   const loader = fs.readFileSync(path.join(root, "js", "client", "pack_load.js"), "utf8");

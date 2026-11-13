@@ -1,0 +1,141 @@
+label	effect_kind	label_status	hy3d_effect	data_fields	ability_count
+动作持续时间	none	NONE	none (cast metadata, not an effect)	DataD	184
+使其他技能无效	none	NONE	none (cast metadata, not an effect)	DataE	181
+施法持续时间	none	NONE	none (cast metadata, not an effect)	DataA	178
+选项	none	NONE	none (cast metadata, not an effect)	DataC	172
+目标类型	none	NONE	none (cast metadata, not an effect)	DataB	142
+伤害	damage	INFERRED	damage	DataA	42
+闪避几率	stat	INFERRED	stat (combat modifier)	DataA/DataD	33
+目标伤害	damage	INFERRED	damage	DataA	29
+最大输出伤害	damage	INFERRED	damage	DataB	29
+建筑伤害参数(%)	damage	INFERRED	damage	DataD/DataE	29
+波次数量	spawn	INFERRED	spawn	DataA	29
+每波伤害	damage	INFERRED	damage	DataB	29
+碎片数量	spawn	INFERRED	spawn	DataC	29
+最大目标数量	none	NONE	none (timing/area/count parameter of the enclosing effect)	DataB	22
+移动速度增加(%)	timed_stat	INFERRED	timed_stat (move speed)	DataA/DataB	22
+目标伤害衰减	damage	INFERRED	damage	DataC	19
+变形参数	timed_stat	INFERRED	timed_stat (or stat)	DataB	11
+最大目标数		UNVERIFIED	UNVERIFIED	DataC	18
+距离	move	INFERRED	move (displacement / dash)	DataC	11
+攻击速度增加(%)	timed_stat	INFERRED	timed_stat (attack speed)	DataA/DataB	11
+加成伤害	timed_stat	INFERRED	timed_stat (or stat)	DataC/DataD	8
+每秒伤害	damage	INFERRED	damage	DataA/DataB/DataE	13
+最终区域范围	none	NONE	none (timing/area/count parameter of the enclosing effect)	DataD	8
+最大伤害	damage	INFERRED	damage	DataB	8
+魔法回复加快	heal	INFERRED	heal (or stat regen; mana/hp restore)	DataA	6
+所受穿刺伤害(%)	timed_stat	INFERRED	timed_stat (or stat)	DataA	3
+伤害倍乘(%)	damage	INFERRED	damage	DataB	3
+所受魔法伤害(%)	timed_stat	INFERRED	timed_stat (or stat)	DataE	3
+最大范围	none	NONE	none (timing/area/count parameter of the enclosing effect)	DataA	3
+移动速度减少(%)	slow	INFERRED	slow	DataA/DataB/DataC	9
+变形生命值奖励	timed_stat	INFERRED	timed_stat (or stat)	DataE	3
+转变时间	none	NONE	none (timing/area/count parameter of the enclosing effect)	DataA	7
+叠加类型	none	NONE	none (cast metadata, not an effect)	DataD/DataE	7
+每波最大伤害	damage	INFERRED	damage	DataF	5
+防御奖励	timed_stat	INFERRED	timed_stat (or stat)	DataA/DataB/DataC	6
+攻击增加(%)	timed_stat	INFERRED	timed_stat (or stat)	DataA	7
+移动速度奖励 (仅限信息面板)	timed_stat	INFERRED	timed_stat (move speed)	DataE	2
+攻击速度奖励 (仅限信息面板)	timed_stat	INFERRED	timed_stat (attack speed)	DataF	2
+生命回复增加	heal	INFERRED	heal (or stat regen; mana/hp restore)	DataB	3
+每点魔法抵消的伤害值	damage	INFERRED	damage	DataA	2
+伤害吸收(%)	timed_stat	INFERRED	timed_stat (or stat)	DataB	2
+致命一击几率	stat	INFERRED	stat (combat modifier)	DataA	4
+伤害倍数	damage	INFERRED	damage	DataB	4
+附加伤害	damage	INFERRED	damage	DataA	3
+着陆延迟时间	move	INFERRED	move (displacement / dash)	DataD	2
+最大速度调整	move	INFERRED	move (displacement / dash)	DataD	3
+召唤单位数量	spawn	INFERRED	spawn	DataA	3
+所受伤害增加(%)	timed_stat	INFERRED	timed_stat (or stat)	DataC	4
+伤害/间隔时间	damage	INFERRED	damage	DataA	4
+每秒魔法消耗		UNVERIFIED	UNVERIFIED	DataB	4
+单位持续时间	spawn	INFERRED	spawn	DataB	2
+碰撞延迟	move	INFERRED	move (displacement / dash)	DataC	2
+额外伤害	damage	INFERRED	damage	DataA	4
+移动速度奖励	timed_stat	INFERRED	timed_stat (move speed)	DataA	4
+攻击奖励	timed_stat	INFERRED	timed_stat (or stat)	DataB	4
+击中单位几率(%)	stat	INFERRED	stat (combat modifier)	DataB	2
+击中英雄几率(%)	stat	INFERRED	stat (combat modifier)	DataC	2
+击中召唤物几率(%)	stat	INFERRED	stat (combat modifier)	DataD	2
+允许攻击索引	none	NONE	none (cast metadata, not an effect)	DataE	2
+攻击速度减少(%)	slow	INFERRED	slow (attack-speed slow; the engine kind set has no separate attack-speed slow, stat on target is the alternative)	DataB/DataC/DataD	4
+启动魔法需求	none	NONE	none (cast metadata, not an effect)	DataC	3
+最小范围	none	NONE	none (timing/area/count parameter of the enclosing effect)	DataB	2
+失误几率(%)	stat	INFERRED	stat (combat modifier)	DataB	3
+近战奖励	timed_stat	INFERRED	timed_stat (or stat)	DataB	3
+重击几率	stat	INFERRED	stat (combat modifier)	DataA	2
+伤害奖励	timed_stat	INFERRED	timed_stat (or stat)	DataC	2
+全伤害数值	damage	INFERRED	damage	DataA/DataB	2
+施加伤害(%)	damage	INFERRED	damage	DataA/DataB	3
+蝗虫群数量	spawn	INFERRED	spawn	DataA	3
+单位释放间隔	none	NONE	none (timing/area/count parameter of the enclosing effect)	DataB	3
+每个目标最大蝗虫数量	spawn	INFERRED	spawn	DataC	3
+生命偷取参数	stat	INFERRED	stat (combat modifier)	DataD	3
+生命偷取极限	stat	INFERRED	stat (combat modifier)	DataE	3
+攻击增加	timed_stat	INFERRED	timed_stat (or stat)	DataA	2
+防御增加	timed_stat	INFERRED	timed_stat (or stat)	DataB	2
+近战伤害反弹(%)	timed_stat	INFERRED	timed_stat (or stat)	DataA	1
+伤害数值	damage	INFERRED	damage	DataA	1
+导弹数量	spawn	INFERRED	spawn	DataC	1
+最高输出伤害	damage	INFERRED	damage	DataD	1
+分裂伤害参数	damage	INFERRED	damage	DataA	1
+汲取间隔	none	NONE	none (timing/area/count parameter of the enclosing effect)	DataC	2
+激活延迟	none	NONE	none (timing/area/count parameter of the enclosing effect)	DataA	1
+侦察范围	none	NONE	none (timing/area/count parameter of the enclosing effect)	DataB	1
+爆炸范围	none	NONE	none (timing/area/count parameter of the enclosing effect)	DataC	1
+晕眩持续时间	stun	INFERRED	stun	DataD	1
+全伤害范围	damage	INFERRED	damage	DataA	1
+部分伤害范围	damage	INFERRED	damage	DataC	1
+部分伤害数值	damage	INFERRED	damage	DataD	1
+伤害值	damage	INFERRED	damage	DataA	1
+攻击减少		UNVERIFIED	UNVERIFIED	DataC	1
+攻击伤害增加(%)	damage	INFERRED	damage	DataA	2
+远程奖励	timed_stat	INFERRED	timed_stat (or stat)	DataC	2
+重生延迟	none	NONE	none (timing/area/count parameter of the enclosing effect)	DataA	1
+模型放大比例	timed_stat	INFERRED	timed_stat (or stat)	DataC	1
+敏捷奖励	timed_stat	INFERRED	timed_stat (or stat)	DataA	1
+智力奖励	timed_stat	INFERRED	timed_stat (or stat)	DataB	1
+力量奖励	timed_stat	INFERRED	timed_stat (or stat)	DataC	1
+生命回复	heal	INFERRED	heal (or stat regen; mana/hp restore)	DataA	1
+魔法回复	heal	INFERRED	heal (or stat regen; mana/hp restore)	DataB	1
+选项完整时可用	none	NONE	none (cast metadata, not an effect)	DataC	1
+只对自己施放		UNVERIFIED	UNVERIFIED	DataD	1
+被攻击时驱散效果		UNVERIFIED	UNVERIFIED	DataE	1
+自动施法范围	none	NONE	none (timing/area/count parameter of the enclosing effect)	DataC	1
+伤害奖励(%)	timed_stat	INFERRED	timed_stat (or stat)	DataA	1
+使用指定数值奖励	timed_stat	INFERRED	timed_stat (or stat)	DataD	1
+生命值汲取	heal	INFERRED	heal (or stat regen; mana/hp restore)	DataA	1
+每秒传输的生命值	heal	INFERRED	heal (or stat regen; mana/hp restore)	DataD	1
+粉碎几率	stat	INFERRED	stat (combat modifier)	DataA	1
+伤害倍乘(建筑物)	damage	INFERRED	damage	DataB	1
+护甲持续时间	timed_stat	INFERRED	timed_stat (or stat)	DataA	1
+镜像数量	spawn	INFERRED	spawn	DataA	1
+所受伤害(%)	timed_stat	INFERRED	timed_stat (or stat)	DataC	1
+技能延迟	none	NONE	none (timing/area/count parameter of the enclosing effect)	DataD	1
+全伤害间隔	damage	INFERRED	damage	DataB	1
+半伤害数值	damage	INFERRED	damage	DataC	1
+半伤害间隔	damage	INFERRED	damage	DataD	1
+建筑伤害因素(%)	damage	INFERRED	damage	DataE	1
+最大伤害输出	damage	INFERRED	damage	DataF	1
+护盾生命	timed_stat	INFERRED	timed_stat (or stat)	DataC	1
+护甲减少	timed_stat	INFERRED	timed_stat (or stat)	DataC	1
+目标持续伤害数值	damage	INFERRED	damage	DataD	1
+范围持续伤害数值	damage	INFERRED	damage	DataE	1
+受到伤害倍数	timed_stat	INFERRED	timed_stat (or stat)	DataB	1
+魔法值恢复	heal	INFERRED	heal (or stat regen; mana/hp restore)	DataB	1
+最多消耗魔法倍数		UNVERIFIED	UNVERIFIED	DataE	1
+持续伤害	damage	INFERRED	damage	DataA	1
+移动速度减少	slow	INFERRED	slow	DataB	1
+初始伤害	damage	INFERRED	damage	DataE	1
+魔法值汲取	heal	INFERRED	heal (or stat regen; mana/hp restore)	DataB	1
+每秒传输的魔法值	heal	INFERRED	heal (or stat regen; mana/hp restore)	DataE	1
+伤害减少(%)	damage	INFERRED	damage	DataC	1
+防御减少	timed_stat	INFERRED	timed_stat (or stat)	DataA	1
+降低移动速度(%)	slow	INFERRED	slow	DataA	1
+降低攻击速度(%)	slow	INFERRED	slow (attack-speed slow; the engine kind set has no separate attack-speed slow, stat on target is the alternative)	DataB	1
+无敌时间	none	NONE	none (timing/area/count parameter of the enclosing effect)	DataA	1
+减少伤害几率 (%)	damage	INFERRED	damage	DataA	1
+最小伤害	damage	INFERRED	damage	DataB	1
+忽略伤害	damage	INFERRED	damage	DataC	1
+远程伤害加成	timed_stat	INFERRED	timed_stat (or stat)	DataD	1
+近战伤害加成	timed_stat	INFERRED	timed_stat (or stat)	DataE	1

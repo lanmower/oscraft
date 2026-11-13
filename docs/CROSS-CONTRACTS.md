@@ -47,7 +47,7 @@ The two extra files are also reported as `extraPresent`/`extraMissing`. When pre
 
 ## Content-contract status
 
-`scripts/content-contract-status.mjs` reads `bota/export/integration-contract.json`, `progress-dashboard.json`, `coordination-status.json`, `conformance.json` and `hy3d/output/content-demand-v2.json` read-only. It records the identifier inversion: 26 canonical upstream acronym keys map through `acronym_to_slot` and `IDENTIFIERS.md` to 26 oscraft BOTA fullname IDs, while the default Dota pack keeps 127 acronym IDs. It also records eight `do_not_promote` integration rules, the demand row/blocked/generated counts, coordination unresolved rows, and a SHA-256 over the five source files.
+`scripts/content-contract-status.mjs` reads `bota/export/integration-contract.json`, `progress-dashboard.json`, `coordination-status.json`, `conformance.json` and `hy3d/output/content-demand-v2.json` read-only. It records the identifier inversion: 26 canonical upstream acronym keys map through `acronym_to_slot` and `IDENTIFIERS.md` to 24 oscraft BOTA fullname IDs (the two retired slots, `002` and `011`, map to no active row), while the default Dota pack keeps 127 acronym IDs. It also records eight `do_not_promote` integration rules, the demand row/blocked/generated counts, coordination unresolved rows, and a SHA-256 over the five source files.
 
 `scripts/check-cross-project-contracts.mjs` requires that status to be valid and requires the snapshot's `contentContracts.sourceSha256` to match live files. Missing decision-ready values stay gated: the checker does not promote GUESS, UNVERIFIED, AMBIGUOUS, owner-decision or intentionally-open fields into game data. A changed source file is healthy snapshot STALE after the optional-manifest check; a wrong schema, inversion count, gate count or non-zero `blocked`/`generated` demand is a real failure. `docs/OSCRAFT_RELEASE.json` carries `contentContracts`, and `scripts/validate-oscraft-release.mjs` recomputes the live status before accepting the artifact.
 
@@ -57,7 +57,7 @@ The two extra files are also reported as `extraPresent`/`extraMissing`. When pre
 
 `scripts/check-final-asset-status.mjs` adds this proof to `check-all.mjs` with negative count, audio-blocker and GLB-hash controls. `scripts/check-cross-project-contracts.mjs` also requires the snapshot's `finalAssets.sourceSha256` to match live reports. `docs/OSCRAFT_RELEASE.json/.md` carries `finalAssets` and `scripts/validate-oscraft-release.mjs` recomputes it. No generated audio, fabricated bytes or peer writes are involved.
 
-The preserved blockers are: pooled-email studio `witch_doctor/rig` service-side HTTP 500 with no worksId, recovery false and quota preserved at 30; no studio or relay audio action, absent local BitVoice service on `127.0.0.1:8765` and missing `scripts/execute-bittts-audio-bridge.mjs`; and 12 kbps Opus/Brotli requirements preserved with no uncompressed or fabricated audio published. The 30 blocked rows are 26 `hero-voice` and four `clip` rows, each with a null path, bytes and SHA-256.
+The preserved blockers are: pooled-email `witch_doctor/rig` recovery reports `recovery=true` after the stale local rig request shape was fixed (a fresh same-account chain reached HTTP 200 with a real worksId and the quota moved 30 -> 29), while the stale chain still returns HTTP 500 with no worksId; no BOTA row mapping from the chatnano WAVs, no 12 kbps Opus/Brotli delivery manifest and a missing `scripts/execute-bittts-audio-bridge.mjs`; and 12 kbps Opus/Brotli requirements preserved with no uncompressed or fabricated audio published. The 30 blocked rows are 26 `hero-voice` and four `clip` rows, each with a null path, bytes and SHA-256.
 
 ## Why `EXIT=3` is healthy
 
@@ -103,10 +103,10 @@ node scripts/check-bota-browser.mjs --all --from-cross-runtime
 `npm run check:cross-runtime` uses a per-run staged site and port, a 30-second bounded wait, and cleans up its child process. It proves:
 
 - default `/js/client/play.html` resolves to `scenarios/moba-acronyms` with 127 acronym-only active IDs and `PACK_PARAM=scenarios/moba-acronyms`;
-- `?package=scenarios/bota` resolves to 26 fullname BOTA IDs, `menuBackdrop` HTTP 200 with SHA-256 `431b1f861938c26edb7ce226e75d1c66a433c701d70a59463e064c402a077549`, one fullname hero GLB HTTP 200 with `glTF/v2`, and all 26 `bota-skinned.json` hash rows matching local GLBs;
+- `?package=scenarios/bota` resolves to 24 fullname BOTA IDs, `menuBackdrop` HTTP 200 with SHA-256 `431b1f861938c26edb7ce226e75d1c66a433c701d70a59463e064c402a077549`, one fullname hero GLB HTTP 200 with `glTF/v2`, and all 24 `bota-skinned.json` hash rows matching local GLBs;
 - `?package=scenarios/moba` remains the historical source pack;
 - the cross-contract snapshot is not stale and optional peer inputs are annotated;
-- `check-bota-browser.mjs --all --from-cross-runtime` supplies the compact real CDP/WebGL summary: `uSkinned=1`, `jointFloats=448`, `models=28`, `heroes=26`, `joints=28`, `clips=8`, `motion=walk/run`, `backdropHits>=1`, `other404s=0`.
+- `check-bota-browser.mjs --all --from-cross-runtime` supplies the compact real CDP/WebGL summary: `uSkinned=1`, `jointFloats=448`, `models=26`, `heroes=24`, `joints=28`, `clips=8`, `motion=walk/run`, `backdropHits>=1`, `other404s=0`.
 
 The command writes `scenarios/bota/runtime-evidence.json` with `generatedAt`, snapshot hashes, identifier regimes, pack URLs/HTTP statuses, backdrop/hero hashes, browser/WebGL/animation evidence, cross-contract counts, optional peer status and `ok: true`. `npm run validate:runtime-evidence` revalidates that file against live files and fails on stale/missing/invalid evidence.
 

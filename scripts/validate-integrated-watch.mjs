@@ -48,10 +48,10 @@ if (`${orphan.stdout ?? ""}`.trim()) fail(`orphan watch-cross-runtime survivor f
 const ps = spawnSync("bash", ["-lc", `ps -eo pid,args | grep -E ${JSON.stringify(survivorPattern.source)} | grep -v grep || true`], { cwd: root, encoding: "utf8" });
 if (`${ps.stdout ?? ""}`.trim()) fail(`integrated/test survivor process found: ${ps.stdout.trim()}`);
 const browser = status.browser ?? {};
-if (browser.ok !== true || browser.uSkinned !== 1 || browser.jointFloats !== 448 || browser.models !== 28 || browser.heroes !== 26 || browser.joints !== 28 || browser.clips !== 8 || browser.motion !== "walk/run" || browser.backdropHits < 1 || browser.other404s !== 0) fail(`browser/WebGL evidence invalid: ${JSON.stringify(browser)}`);
+if (browser.ok !== true || browser.uSkinned !== 1 || browser.jointFloats !== 448 || browser.models !== 26 || browser.heroes !== 24 || browser.joints !== 28 || browser.clips !== 8 || browser.motion !== "walk/run" || browser.backdropHits < 1 || browser.other404s !== 0) fail(`browser/WebGL evidence invalid: ${JSON.stringify(browser)}`);
 const regimes = status.identifierRegimes ?? {};
 if (regimes.default?.packParam !== "scenarios/moba-acronyms" || regimes.default?.activeIds !== 127 || regimes.default?.acronymOnly !== true) fail("default identifier regime invalid");
-if (regimes.bota?.pack !== "bota" || regimes.bota?.activeIds !== 26 || regimes.bota?.fullnameOnly !== true) fail("BOTA identifier regime invalid");
+if (regimes.bota?.pack !== "bota" || regimes.bota?.activeIds !== 24 || regimes.bota?.fullnameOnly !== true) fail("BOTA identifier regime invalid");
 if (regimes.historical?.pack !== "moba") fail("historical pack invalid");
 const cross = status.crossContracts ?? {};
 if (cross.required !== 8 || cross.driftStale !== 0 || cross.hashBearingRowsVerified < 1) fail(`cross-contract counts invalid: ${JSON.stringify(cross)}`);

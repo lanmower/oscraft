@@ -32,4 +32,4 @@ const badDemand = structuredClone(inputs);
 badDemand.demand.counts.blocked = 1;
 const demandErrors = contentContractErrors(badDemand).errors;
 if (!demandErrors.some((row) => row.includes("demand blocked=1"))) throw new Error(`negative demand control passed: ${JSON.stringify(demandErrors)}`);
-console.log(`check:content-contract-status PASS: live 26->26 inversion, 127 default acronyms, doNotPromote=${positive.doNotPromote.length}; negative inversion/gate/demand controls rejected`);
+console.log(`check:content-contract-status PASS: live ${positive.acronymKeys.length}->${positive.fullnameIds.length} inversion, 127 default acronyms, doNotPromote=${positive.doNotPromote.length}; negative inversion/gate/demand controls rejected`);

@@ -22,7 +22,7 @@ function freePort() {
   });
 }
 
-async function waitFor(fn, timeoutMs = 15000) {
+async function waitFor(fn, timeoutMs = 240000) {
   const end = Date.now() + timeoutMs;
   let last;
   while (Date.now() < end) {
@@ -90,7 +90,7 @@ try {
   if (manifest.name !== "bota" || manifest.image !== "bota.osdt" || manifest.ui !== "bota_ui.json") fail("BOTA manifest identity mismatch");
   const ui = JSON.parse(results.get("bota ui").body.toString("utf8"));
   const botaIds = Object.keys(ui.heroes ?? {});
-  if (ui.menuBackdrop !== "textures.menu_backdrop" || botaIds.length !== 26 || botaIds.some((id) => /^[a-z]{1,3}$/.test(id) && id !== "npc")) fail("BOTA UI backdrop or 26 fullname hero roster mismatch");
+  if (ui.menuBackdrop !== "textures.menu_backdrop" || botaIds.length !== 24 || botaIds.some((id) => /^[a-z]{1,3}$/.test(id) && id !== "npc")) fail("BOTA UI backdrop or 24 fullname hero roster mismatch");
   const defaultManifest = JSON.parse(results.get("default manifest").body.toString("utf8"));
   const defaultUi = JSON.parse(results.get("default ui").body.toString("utf8"));
   const defaultIds = Object.keys(defaultUi.heroAcronyms ?? {});

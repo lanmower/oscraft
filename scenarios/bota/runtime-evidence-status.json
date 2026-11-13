@@ -1,0 +1,154 @@
+{
+  "schema": "oscraft.cross-runtime-status/v1",
+  "generatedAt": "2026-11-11T21:11:49.526Z",
+  "ok": true,
+  "snapshotHash": "652f8bbf5c616e8b3e67d2e43280269366714ae1777f3c05684eacad1283f728",
+  "evidenceFile": "scenarios/bota/runtime-evidence.json",
+  "evidenceGeneratedAt": "2026-11-11T21:11:40.668Z",
+  "checks": {
+    "checkCrossRuntime": 0,
+    "validateRuntimeEvidence": 0,
+    "identifierRegimes": {
+      "default": {
+        "packParam": "scenarios/moba-acronyms",
+        "pack": "moba-acronyms",
+        "mode": "default-dota-acronyms",
+        "activeIds": 127,
+        "acronymOnly": true
+      },
+      "bota": {
+        "pack": "bota",
+        "mode": "bota-fullname",
+        "activeIds": 26,
+        "fullnameOnly": true
+      },
+      "historical": {
+        "pack": "moba",
+        "ui": "moba_ui.json"
+      }
+    },
+    "browser": {
+      "ok": true,
+      "browser": "real CDP page",
+      "uSkinned": 1,
+      "jointFloats": 448,
+      "glError": 0,
+      "models": 28,
+      "heroes": 26,
+      "joints": 28,
+      "clips": 8,
+      "motion": "walk/run",
+      "backdropHits": 1,
+      "other404s": 0,
+      "criticalFailedRequests": 0
+    },
+    "crossContracts": {
+      "required": 8,
+      "optionalPresent": 10,
+      "optionalMissing": 0,
+      "extraPresent": 2,
+      "extraMissing": 0,
+      "hashBearingRowsVerified": 837,
+      "driftStale": 0
+    },
+    "requiredPeerManifests": 8
+  },
+  "peerChangesHealed": [],
+  "peerStatus": [
+    {
+      "peer": "bota",
+      "exit": 0,
+      "lines": 84,
+      "readOnly": true
+    },
+    {
+      "peer": "hy3d",
+      "exit": 0,
+      "lines": 21,
+      "readOnly": true
+    },
+    {
+      "peer": "wscheppity",
+      "exit": 0,
+      "lines": 2,
+      "readOnly": true
+    },
+    {
+      "peer": "extra",
+      "exit": 128,
+      "lines": 2,
+      "readOnly": true
+    }
+  ],
+  "extractionSummaries": [
+    {
+      "peer": "wscheppity",
+      "path": "wscheppity/.local/extraction-manifest.json",
+      "present": true,
+      "classes": 23,
+      "complete": 23,
+      "blocked": 0,
+      "informational": true
+    },
+    {
+      "peer": "extra",
+      "path": "extra/.local/extraction-manifest.json",
+      "present": true,
+      "classes": 22,
+      "complete": 22,
+      "blocked": 0,
+      "informational": true
+    },
+    {
+      "peer": "extraCdnManifest",
+      "path": "extra/.local/cdn/manifest-all.json",
+      "present": true,
+      "classes": null,
+      "complete": null,
+      "blocked": null,
+      "informational": true
+    }
+  ],
+  "optionalPeerStatus": {
+    "optionalPresent": [
+      "bota/export/content-request-queue.json",
+      "bota/export/coordination-status.json",
+      "bota/export/integration-contract.json",
+      "bota/export/progress-dashboard.json",
+      "bota/export/spawn-extraction-gaps.json",
+      "extra/.local/cdn/manifest-all.json",
+      "extra/.local/extraction-manifest.json",
+      "hy3d/output/content-demand-v2.json",
+      "hy3d/output/spawn-cdn-probes.json",
+      "wscheppity/.local/extraction-manifest.json"
+    ],
+    "optionalMissing": [],
+    "extraPresent": [
+      "extra/.local/cdn/manifest-all.json",
+      "extra/.local/extraction-manifest.json"
+    ],
+    "extraMissing": [],
+    "extraSummary": [
+      {
+        "path": "extra/.local/extraction-manifest.json",
+        "classes": 22,
+        "complete": 22,
+        "blocked": 0,
+        "informational": true
+      },
+      {
+        "path": "extra/.local/cdn/manifest-all.json",
+        "classes": null,
+        "complete": null,
+        "blocked": null,
+        "informational": true
+      }
+    ]
+  },
+  "bounded": {
+    "once": true,
+    "timeoutMs": 0,
+    "intervalMs": 15000,
+    "cycles": 1
+  }
+}

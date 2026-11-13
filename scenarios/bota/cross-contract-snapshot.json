@@ -1,0 +1,515 @@
+{
+  "schema": "oscraft.cross-contract-snapshot/v1",
+  "generatedAt": "2026-11-13T12:25:18.188Z",
+  "identifierMode": {
+    "defaultDota": "default-dota-acronyms",
+    "bota": "bota-fullname",
+    "packParam": "scenarios/moba-acronyms"
+  },
+  "contentContracts": {
+    "schema": "oscraft.content-contract-status/v1",
+    "ok": true,
+    "sourceSha256": "fe99a654d38728abc59eddd3fb87ee8c291a7c202fa384d923a08e82819bf67b",
+    "errors": [],
+    "integrationRules": 11,
+    "doNotPromote": 8,
+    "inversion": {
+      "canonicalExport": "bota active_hero_keys",
+      "oscraftBotaArtifacts": "full BOTA character names/slugs",
+      "defaultDotaHeroes": "three-letter acronym legacy IDs",
+      "upstreamAcronymKeys": 26,
+      "oscraftFullnameIds": 24,
+      "defaultDotaAcronymIds": 127,
+      "skinnedModels": 24,
+      "mappedFullnames": 24,
+      "validatorModes": [
+        "acronym",
+        "bota-fullname"
+      ]
+    }
+  },
+  "finalAssets": {
+    "schema": "oscraft.hy3d-final-asset-status/v1",
+    "ok": true,
+    "sourceSha256": "0a06d1f4b1f31eee0c91cdf5b411563fc33e6e2fa4fa5327013bf856c44110dc",
+    "errors": [],
+    "counts": {
+      "generated": 24,
+      "blocked": 30,
+      "ready": 24,
+      "remaining": 30,
+      "rows": 56,
+      "ownerDecision": 1,
+      "intentionallyOpen": 1
+    },
+    "generatedHashVerification": {
+      "verified": 24,
+      "failures": []
+    },
+    "blockers": {
+      "pooledEmail": "stale local rig request shape fixed; generic service probe returned HTTP 200 with remainingTimes; stale witch_doctor chain still returns HTTP 500/no worksId",
+      "audio": "no studio/relay audio action; local BitVoice service absent and production bridge missing",
+      "requirements": "12 kbps Opus and Brotli requirements were not relaxed; no uncompressed or fabricated audio was published"
+    }
+  },
+  "counts": {
+    "required": 8,
+    "optionalPresent": 10,
+    "optionalMissing": 0,
+    "extraPresent": 2,
+    "extraMissing": 0,
+    "botaFullnameIds": 24,
+    "defaultAcronymIds": 127,
+    "skinnedModels": 24
+  },
+  "identifierDocSha256": "d2ae451cacbd6fa010baf100a43f50d85c9c0fd78531b72ac34ab456cadb1d45",
+  "identifiers": {
+    "bota": [
+      "bloomer",
+      "boomer",
+      "bot_bernard",
+      "cole",
+      "coomer",
+      "dino",
+      "ecce",
+      "finger_dan",
+      "forever",
+      "ghillie",
+      "gondola",
+      "gothgirl",
+      "grey",
+      "howard",
+      "lankdad",
+      "neckbeard",
+      "noscope",
+      "npc",
+      "sanic",
+      "shoop",
+      "spurdo",
+      "tradwife",
+      "willie",
+      "wojak"
+    ],
+    "defaultDota": [
+      "aa",
+      "aba",
+      "aby",
+      "alc",
+      "am",
+      "aw",
+      "axe",
+      "bat",
+      "be",
+      "bea",
+      "bh",
+      "blo",
+      "bri",
+      "bro",
+      "cen",
+      "che",
+      "ck",
+      "cli",
+      "cm",
+      "dar",
+      "daw",
+      "daz",
+      "db",
+      "dis",
+      "dk",
+      "dp",
+      "dr",
+      "ds",
+      "ear",
+      "eld",
+      "enc",
+      "eni",
+      "es",
+      "esp",
+      "fur",
+      "fv",
+      "gri",
+      "gyr",
+      "hoo",
+      "hus",
+      "inv",
+      "jak",
+      "jug",
+      "kez",
+      "kl",
+      "kun",
+      "lar",
+      "lc",
+      "ld",
+      "les",
+      "lic",
+      "lif",
+      "lin",
+      "lio",
+      "lun",
+      "lyc",
+      "mac",
+      "mag",
+      "mar",
+      "med",
+      "mee",
+      "mir",
+      "mon",
+      "mor",
+      "mue",
+      "nag",
+      "nec",
+      "nev",
+      "ns",
+      "nyx",
+      "od",
+      "om",
+      "omn",
+      "ora",
+      "pa",
+      "pan",
+      "pb",
+      "pho",
+      "pl",
+      "pri",
+      "puc",
+      "pud",
+      "pug",
+      "qop",
+      "rat",
+      "raz",
+      "rik",
+      "rin",
+      "rub",
+      "sd",
+      "shr",
+      "shs",
+      "sil",
+      "sk",
+      "sla",
+      "slr",
+      "sm",
+      "sna",
+      "sni",
+      "spe",
+      "spi",
+      "ss",
+      "sve",
+      "ta",
+      "tec",
+      "ter",
+      "tid",
+      "tik",
+      "tin",
+      "tre",
+      "tus",
+      "tw",
+      "und",
+      "urs",
+      "ven",
+      "vip",
+      "vis",
+      "voi",
+      "vs",
+      "war",
+      "wd",
+      "wea",
+      "win",
+      "wis",
+      "wk",
+      "ww",
+      "zuu"
+    ]
+  },
+  "required": {
+    "bota/export/rule-demand.json": {
+      "path": "bota/export/rule-demand.json",
+      "bytes": 2041507,
+      "sha256": "cc17f471c4c4846335ac8f769ec38c9df525ea59366e25a0438d5f13a41d58ad",
+      "mtimeMs": 1794572604336,
+      "generatedAt": "2026-11-13T12:23:24.289606+00:00"
+    },
+    "bota/export/conformance.json": {
+      "path": "bota/export/conformance.json",
+      "bytes": 18312,
+      "sha256": "15d2c9c069a378ae8de75c64fc1eccd27b846b2c1ccdb8b161ac232fbb53e716",
+      "mtimeMs": 1794572607611,
+      "generatedAt": null
+    },
+    "bota/export/export-status.json": {
+      "path": "bota/export/export-status.json",
+      "bytes": 4356,
+      "sha256": "cbfb0e9f4feaddd5a59403ba8bad4326e47dfbc261e80aa98f4acadada756d37",
+      "mtimeMs": 1794572608222,
+      "generatedAt": "2026-11-13T12:23:28.222232+00:00"
+    },
+    "bota/export/spawn-compatibility.json": {
+      "path": "bota/export/spawn-compatibility.json",
+      "bytes": 9748,
+      "sha256": "43c1e8295b2f338438a70eb7f4ea8de816c47cf60586237d1341432516d5ac08",
+      "mtimeMs": 1794572333018,
+      "generatedAt": "2026-11-13T12:18:53.000Z"
+    },
+    "hy3d/output/content-for-bota.json": {
+      "path": "hy3d/output/content-for-bota.json",
+      "bytes": 364398,
+      "sha256": "ebbff59684d6fa4062c3cffd5e0b394e2560855b7364aba839f5a5a0727fd001",
+      "mtimeMs": 1794395329955,
+      "generatedAt": "2026-11-11T11:08:49.899Z"
+    },
+    "hy3d/output/final-asset-inventory.json": {
+      "path": "hy3d/output/final-asset-inventory.json",
+      "bytes": 95776,
+      "sha256": "d23233e48d9605aa0ece13590c2519656c79bdd2e03d569b7a03a116fd916e77",
+      "mtimeMs": 1794385028763,
+      "generatedAt": "2026-11-11T08:17:08.763Z"
+    },
+    "hy3d/output/bota-ready.json": {
+      "path": "hy3d/output/bota-ready.json",
+      "bytes": 38462,
+      "sha256": "3db9a7a24aef8d6242e9aa106da8625b6da656bb8844f3c3cd2464564ba1c80d",
+      "mtimeMs": 1794339107120,
+      "generatedAt": "2026-11-10T19:31:47.121Z"
+    },
+    "hy3d/output/asset-delivery-report.json": {
+      "path": "hy3d/output/asset-delivery-report.json",
+      "bytes": 13741,
+      "sha256": "d3e41343ad78be7ae9ff325745ee75504f305b47e541a3e55bba405794ab5d6e",
+      "mtimeMs": 1794396446074,
+      "generatedAt": "2026-11-11T11:27:26.074Z"
+    }
+  },
+  "optional": {
+    "bota/export/content-request-queue.json": {
+      "path": "bota/export/content-request-queue.json",
+      "bytes": 63311,
+      "sha256": "cd81c2df68179f055640d30fa05bfca515cb020d74f1214e60c9f8d4871dad6d",
+      "mtimeMs": 1794572604461,
+      "generatedAt": "2026-11-13T12:23:24.289606+00:00"
+    },
+    "bota/export/spawn-extraction-gaps.json": {
+      "path": "bota/export/spawn-extraction-gaps.json",
+      "bytes": 568382,
+      "sha256": "305b070269782b6b8874e6b2291b4fa027c9fc843134e202ecd5d8fe50046484",
+      "mtimeMs": 1794572604474,
+      "generatedAt": "2026-11-13T12:23:24.289606+00:00"
+    },
+    "bota/export/integration-contract.json": {
+      "path": "bota/export/integration-contract.json",
+      "bytes": 12542,
+      "sha256": "455aea494984aeefd5d85f4ac73016d118112221acaf7e22661fbd601e98f4e2",
+      "mtimeMs": 1794484218793,
+      "generatedAt": null
+    },
+    "hy3d/output/content-demand-v2.json": {
+      "path": "hy3d/output/content-demand-v2.json",
+      "bytes": 1554746,
+      "sha256": "5965fcf1c1e5be834b6635d9e78d933878fd908f9b8eec9ba8875b19e0ae505e",
+      "mtimeMs": 1794395329941,
+      "generatedAt": "2026-11-11T11:08:49.899Z"
+    },
+    "bota/export/progress-dashboard.json": {
+      "path": "bota/export/progress-dashboard.json",
+      "bytes": 19649,
+      "sha256": "7b6901055304cdbefafef5f0f4ea2d6f25376693140ff4714b2d5a8f6fcf98b3",
+      "mtimeMs": 1794572375551,
+      "generatedAt": "2026-11-13T12:19:35.499791+00:00"
+    },
+    "bota/export/coordination-status.json": {
+      "path": "bota/export/coordination-status.json",
+      "bytes": 454534,
+      "sha256": "d0df3011415ca36e40a5c7e8a57ba6913680910555d94bbd745d19cf4139d6d4",
+      "mtimeMs": 1794572604818,
+      "generatedAt": "2026-11-13T12:23:24.807964+00:00"
+    },
+    "hy3d/output/spawn-cdn-probes.json": {
+      "path": "hy3d/output/spawn-cdn-probes.json",
+      "bytes": 101217,
+      "sha256": "e360710c0e3015e480a9623aa307685daeb486ee78d1325f5197ca32dbbccf64",
+      "mtimeMs": 1794382573898,
+      "generatedAt": "2026-11-11T07:36:13.899Z"
+    },
+    "wscheppity/.local/extraction-manifest.json": {
+      "path": "wscheppity/.local/extraction-manifest.json",
+      "bytes": 36078,
+      "sha256": "aac38900903c95343a729ee81679c199348490cfc7d22ce11753b0ccb82ef91d",
+      "mtimeMs": 1794382412894,
+      "generatedAt": "2026-11-11"
+    },
+    "extra/.local/extraction-manifest.json": {
+      "path": "extra/.local/extraction-manifest.json",
+      "bytes": 33026,
+      "sha256": "280b0b67cb52f11bf651cca653e5051b5ab8bd1de35c36a96489e6f137bd56e1",
+      "mtimeMs": 1794405577883,
+      "generatedAt": "2026-11-11"
+    },
+    "extra/.local/cdn/manifest-all.json": {
+      "path": "extra/.local/cdn/manifest-all.json",
+      "bytes": 243424,
+      "sha256": "2a71dd8ca81fc6f8ed4e25078acf66a4251a1b12b8391a8d29fda476f1b164a0",
+      "mtimeMs": 1794405577849,
+      "generatedAt": null
+    }
+  },
+  "optionalPresent": [
+    "bota/export/content-request-queue.json",
+    "bota/export/coordination-status.json",
+    "bota/export/integration-contract.json",
+    "bota/export/progress-dashboard.json",
+    "bota/export/spawn-extraction-gaps.json",
+    "extra/.local/cdn/manifest-all.json",
+    "extra/.local/extraction-manifest.json",
+    "hy3d/output/content-demand-v2.json",
+    "hy3d/output/spawn-cdn-probes.json",
+    "wscheppity/.local/extraction-manifest.json"
+  ],
+  "optionalMissing": [],
+  "extraPresent": [
+    "extra/.local/cdn/manifest-all.json",
+    "extra/.local/extraction-manifest.json"
+  ],
+  "extraMissing": [],
+  "extraSummary": [
+    {
+      "path": "extra/.local/extraction-manifest.json",
+      "classes": 22,
+      "complete": 22,
+      "blocked": 0,
+      "informational": true
+    },
+    {
+      "path": "extra/.local/cdn/manifest-all.json",
+      "classes": null,
+      "complete": null,
+      "blocked": null,
+      "informational": true
+    }
+  ],
+  "inputs": {
+    "bota/export/rule-demand.json": {
+      "path": "bota/export/rule-demand.json",
+      "bytes": 2041507,
+      "sha256": "cc17f471c4c4846335ac8f769ec38c9df525ea59366e25a0438d5f13a41d58ad",
+      "mtimeMs": 1794572604336,
+      "generatedAt": "2026-11-13T12:23:24.289606+00:00"
+    },
+    "bota/export/conformance.json": {
+      "path": "bota/export/conformance.json",
+      "bytes": 18312,
+      "sha256": "15d2c9c069a378ae8de75c64fc1eccd27b846b2c1ccdb8b161ac232fbb53e716",
+      "mtimeMs": 1794572607611,
+      "generatedAt": null
+    },
+    "bota/export/export-status.json": {
+      "path": "bota/export/export-status.json",
+      "bytes": 4356,
+      "sha256": "cbfb0e9f4feaddd5a59403ba8bad4326e47dfbc261e80aa98f4acadada756d37",
+      "mtimeMs": 1794572608222,
+      "generatedAt": "2026-11-13T12:23:28.222232+00:00"
+    },
+    "bota/export/spawn-compatibility.json": {
+      "path": "bota/export/spawn-compatibility.json",
+      "bytes": 9748,
+      "sha256": "43c1e8295b2f338438a70eb7f4ea8de816c47cf60586237d1341432516d5ac08",
+      "mtimeMs": 1794572333018,
+      "generatedAt": "2026-11-13T12:18:53.000Z"
+    },
+    "hy3d/output/content-for-bota.json": {
+      "path": "hy3d/output/content-for-bota.json",
+      "bytes": 364398,
+      "sha256": "ebbff59684d6fa4062c3cffd5e0b394e2560855b7364aba839f5a5a0727fd001",
+      "mtimeMs": 1794395329955,
+      "generatedAt": "2026-11-11T11:08:49.899Z"
+    },
+    "hy3d/output/final-asset-inventory.json": {
+      "path": "hy3d/output/final-asset-inventory.json",
+      "bytes": 95776,
+      "sha256": "d23233e48d9605aa0ece13590c2519656c79bdd2e03d569b7a03a116fd916e77",
+      "mtimeMs": 1794385028763,
+      "generatedAt": "2026-11-11T08:17:08.763Z"
+    },
+    "hy3d/output/bota-ready.json": {
+      "path": "hy3d/output/bota-ready.json",
+      "bytes": 38462,
+      "sha256": "3db9a7a24aef8d6242e9aa106da8625b6da656bb8844f3c3cd2464564ba1c80d",
+      "mtimeMs": 1794339107120,
+      "generatedAt": "2026-11-10T19:31:47.121Z"
+    },
+    "hy3d/output/asset-delivery-report.json": {
+      "path": "hy3d/output/asset-delivery-report.json",
+      "bytes": 13741,
+      "sha256": "d3e41343ad78be7ae9ff325745ee75504f305b47e541a3e55bba405794ab5d6e",
+      "mtimeMs": 1794396446074,
+      "generatedAt": "2026-11-11T11:27:26.074Z"
+    },
+    "bota/export/content-request-queue.json": {
+      "path": "bota/export/content-request-queue.json",
+      "bytes": 63311,
+      "sha256": "cd81c2df68179f055640d30fa05bfca515cb020d74f1214e60c9f8d4871dad6d",
+      "mtimeMs": 1794572604461,
+      "generatedAt": "2026-11-13T12:23:24.289606+00:00"
+    },
+    "bota/export/spawn-extraction-gaps.json": {
+      "path": "bota/export/spawn-extraction-gaps.json",
+      "bytes": 568382,
+      "sha256": "305b070269782b6b8874e6b2291b4fa027c9fc843134e202ecd5d8fe50046484",
+      "mtimeMs": 1794572604474,
+      "generatedAt": "2026-11-13T12:23:24.289606+00:00"
+    },
+    "bota/export/integration-contract.json": {
+      "path": "bota/export/integration-contract.json",
+      "bytes": 12542,
+      "sha256": "455aea494984aeefd5d85f4ac73016d118112221acaf7e22661fbd601e98f4e2",
+      "mtimeMs": 1794484218793,
+      "generatedAt": null
+    },
+    "hy3d/output/content-demand-v2.json": {
+      "path": "hy3d/output/content-demand-v2.json",
+      "bytes": 1554746,
+      "sha256": "5965fcf1c1e5be834b6635d9e78d933878fd908f9b8eec9ba8875b19e0ae505e",
+      "mtimeMs": 1794395329941,
+      "generatedAt": "2026-11-11T11:08:49.899Z"
+    },
+    "bota/export/progress-dashboard.json": {
+      "path": "bota/export/progress-dashboard.json",
+      "bytes": 19649,
+      "sha256": "7b6901055304cdbefafef5f0f4ea2d6f25376693140ff4714b2d5a8f6fcf98b3",
+      "mtimeMs": 1794572375551,
+      "generatedAt": "2026-11-13T12:19:35.499791+00:00"
+    },
+    "bota/export/coordination-status.json": {
+      "path": "bota/export/coordination-status.json",
+      "bytes": 454534,
+      "sha256": "d0df3011415ca36e40a5c7e8a57ba6913680910555d94bbd745d19cf4139d6d4",
+      "mtimeMs": 1794572604818,
+      "generatedAt": "2026-11-13T12:23:24.807964+00:00"
+    },
+    "hy3d/output/spawn-cdn-probes.json": {
+      "path": "hy3d/output/spawn-cdn-probes.json",
+      "bytes": 101217,
+      "sha256": "e360710c0e3015e480a9623aa307685daeb486ee78d1325f5197ca32dbbccf64",
+      "mtimeMs": 1794382573898,
+      "generatedAt": "2026-11-11T07:36:13.899Z"
+    },
+    "wscheppity/.local/extraction-manifest.json": {
+      "path": "wscheppity/.local/extraction-manifest.json",
+      "bytes": 36078,
+      "sha256": "aac38900903c95343a729ee81679c199348490cfc7d22ce11753b0ccb82ef91d",
+      "mtimeMs": 1794382412894,
+      "generatedAt": "2026-11-11"
+    },
+    "extra/.local/extraction-manifest.json": {
+      "path": "extra/.local/extraction-manifest.json",
+      "bytes": 33026,
+      "sha256": "280b0b67cb52f11bf651cca653e5051b5ab8bd1de35c36a96489e6f137bd56e1",
+      "mtimeMs": 1794405577883,
+      "generatedAt": "2026-11-11"
+    },
+    "extra/.local/cdn/manifest-all.json": {
+      "path": "extra/.local/cdn/manifest-all.json",
+      "bytes": 243424,
+      "sha256": "2a71dd8ca81fc6f8ed4e25078acf66a4251a1b12b8391a8d29fda476f1b164a0",
+      "mtimeMs": 1794405577849,
+      "generatedAt": null
+    }
+  }
+}

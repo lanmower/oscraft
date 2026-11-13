@@ -1,0 +1,160 @@
+{
+  "schema": "oscraft.cross-runtime-evidence/v1",
+  "generatedAt": "2026-11-11T21:11:40.668Z",
+  "ok": true,
+  "snapshotHash": "652f8bbf5c616e8b3e67d2e43280269366714ae1777f3c05684eacad1283f728",
+  "snapshotComparableSha256": "f77d6ebedaaba19447f280e1f83b0e472f4726734b5653a1936d3c247cb23cac",
+  "identifierRegimes": {
+    "default": {
+      "packParam": "scenarios/moba-acronyms",
+      "pack": "moba-acronyms",
+      "mode": "default-dota-acronyms",
+      "activeIds": 127,
+      "acronymOnly": true
+    },
+    "bota": {
+      "pack": "bota",
+      "mode": "bota-fullname",
+      "activeIds": 26,
+      "fullnameOnly": true
+    },
+    "historical": {
+      "pack": "moba",
+      "ui": "moba_ui.json"
+    }
+  },
+  "packUrls": {
+    "defaultHtml": {
+      "url": "http://127.0.0.1:42145/js/client/play.html",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8"
+    },
+    "botaHtml": {
+      "url": "http://127.0.0.1:42145/js/client/play.html?package=scenarios/bota",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8"
+    },
+    "historicalHtml": {
+      "url": "http://127.0.0.1:42145/js/client/play.html?package=scenarios/moba",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8"
+    }
+  },
+  "httpStatuses": {
+    "defaultManifest": 200,
+    "defaultUi": 200,
+    "botaManifest": 200,
+    "botaUi": 200,
+    "historicalManifest": 200,
+    "backdrop": 200,
+    "heroGlb": 200
+  },
+  "backdrop": {
+    "status": 200,
+    "bytes": 3654481,
+    "sha256": "431b1f861938c26edb7ce226e75d1c66a433c701d70a59463e064c402a077549",
+    "key": "textures.menu_backdrop"
+  },
+  "heroModel": {
+    "id": "neckbeard",
+    "status": 200,
+    "bytes": 1260884,
+    "sha256": "c4486208f48e9a3d70c3448eb1c4881ee25deda8f03f026dd2bcc69a6921b6a6",
+    "magic": "glTF",
+    "version": 2
+  },
+  "botaSkinnedHashRows": {
+    "expected": 26,
+    "matched": 26,
+    "clips": 8
+  },
+  "browser": {
+    "ok": true,
+    "browser": "real CDP page",
+    "uSkinned": 1,
+    "jointFloats": 448,
+    "glError": 0,
+    "models": 28,
+    "heroes": 26,
+    "joints": 28,
+    "clips": 8,
+    "motion": "walk/run",
+    "backdropHits": 1,
+    "other404s": 0,
+    "criticalFailedRequests": 0
+  },
+  "crossContracts": {
+    "required": 8,
+    "optionalPresent": 10,
+    "optionalMissing": 0,
+    "extraPresent": 2,
+    "extraMissing": 0,
+    "hashBearingRowsVerified": 837,
+    "driftStale": 0
+  },
+  "optionalPeerStatus": {
+    "optionalPresent": [
+      "bota/export/content-request-queue.json",
+      "bota/export/coordination-status.json",
+      "bota/export/integration-contract.json",
+      "bota/export/progress-dashboard.json",
+      "bota/export/spawn-extraction-gaps.json",
+      "extra/.local/cdn/manifest-all.json",
+      "extra/.local/extraction-manifest.json",
+      "hy3d/output/content-demand-v2.json",
+      "hy3d/output/spawn-cdn-probes.json",
+      "wscheppity/.local/extraction-manifest.json"
+    ],
+    "optionalMissing": [],
+    "extraPresent": [
+      "extra/.local/cdn/manifest-all.json",
+      "extra/.local/extraction-manifest.json"
+    ],
+    "extraMissing": [],
+    "extraSummary": [
+      {
+        "path": "extra/.local/extraction-manifest.json",
+        "classes": 22,
+        "complete": 22,
+        "blocked": 0,
+        "informational": true
+      },
+      {
+        "path": "extra/.local/cdn/manifest-all.json",
+        "classes": null,
+        "complete": null,
+        "blocked": null,
+        "informational": true
+      }
+    ]
+  },
+  "extractionSummaries": [
+    {
+      "peer": "wscheppity",
+      "path": "wscheppity/.local/extraction-manifest.json",
+      "present": true,
+      "classes": 23,
+      "complete": 23,
+      "blocked": 0,
+      "informational": true
+    },
+    {
+      "peer": "extra",
+      "path": "extra/.local/extraction-manifest.json",
+      "present": true,
+      "classes": 22,
+      "complete": 22,
+      "blocked": 0,
+      "informational": true
+    },
+    {
+      "peer": "extraCdnManifest",
+      "path": "extra/.local/cdn/manifest-all.json",
+      "present": true,
+      "classes": null,
+      "complete": null,
+      "blocked": null,
+      "informational": true
+    }
+  ]
+}

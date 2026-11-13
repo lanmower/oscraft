@@ -24,7 +24,7 @@ const refresh = spawnSync(process.execPath, [path.join(root, "scripts", "dev", "
 if (refresh.status !== 0) { console.error(`${refresh.stdout ?? ""}${refresh.stderr ?? ""}`.trim()); fail(`refresh --check exited ${refresh.status}`); }
 const regimes = evidence.identifierRegimes ?? {};
 if (regimes.default?.packParam !== "scenarios/moba-acronyms" || regimes.default?.pack !== "moba-acronyms" || regimes.default?.activeIds !== 127 || regimes.default?.acronymOnly !== true) fail("default identifier regime evidence invalid");
-if (regimes.bota?.pack !== "bota" || regimes.bota?.mode !== "bota-fullname" || regimes.bota?.activeIds !== 26 || regimes.bota?.fullnameOnly !== true) fail("BOTA identifier regime evidence invalid");
+if (regimes.bota?.pack !== "bota" || regimes.bota?.mode !== "bota-fullname" || regimes.bota?.activeIds !== 24 || regimes.bota?.fullnameOnly !== true) fail("BOTA identifier regime evidence invalid");
 if (regimes.historical?.pack !== "moba" || regimes.historical?.ui !== "moba_ui.json") fail("historical pack evidence invalid");
 if (Object.values(evidence.httpStatuses ?? {}).some((status) => status !== 200)) fail("one or more HTTP statuses are not 200");
 if (evidence.backdrop?.bytes !== 3654481 || evidence.backdrop?.sha256 !== "431b1f861938c26edb7ce226e75d1c66a433c701d70a59463e064c402a077549" || evidence.backdrop?.key !== "textures.menu_backdrop") fail("backdrop evidence invalid");
@@ -34,16 +34,16 @@ if (evidence.heroModel?.id !== "neckbeard" || evidence.heroModel?.magic !== "glT
 const heroBytes = fs.readFileSync(path.join(root, "scenarios", "bota", "assets", "models", `${evidence.heroModel.id}-skinned.glb`));
 if (sha256(heroBytes) !== evidence.heroModel.sha256) fail("live hero model hash differs from evidence");
 const skinned = JSON.parse(fs.readFileSync(path.join(root, "scenarios", "bota", "bota-skinned.json"), "utf8"));
-if (evidence.botaSkinnedHashRows?.expected !== 26 || evidence.botaSkinnedHashRows?.matched !== 26 || evidence.botaSkinnedHashRows?.clips !== skinned.clips) fail("bota-skinned evidence counts invalid");
+if (evidence.botaSkinnedHashRows?.expected !== 24 || evidence.botaSkinnedHashRows?.matched !== 24 || evidence.botaSkinnedHashRows?.clips !== skinned.clips) fail("bota-skinned evidence counts invalid");
 let matched = 0;
 for (const [id, row] of Object.entries(skinned.heroes ?? {})) {
   const file = path.join(root, "scenarios", "bota", "assets", "models", `${id}-skinned.glb`);
   if (!fs.existsSync(file) || sha256(fs.readFileSync(file)) !== row.skinnedSha256) fail(`${id}: live skinned hash differs`);
   matched += 1;
 }
-if (matched !== 26) fail(`only ${matched}/26 live skinned hashes match`);
+if (matched !== 24) fail(`only ${matched}/24 live skinned hashes match`);
 const browser = evidence.browser ?? {};
-if (browser.ok !== true || browser.uSkinned !== 1 || browser.jointFloats !== 448 || browser.models !== 28 || browser.heroes !== 26 || browser.joints !== 28 || browser.clips !== 8 || browser.motion !== "walk/run" || browser.backdropHits < 1 || browser.other404s !== 0) fail(`browser/WebGL evidence invalid: ${JSON.stringify(browser)}`);
+if (browser.ok !== true || browser.uSkinned !== 1 || browser.jointFloats !== 448 || browser.models !== 26 || browser.heroes !== 24 || browser.joints !== 28 || browser.clips !== 8 || browser.motion !== "walk/run" || browser.backdropHits < 1 || browser.other404s !== 0) fail(`browser/WebGL evidence invalid: ${JSON.stringify(browser)}`);
 const cross = evidence.crossContracts ?? {};
 if (cross.required !== 8 || cross.driftStale !== 0 || cross.hashBearingRowsVerified < 1) fail(`cross-contract counts invalid: ${JSON.stringify(cross)}`);
 if (!Array.isArray(evidence.optionalPeerStatus?.optionalPresent) || !Array.isArray(evidence.optionalPeerStatus?.optionalMissing) || !Array.isArray(evidence.optionalPeerStatus?.extraPresent) || !Array.isArray(evidence.optionalPeerStatus?.extraMissing)) fail("optional peer inputs are not annotated");

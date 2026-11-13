@@ -74,3 +74,4 @@ opencode.jsonc
 /.gm/config-source-cache-*.sync.json
 /.gm/last-dispatch-ts
 /.gm/last-instruction-ts
+.bota-identifier-before.tsv

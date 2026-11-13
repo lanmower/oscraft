@@ -31,12 +31,13 @@ http://127.0.0.1:<port>/js/client/play.html?package=scenarios/bota
 
 ## What is in the BOTA pack
 
-- 26 active fullname hero IDs: `neckbeard`, `chad`, `wojak`, `bloomer`, `tradwife`, `boomer`, `coomer`, `gondola`, `spurdo`, `karen`, `howard`, `sanic`, `lankdad`, `finger_dan`, `willie`, `noscope`, `dino`, `ecce`, `bot_bernard`, `shoop`, `npc`, `forever`, `cole`, `grey`, `ghillie`, `gothgirl`.
+- 24 active fullname hero IDs: `neckbeard`, `wojak`, `bloomer`, `tradwife`, `boomer`, `coomer`, `gondola`, `spurdo`, `howard`, `sanic`, `lankdad`, `finger_dan`, `willie`, `noscope`, `dino`, `ecce`, `bot_bernard`, `shoop`, `npc`, `forever`, `cole`, `grey`, `ghillie`, `gothgirl`.
+- Retired with the bota project's 2026-11-12 design finalization and absent from the pack: slots `002` Chad and `011` Karen, and slot `003` Gigachad (image-only Reserve). `hy3d/output/bota-ready.json` keeps all 26 relayed meshes as provenance, and the pack carries the 24 that are active.
 - Each hero has a real 28-joint skinned GLB with `JOINTS_0`/`WEIGHTS_0` and eight retargeted clips from `assets/anim/library.json`.
 - `bota-skinned.json` records source static-mesh provenance and the skinned model hashes.
 - `menuBackdrop: "textures.menu_backdrop"` in `bota_ui.json` gives BOTA the 2752x1536 supplied menu backdrop; `moba_ui.json` names the same key in both default packs (`moba` and the derived `moba-acronyms`), which carry a 1920x1072 copy (436,951 bytes). `check-bota-pack.mjs` asserts the JPEG header, the 800 KiB budget and that the derived copy matches the source.
 - The two neutral centaur models are genuinely skinned; legacy `centaur_skinned` hero wiring is removed.
-- Slot `003` Gigachad is retired/Reserve and excluded. Slots `028-032` are Reserve and excluded.
+- Slots `028-032` are Reserve and excluded.
 
 ## Verification
 
@@ -60,11 +61,11 @@ npm run validate:runtime-evidence
 node scripts/check-all.mjs
 ```
 
-`check-bota-browser.mjs --all` launches a real local CDP/WebGL2 browser, proves the backdrop fetch, all 26 hero animations, the two neutral centaur animations, and `uSkinned=1` through the production renderer path. It is deliberately not part of `check-all.mjs` because it launches Chromium and takes about 13–17 seconds.
+`check-bota-browser.mjs --all` launches a real local CDP/WebGL2 browser, proves the backdrop fetch, all 24 hero animations, the two neutral centaur animations, and `uSkinned=1` through the production renderer path. It is deliberately not part of `check-all.mjs` because it launches Chromium and takes about 13–17 seconds.
 
 `npm run refresh:cross-contracts` regenerates `scenarios/bota/cross-contract-snapshot.json` from the current peer manifest contents, mtimes and generatedAt stamps; its `--check` mode verifies the snapshot is not stale. The checksum used for determinism excludes `generatedAt`, so repeated refreshes are byte-identical while peer changes still produce DRIFT/STALE. `npm run check:identifier-runtime` is a fast HTTP-only check of the default acronym pack, opt-in fullname BOTA pack and historical source pack; it is deterministic enough for `check-all.mjs`.
 
-`npm run check:cross-contracts` is an explicit read-only cross-project gate: it reads only the four bota export manifests and four hy3d output manifests listed in the checker, verifies the identifier regimes, all 26 BOTA skinned-model hashes, and every hash-bearing available/ready content row. It is deliberately not in `check-all.mjs` because it depends on external worktrees. `node scripts/check-cross-project-contracts.mjs --watch-once` reports whether those manifests are already ready; `node scripts/dev/wait-cross-contracts.mjs` polls for at most 10 minutes at 10-second intervals.
+`npm run check:cross-contracts` is an explicit read-only cross-project gate: it reads only the four bota export manifests and four hy3d output manifests listed in the checker, verifies the identifier regimes, all 24 BOTA skinned-model hashes, and every hash-bearing available/ready content row. It is deliberately not in `check-all.mjs` because it depends on external worktrees. `node scripts/check-cross-project-contracts.mjs --watch-once` reports whether those manifests are already ready; `node scripts/dev/wait-cross-contracts.mjs` polls for at most 10 minutes at 10-second intervals.
 
 `check-all.mjs` remains the fast deterministic gate. `scripts/check-bota-launch.mjs` is also fast and deterministic; it starts the launch wrapper, fetches the key URLs, verifies the backdrop bytes/hash and one hero GLB, then cleans up.
 

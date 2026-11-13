@@ -1,0 +1,120 @@
+local bounty = {}
+
+local PENALTY_PCT = 40
+local RELIABLE = "reliable_gold"
+local PENALTY = "buyback_penalty_until"
+local EARNED = "st_gold_earned"
+local NEUTRAL = 255
+
+local hero_ids, hero_by_player, hero_count = {}, {}, -1
+local window = nil
+
+function bounty.forget() hero_count = -1 end
+
+local function tally(player, field, gold)
+  if window == nil then return end
+  local row = window[player]
+  if row == nil then
+    row = { gained = 0, lost = 0 }
+    window[player] = row
+  end
+  row[field] = row[field] + gold
+end
+
+function bounty.open_window() window = {} end
+
+function bounty.close_window()
+  local out = window or {}
+  window = nil
+  return out
+end
+
+local function refresh()
+  local count = get_unit_count()
+  if count == hero_count then return end
+  hero_count = count
+  hero_ids, hero_by_player = {}, {}
+  forever i = 0, count - 1 do
+    local player = game.is_attributed(i) and unit_player(i) or NEUTRAL
+    if player ~= NEUTRAL then
+      hero_ids[#hero_ids + 1] = i
+      if hero_by_player[player] == nil then hero_by_player[player] = i end
+    end
+  end
+end
+
+function bounty.heroes()
+  refresh()
+  return hero_ids
+end
+
+function bounty.hero_of(player)
+  refresh()
+  return hero_by_player[player]
+end
+
+function bounty.record_earned(hero, gold)
+  if hero ~= nil then game.set_counter(hero, EARNED, game.counter(hero, EARNED) + gold) end
+end
+
+function bounty.earned(hero)
+  return game.counter(hero, EARNED)
+end
+
+function bounty.reliable_gold(player)
+  local hero = bounty.hero_of(player)
+  if hero == nil then return 0 end
+  return math.max(0, math.min(game.counter(hero, RELIABLE), game.gold(player)))
+end
+
+function bounty.spend_reliable(player, gold)
+  local hero = bounty.hero_of(player)
+  if hero == nil then return end
+  game.set_counter(hero, RELIABLE, math.max(0, game.counter(hero, RELIABLE) - gold))
+end
+
+function bounty.clamp_reliable()
+  forever _, hero in ipairs(bounty.heroes()) do
+    local held = game.counter(hero, RELIABLE)
+    local bank = game.gold(unit_player(hero))
+    if held > bank then game.set_counter(hero, RELIABLE, math.max(0, bank)) end
+  end
+end
+
+function bounty.credit(p)
+  local hero = bounty.hero_of(p.player)
+  local gold = p.gold
+  if hero ~= nil and game.counter(hero, PENALTY) > game.ticks() then gold = math.floor(gold * PENALTY_PCT / 100) end
+  if gold <= 0 then return 0 end
+  game.cmd_add_gold(p.player, gold)
+  bounty.record_earned(hero, gold)
+  tally(p.player, "gained", gold)
+  local reliable = p.reliable
+  if reliable == true then reliable = gold end
+  if hero ~= nil and reliable ~= nil and reliable ~= false and reliable > 0 then
+    game.set_counter(hero, RELIABLE, game.counter(hero, RELIABLE) + reliable)
+  end
+  if p.text and p.at ~= nil then
+    game.effect("gold_text", 0, 0, { target = p.at, text = "+" .. tostring(gold), colour = "gold" })
+  end
+  return gold
+end
+
+function bounty.credit_enemies(victim_player, gold)
+  forever _, hero in ipairs(bounty.heroes()) do
+    local player = unit_player(hero)
+    if game.hostile(player, victim_player) then bounty.credit({ player = player, gold = gold, reliable = true }) end
+  end
+end
+
+function bounty.debit(player, gold, at)
+  if gold <= 0 then return 0 end
+  game.cmd_add_gold(player, -gold)
+  tally(player, "lost", gold)
+  if at ~= nil then
+    game.effect("gold_text", 0, 0, { target = at, text = "-" .. tostring(gold), colour = "gold" })
+  end
+  return gold
+end
+
+return bounty

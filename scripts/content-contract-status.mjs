@@ -5,9 +5,9 @@ import path from "node:path";
 export const CONTENT_CONTRACT_SCHEMA = "oscraft.content-contract-status/v1";
 export const CONTENT_CONTRACT_RULES = Object.freeze({
   upstreamAcronymKeys: 26,
-  oscraftFullnameIds: 26,
+  oscraftFullnameIds: 24,
   defaultDotaAcronymIds: 127,
-  skinnedModels: 26,
+  skinnedModels: 24,
 });
 
 const sha256Text = (text) => crypto.createHash("sha256").update(text).digest("hex");

@@ -14,13 +14,14 @@ const acronymPack = path.join(root, "scenarios", "moba-acronyms");
 const hy3dRoot = path.resolve(root, "..", "hy3d");
 const read = (...parts) => fs.readFileSync(path.join(...parts), "utf8");
 const fail = (message) => { console.error(`bota pack: ${message}`); process.exit(1); };
-const FULLNAMES = ["neckbeard", "chad", "wojak", "bloomer", "tradwife", "boomer", "coomer", "gondola", "spurdo", "karen", "howard", "sanic", "lankdad", "finger_dan", "willie", "noscope", "dino", "ecce", "bot_bernard", "shoop", "npc", "forever", "cole", "grey", "ghillie", "gothgirl"];
+const FULLNAMES = ["neckbeard", "wojak", "bloomer", "tradwife", "boomer", "coomer", "gondola", "spurdo", "howard", "sanic", "lankdad", "finger_dan", "willie", "noscope", "dino", "ecce", "bot_bernard", "shoop", "npc", "forever", "cole", "grey", "ghillie", "gothgirl"];
+const ACTIVE = FULLNAMES.length;
 const FORBIDDEN_BOTA_IDS = ["nec", "cha", "woj", "blo", "tra", "boo", "coo", "gon", "spu", "kar", "how", "san", "lan", "fin", "wil", "nos", "din", "ecc", "bot", "sho", "for", "col", "gre", "ghi", "got"];
 
 const ready = JSON.parse(read(hy3dRoot, "output", "bota-ready.json"));
-if (ready.activeSlots !== 26 || ready.ready !== 26 || ready.missing !== 0 || ready.relayed !== 26) fail("bota-ready.json does not report 26 ready relayed characters");
+if (ready.activeSlots !== 26 || ready.ready !== 26 || ready.missing !== 0 || ready.relayed !== 26) fail("bota-ready.json does not report its 26 relayed characters");
 const skinnedManifest = JSON.parse(read(pack, "bota-skinned.json"));
-if (skinnedManifest.clips !== 8 || Object.keys(skinnedManifest.heroes ?? {}).length !== 26) fail("bota-skinned.json does not report 26 heroes and 8 library clips");
+if (skinnedManifest.clips !== 8 || Object.keys(skinnedManifest.heroes ?? {}).length !== ACTIVE) fail(`bota-skinned.json does not report ${ACTIVE} heroes and 8 library clips`);
 const rows = read(pack, "character-mapping.tsv").trim().split("\n").slice(1).map((line) => line.split("\t"));
 if (rows.length !== 127) fail(`expected 127 original source mappings, got ${rows.length}`);
 const activeRows = new Map();
@@ -31,23 +32,23 @@ for (const [original, legacy, active, slot, model, portrait, optimized, source] 
   activeRows.set(active, { legacy, slot, model, portrait, optimized, source });
   legacyToActive.set(legacy, active);
 }
-if (activeRows.size !== 26 || FULLNAMES.some((id) => !activeRows.has(id))) fail(`expected 26 unique owner-specified fullname heroes, got ${activeRows.size}`);
+if (activeRows.size !== ACTIVE || FULLNAMES.some((id) => !activeRows.has(id))) fail(`expected ${ACTIVE} unique owner-specified fullname heroes, got ${activeRows.size}`);
 for (const id of Object.keys(skinnedManifest.heroes)) if (!activeRows.has(id)) fail(`bota-skinned.json has non-fullname key ${id}`);
 
 const unitIds = [...read(pack, "units_heroes.osd").matchAll(/^unit\("([^"]+)"/gm)].map((m) => m[1]);
-if (unitIds.length !== 26 || unitIds.some((id) => !activeRows.has(id))) fail(`units_heroes.osd has non-fullname ids: ${unitIds.join(",")}`);
+if (unitIds.length !== ACTIVE || unitIds.some((id) => !activeRows.has(id))) fail(`units_heroes.osd has non-fullname ids: ${unitIds.join(",")}`);
 const draftBlock = /data\.heroes = \{([\s\S]*?)\}/.exec(read(pack, "draft_data.lua"))?.[1] ?? "";
 const draft = [...draftBlock.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
-if (draft.length !== 26 || draft.some((id) => !activeRows.has(id))) fail(`draft_data.lua has non-fullname ids: ${draft.join(",")}`);
+if (draft.length !== ACTIVE || draft.some((id) => !activeRows.has(id))) fail(`draft_data.lua has non-fullname ids: ${draft.join(",")}`);
 const ui = JSON.parse(read(pack, "bota_ui.json"));
 const uiHeroes = Object.keys(ui.heroes ?? {});
-if (uiHeroes.length !== 26 || uiHeroes.some((id) => !activeRows.has(id))) fail("bota_ui.json hero keys are not fullname-only");
+if (uiHeroes.length !== ACTIVE || uiHeroes.some((id) => !activeRows.has(id))) fail("bota_ui.json hero keys are not fullname-only");
 if (ui.identifierMode !== "bota-fullname") fail("bota_ui.json does not declare bota-fullname identifier mode");
 for (const [key, value] of Object.entries(ui.heroAcronyms ?? {})) {
   if (!activeRows.has(key) || key !== value || FORBIDDEN_BOTA_IDS.includes(key)) fail(`bota_ui.json heroAcronyms is not a fullname label map at ${key}`);
 }
 const botaAcronymTable = new Map([...read(pack, "hero_acronyms.lua").matchAll(/^\s*\["([^"]+)"\] = "([^"]*)",/gm)].map((m) => [m[1], m[2]]));
-if (botaAcronymTable.size !== 26 || [...botaAcronymTable.keys()].some((id) => !activeRows.has(id))) fail("BOTA hero_acronyms.lua is not a coherent fullname label table");
+if (botaAcronymTable.size !== ACTIVE || [...botaAcronymTable.keys()].some((id) => !activeRows.has(id))) fail("BOTA hero_acronyms.lua is not a coherent fullname label table");
 if ([...botaAcronymTable.values()].some((label) => /^[A-Z]{1,3}$/.test(label))) fail("BOTA hero_acronyms.lua still emits acronym-only labels");
 
 const defaultPackParam = /const PACK_PARAM = [^\n]*\?\?|const PACK_PARAM = [^\n]*\|\| "([^"]+)"/.exec(read(root, "js", "client", "pack_load.js"));
@@ -184,7 +185,7 @@ await (async () => {
   console.log(`bota menu backdrop ok: ${backdropBytes.length} bytes, sha256 ${backdropSha}, 2752x1536 JPEG, key ${ui.menuBackdrop}`);
   console.log(`default menu backdrop ok: ${fs.statSync(sourceBackdrop).size} bytes in both default packs, key textures.menu_backdrop`);
   console.log(`identifier regimes ok: BOTA ${activeRows.size} fullname-only heroes, default MOBA ${defaultIds.length} acronym-only heroes, PACK_PARAM scenarios/moba-acronyms`);
-  console.log(`bota pack ok: ${activeRows.size} fullname heroes, ${rows.length} legacy acronym mappings, 26 skinned models, 28 joints, 8 reachable library clips`);
+  console.log(`bota pack ok: ${activeRows.size} fullname heroes, ${rows.length} legacy acronym mappings, ${Object.keys(skinnedManifest.heroes).length} skinned models of ${ready.relayed} relayed, 28 joints, 8 reachable library clips`);
   console.log(`model reference scan ok: ${refs.size} unique props.json/assets.json GLB refs, ${validatedCharacterModels.length} character-class refs validated`);
   console.log(`forbidden identifier scan ok: ${scanned.length - allowedDocumentation.size} pack text files, 0 acronym-only BOTA hero IDs outside historical documentation`);
   console.log(`default acronym scan ok: units, draft and hero_acronyms contain no full Dota active IDs; historical scenarios/moba untouched`);

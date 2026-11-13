@@ -11,9 +11,9 @@ import { AnimationPlayer, jointMatrices, retargetLibrary, samplePose } from "../
 import { packMenuBackdrop } from "../js/client/gui_flow.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const HERO_FULLNAMES = ["neckbeard", "chad", "wojak", "bloomer", "tradwife", "boomer", "coomer", "gondola", "spurdo", "karen", "howard", "sanic", "lankdad", "finger_dan", "willie", "noscope", "dino", "ecce", "bot_bernard", "shoop", "npc", "forever", "cole", "grey", "ghillie", "gothgirl"];
+const HERO_FULLNAMES = ["neckbeard", "wojak", "bloomer", "tradwife", "boomer", "coomer", "gondola", "spurdo", "howard", "sanic", "lankdad", "finger_dan", "willie", "noscope", "dino", "ecce", "bot_bernard", "shoop", "npc", "forever", "cole", "grey", "ghillie", "gothgirl"];
 const allMode = process.argv.includes("--all") || true;
-const models = allMode ? HERO_FULLNAMES : ["neckbeard", "noscope", "chad"];
+const models = allMode ? HERO_FULLNAMES : ["neckbeard", "noscope", "wojak"];
 const neutralModels = ["neutral-centaur-khan-skinned", "neutral-centaur-outrunner-skinned"];
 const backdropRel = "scenarios/bota/assets/textures/menu-backdrop.jpg";
 const BOTA_BACKDROP = { pack: "scenarios/bota", ui: "bota_ui.json", file: backdropRel, bytes: 3654481, sha: "431b1f861938c26edb7ce226e75d1c66a433c701d70a59463e064c402a077549", label: "BOTA" };
@@ -173,7 +173,7 @@ async function browserPhase(url, target = BOTA_BACKDROP) {
     })()`);
     const css = cssProbe ? JSON.parse(cssProbe) : null;
     const failedBackdrop = events.filter((e) => e.includes("network-failed") && e.includes("menu-backdrop"));
-    const failedHero = events.filter((e) => e.includes("network-failed") && /neckbeard-skinned|noscope-skinned|chad-skinned/.test(e));
+    const failedHero = events.filter((e) => e.includes("network-failed") && /neckbeard-skinned|noscope-skinned|wojak-skinned/.test(e));
     log(`browser: url=${parsed?.url ?? url} readyState=${parsed?.readyState ?? "?"} phase=${parsed?.phase ?? "?"} worldBuilt=${parsed?.worldBuilt ?? "?"} startError=${parsed?.startError ?? "none"}`);
     log(`browser: flowRoot=${parsed?.flowRoot ?? false} backdropRule=${parsed?.backdropRule ?? false} cssProbe=${css?.backdrop ?? null} backdropFetch=${css?.status ?? "?"} bytes=${css?.bytes ?? "?"} sha256=${css?.sha256?.slice(0, 12) ?? "?"} backdropNetworkFailures=${failedBackdrop.length} heroNetworkFailures=${failedHero.length}`);
     if (!css?.backdrop?.endsWith('/' + target.file)) throw new Error(`${target.label} pack backdrop did not resolve in the browser`);
@@ -291,9 +291,9 @@ async function main() {
     if (!defaultBrowser.attempted) log(`browser: default page not probed, ${defaultBrowser.reason}`);
     const loader = await loaderPhase(base);
     const backdropHits = hits.filter((hit) => hit.rel.endsWith("menu-backdrop.jpg"));
-    const heroHits = hits.filter((hit) => /neckbeard-skinned|noscope-skinned|chad-skinned|neutral-centaur/.test(hit.rel));
+    const heroHits = hits.filter((hit) => /neckbeard-skinned|noscope-skinned|wojak-skinned|neutral-centaur/.test(hit.rel));
     const allFailedHits = hits.filter((hit) => hit.status >= 400 && !hit.ignored && (/bota/.test(hit.rel) || /menu-backdrop/.test(hit.rel)));
-    const criticalPattern = /menu-backdrop\.jpg|neckbeard-skinned\.glb|noscope-skinned\.glb|chad-skinned\.glb|neutral-centaur-.*-skinned\.glb/;
+    const criticalPattern = /menu-backdrop\.jpg|neckbeard-skinned\.glb|noscope-skinned\.glb|wojak-skinned\.glb|neutral-centaur-.*-skinned\.glb/;
     const failedHits = allFailedHits.filter((hit) => criticalPattern.test(hit.rel));
     const newCritical404s = allFailedHits.filter((hit) => !criticalPattern.test(hit.rel));
     const backdropOk = backdropHits.some((hit) => hit.status === 200 && hit.bytes === 3654481);

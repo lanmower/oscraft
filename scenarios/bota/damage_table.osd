@@ -1,0 +1,33 @@
+damage_factor("normal", "medium", 98304)
+damage_factor("normal", "large", 81920)
+damage_factor("normal", "fort", 45875)
+damage_factor("normal", "hero", 49152)
+damage_factor("normal", "divine", 3277)
+
+damage_factor("pierce", "small", 131072)
+damage_factor("pierce", "medium", 49152)
+damage_factor("pierce", "large", 49152)
+damage_factor("pierce", "fort", 22938)
+damage_factor("pierce", "hero", 32768)
+damage_factor("pierce", "divine", 3277)
+damage_factor("pierce", "unarmored", 98304)
+
+damage_factor("siege", "medium", 32768)
+damage_factor("siege", "large", 81920)
+damage_factor("siege", "fort", 98304)
+damage_factor("siege", "hero", 49152)
+damage_factor("siege", "divine", 3277)
+
+damage_factor("magic", "small", 81920)
+damage_factor("magic", "medium", 49152)
+damage_factor("magic", "large", 131072)
+damage_factor("magic", "fort", 22938)
+damage_factor("magic", "hero", 49152)
+damage_factor("magic", "divine", 3277)
+
+damage_factor("chaos", "fort", 26214)
+
+damage_factor("hero", "fort", 32768)
+damage_factor("hero", "divine", 3277)
+
+damage_factor("spells", "hero", 49152)

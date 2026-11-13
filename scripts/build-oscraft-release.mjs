@@ -119,9 +119,9 @@ async function build() {
     if (digest !== row.skinnedSha256) fail(`${id} model hash mismatch`);
     return { id, sha256: digest, bytes: row.skinnedBytes, joints: row.skinJoints, clips: row.libraryClips };
   });
-  if (modelHashes.length !== 26 || modelHashes.some((row) => row.joints !== 28 || row.clips !== 8)) fail(`model hash proof invalid: ${modelHashes.length}`);
+  if (modelHashes.length !== 24 || modelHashes.some((row) => row.joints !== 28 || row.clips !== 8)) fail(`model hash proof invalid: ${modelHashes.length}`);
   const browser = integrated.browser ?? runtimeStatus.checks?.browser ?? evidence.browser ?? {};
-  if (browser.ok !== true || browser.uSkinned !== 1 || browser.jointFloats !== 448 || browser.models !== 28 || browser.heroes !== 26 || browser.joints !== 28 || browser.clips !== 8 || browser.motion !== "walk/run" || browser.backdropHits < 1 || browser.other404s !== 0) fail(`browser evidence invalid: ${JSON.stringify(browser)}`);
+  if (browser.ok !== true || browser.uSkinned !== 1 || browser.jointFloats !== 448 || browser.models !== 26 || browser.heroes !== 24 || browser.joints !== 28 || browser.clips !== 8 || browser.motion !== "walk/run" || browser.backdropHits < 1 || browser.other404s !== 0) fail(`browser evidence invalid: ${JSON.stringify(browser)}`);
   const gate = /RESULT gates=(\d+) ok=(\d+) failed=(\d+) drift=(\d+) skipped=(\d+)/.exec(checks.find((row) => row.label === "check-all")?.text ?? "");
   const gateCounts = gate ? { gates: Number(gate[1]), ok: Number(gate[2]), failed: Number(gate[3]), drift: Number(gate[4]), skipped: Number(gate[5]) } : null;
   if (!gateCounts || gateCounts.gates < 78 || gateCounts.ok !== gateCounts.gates || gateCounts.failed !== 0) fail(`gate count invalid: ${JSON.stringify(gateCounts)}`);

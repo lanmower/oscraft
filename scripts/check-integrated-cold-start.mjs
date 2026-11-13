@@ -114,7 +114,7 @@ try {
     validate = spawnSync(process.execPath, [path.join(root, "scripts", "validate-runtime-evidence-status.mjs")], { cwd: root, env, encoding: "utf8" });
   }
   if (validate.status !== 0) fail(`status validator failed: ${validate.stdout ?? ""}${validate.stderr ?? ""}`);
-  console.log(`cold-start evidence: snapshotHash=${status.snapshotHash} default=127 acronyms bota=26 fullnames uSkinned=${status.checks.browser.uSkinned} jointFloats=${status.checks.browser.jointFloats}`);
+  console.log(`cold-start evidence: snapshotHash=${status.snapshotHash} default=127 acronyms bota=24 fullnames uSkinned=${status.checks.browser.uSkinned} jointFloats=${status.checks.browser.jointFloats}`);
   const stopped = stopOwned();
   if (stopped.status !== 0) fail(`--stop failed: ${stopped.stdout ?? ""}${stopped.stderr ?? ""}`);
   await waitFor(async () => {

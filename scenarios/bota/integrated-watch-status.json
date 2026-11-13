@@ -1,0 +1,187 @@
+{
+  "schema": "oscraft.integrated-watch-status/v1",
+  "generatedAt": "2026-11-11T21:12:19.037Z",
+  "ok": true,
+  "snapshotHash": "652f8bbf5c616e8b3e67d2e43280269366714ae1777f3c05684eacad1283f728",
+  "attempts": 1,
+  "healedPaths": [],
+  "coldStart": {
+    "url": "http://127.0.0.1:40809/js/client/play.html",
+    "pid": 1114701,
+    "port": 40809,
+    "cleanup": "pid=1114701 stopped; pidFile removed; peer servers untouched",
+    "evidenceLine": "snapshotHash=652f8bbf5c616e8b3e67d2e43280269366714ae1777f3c05684eacad1283f728 default=127 acronyms bota=26 fullnames uSkinned=1 jointFloats=448",
+    "httpResults": [
+      {
+        "label": "root",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 65
+      },
+      {
+        "label": "default play",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 16126
+      },
+      {
+        "label": "bota play",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 16126
+      },
+      {
+        "label": "historical play",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 16126
+      },
+      {
+        "label": "default manifest",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 5859
+      },
+      {
+        "label": "bota manifest",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 5928
+      },
+      {
+        "label": "historical manifest",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 5850
+      },
+      {
+        "label": "backdrop",
+        "status": 200,
+        "contentType": "image/jpeg",
+        "bytes": 3654481
+      },
+      {
+        "label": "hero GLB",
+        "status": 200,
+        "contentType": "model/gltf-binary",
+        "bytes": 1260884
+      },
+      {
+        "label": "health",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 65
+      }
+    ]
+  },
+  "browser": {
+    "ok": true,
+    "browser": "real CDP page",
+    "uSkinned": 1,
+    "jointFloats": 448,
+    "glError": 0,
+    "models": 28,
+    "heroes": 26,
+    "joints": 28,
+    "clips": 8,
+    "motion": "walk/run",
+    "backdropHits": 1,
+    "other404s": 0,
+    "criticalFailedRequests": 0
+  },
+  "identifierRegimes": {
+    "default": {
+      "packParam": "scenarios/moba-acronyms",
+      "pack": "moba-acronyms",
+      "mode": "default-dota-acronyms",
+      "activeIds": 127,
+      "acronymOnly": true
+    },
+    "bota": {
+      "pack": "bota",
+      "mode": "bota-fullname",
+      "activeIds": 26,
+      "fullnameOnly": true
+    },
+    "historical": {
+      "pack": "moba",
+      "ui": "moba_ui.json"
+    }
+  },
+  "crossContracts": {
+    "required": 8,
+    "optionalPresent": 10,
+    "optionalMissing": 0,
+    "extraPresent": 2,
+    "extraMissing": 0,
+    "hashBearingRowsVerified": 837,
+    "driftStale": 0
+  },
+  "extractionSummaries": [
+    {
+      "peer": "wscheppity",
+      "path": "wscheppity/.local/extraction-manifest.json",
+      "present": true,
+      "classes": 23,
+      "complete": 23,
+      "blocked": 0,
+      "informational": true
+    },
+    {
+      "peer": "extra",
+      "path": "extra/.local/extraction-manifest.json",
+      "present": true,
+      "classes": 22,
+      "complete": 22,
+      "blocked": 0,
+      "informational": true
+    },
+    {
+      "peer": "extraCdnManifest",
+      "path": "extra/.local/cdn/manifest-all.json",
+      "present": true,
+      "classes": null,
+      "complete": null,
+      "blocked": null,
+      "informational": true
+    }
+  ],
+  "peerStatus": [
+    {
+      "peer": "bota",
+      "exit": 0,
+      "lines": 84,
+      "readOnly": true
+    },
+    {
+      "peer": "hy3d",
+      "exit": 0,
+      "lines": 21,
+      "readOnly": true
+    },
+    {
+      "peer": "wscheppity",
+      "exit": 0,
+      "lines": 2,
+      "readOnly": true
+    },
+    {
+      "peer": "extra",
+      "exit": 128,
+      "lines": 2,
+      "readOnly": true
+    }
+  ],
+  "generatedFiles": {
+    "scenarios/bota/runtime-evidence.json": "47a26fb4da2764193c02c22aaae9cda8165468a1c53fd94736f7a54d629f749d",
+    "scenarios/bota/runtime-evidence-status.json": "8ccd85547f843e2c8fe13feb7f8a2ec8b74e15e9655db5fc37a02017c5f9c5ef",
+    "scenarios/bota/cross-contract-snapshot.json": "652f8bbf5c616e8b3e67d2e43280269366714ae1777f3c05684eacad1283f728",
+    "scenarios/bota/integrated-watch-status.json": "written-by-this-run"
+  },
+  "bounded": {
+    "once": true,
+    "timeoutMs": 0,
+    "intervalMs": 20000,
+    "cycles": 1
+  }
+}

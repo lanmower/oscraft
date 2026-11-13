@@ -96,9 +96,9 @@ async function attempt() {
   const runtimeStatus = JSON.parse(fs.readFileSync(runtimeStatusFile, "utf8"));
   if (!evidence.ok || !runtimeStatus.ok || evidence.snapshotHash !== snapshotHash || runtimeStatus.snapshotHash !== snapshotHash) fail(`generated files disagree with snapshot: evidence=${evidence.snapshotHash} status=${runtimeStatus.snapshotHash} live=${snapshotHash}`);
   const browser = runtimeStatus.checks?.browser ?? evidence.browser ?? {};
-  if (browser.ok !== true || browser.uSkinned !== 1 || browser.jointFloats !== 448 || browser.models !== 28 || browser.heroes !== 26 || browser.joints !== 28 || browser.clips !== 8 || browser.motion !== "walk/run" || browser.backdropHits < 1 || browser.other404s !== 0) fail(`browser/WebGL summary invalid: ${JSON.stringify(browser)}`);
+  if (browser.ok !== true || browser.uSkinned !== 1 || browser.jointFloats !== 448 || browser.models !== 26 || browser.heroes !== 24 || browser.joints !== 28 || browser.clips !== 8 || browser.motion !== "walk/run" || browser.backdropHits < 1 || browser.other404s !== 0) fail(`browser/WebGL summary invalid: ${JSON.stringify(browser)}`);
   const regimes = runtimeStatus.checks?.identifierRegimes ?? evidence.identifierRegimes ?? {};
-  if (regimes.default?.activeIds !== 127 || regimes.default?.acronymOnly !== true || regimes.bota?.activeIds !== 26 || regimes.bota?.fullnameOnly !== true || regimes.historical?.pack !== "moba") fail(`identifier regimes invalid: ${JSON.stringify(regimes)}`);
+  if (regimes.default?.activeIds !== 127 || regimes.default?.acronymOnly !== true || regimes.bota?.activeIds !== 24 || regimes.bota?.fullnameOnly !== true || regimes.historical?.pack !== "moba") fail(`identifier regimes invalid: ${JSON.stringify(regimes)}`);
   const status = {
     schema: "oscraft.integrated-watch-status/v1",
     generatedAt: new Date().toISOString(),
