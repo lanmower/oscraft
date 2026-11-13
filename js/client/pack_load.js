@@ -3,7 +3,7 @@ export { moduleClosure, moduleTextReader } from "./lua_closure.js";
 
 const SITE_ROOT = new URL("../../", import.meta.url);
 const PACK_PARAMS = new URLSearchParams(location.search);
-const PACK_PARAM = PACK_PARAMS.get("pack") || PACK_PARAMS.get("package") || "scenarios/moba";
+const PACK_PARAM = PACK_PARAMS.get("pack") || PACK_PARAMS.get("package") || "scenarios/moba-acronyms";
 const TAR_GZ = /\.(tar\.gz|tgz)$/i;
 const ZIP = /\.zip$/i;
 

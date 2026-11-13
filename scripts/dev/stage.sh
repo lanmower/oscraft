@@ -8,7 +8,7 @@ cd "$rust"
 if [ "${WASM:-0}" = 1 ] || [ ! -f crates/web/site/pkg/web_bg.wasm ]; then
   wasm-pack build crates/web --target web --out-dir site/pkg
 fi
-for p in moba duel-routes; do
+for p in moba moba-acronyms duel-routes bota; do
   img=$(node -p "require('$root/scenarios/$p/manifest.json').image")
   cargo run -q -p mapexport -- "$root/scenarios/$p" "$root/scenarios/$p/$img"
 done

@@ -25,7 +25,7 @@ scripts/dev/stage.sh
 node scripts/dev/serve.mjs
 ```
 
-`stage.sh` lays the site out in `.dev-site/` with both packs (`moba` and `duel-routes`), the page wasm and the mods. It runs `wasm-pack` only when the package is missing or `WASM=1` is set. `serve.mjs` serves `.dev-site` on `http://localhost:8790`. Open `js/client/play.html?package=scenarios/moba`. The `package` parameter takes a directory or a `.tar.gz`/`.zip` archive; the default is `scenarios/moba`. Add `?host=1` on one page to host the room; peers join the same room over wireweave. See [HOST.md](HOST.md) for the other query parameters.
+`stage.sh` lays the site out in `.dev-site/` with the default pack and its alternatives (`moba`, `duel-routes`, `bota`), the page wasm and the mods. It runs `wasm-pack` only when the package is missing or `WASM=1` is set. `serve.mjs` serves `.dev-site` on `http://localhost:8790`. Open `js/client/play.html?package=scenarios/moba` for the default pack, or `?package=scenarios/bota` for the BOTA alternative. For a one-command BOTA launch, see [BOTA.md](BOTA.md) and run `scripts/dev/serve-bota.sh`. The `package` parameter takes a directory or a `.tar.gz`/`.zip` archive; the default is `scenarios/moba`. Add `?host=1` on one page to host the room; peers join the same room over wireweave. See [HOST.md](HOST.md) for the other query parameters.
 
 ## Edit a pack
 

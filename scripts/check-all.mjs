@@ -42,6 +42,12 @@ const GATE_CHECKS = [
   "scripts/check-naming-doc.mjs",
   "scripts/check-generated-lua-mutation.mjs",
   "scripts/check-acronyms.mjs",
+  "scripts/check-content-contract-status.mjs",
+  "scripts/check-final-asset-status.mjs",
+  "scripts/check-identifier-regime-runtime.mjs",
+  "scenarios/moba/tools/gen-moba-acronym-pack.mjs --check",
+  "scenarios/bota/tools/build-bota-pack.mjs --check",
+  "scenarios/bota/tools/check-bota-pack.mjs",
   "scripts/check-modulepreload.mjs",
   "scripts/check-pack-allow-list.mjs",
   "scripts/check-staged-secrets.mjs",
@@ -101,6 +107,10 @@ const EXTERNAL = [
 ];
 
 const nodeEntry = (kind, id, state, argv, extra) => Object.assign({ kind: kind, id: id, state: state, argv: argv }, extra || {});
+const specEntry = (id) => {
+  const [file, ...argv] = id.split(" ");
+  return { kind: "check", id, state: "gate", exe: process.execPath, argv: [file, ...argv] };
+};
 const G688_LNI = process.env.G688_LNI || "";
 const abilityTextGate = G688_LNI
   ? [nodeEntry("gen", "gen-ability-text-688g.mjs", "gate", ["scenarios/moba/tools/gen-ability-text-688g.mjs", "--check", join(G688_LNI, "ability.ini")])]
@@ -111,7 +121,7 @@ const turnRatesDrift = G688_UNIT_INI
   : [];
 const entries = [
   { kind: "check", id: "git diff --check", state: "gate", exe: "git", argv: ["diff", "--check"] },
-  ...GATE_CHECKS.map((id) => nodeEntry("check", id, "gate", [id])),
+  ...GATE_CHECKS.map((id) => id.includes(" ") ? specEntry(id) : nodeEntry("check", id, "gate", [id])),
   ...GATE_GENERATORS.map((id) => nodeEntry("gen", id, "gate", tools(id))),
   ...DRIFT.map((d) => nodeEntry("gen", d.id, "drift", tools(d.id), { output: d.output, reason: d.reason })),
   ...turnRatesDrift,

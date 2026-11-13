@@ -1,0 +1,24 @@
+{
+  "name": "oscraft-cross-contracts",
+  "private": true,
+  "scripts": {
+    "check:cross-contracts": "node scripts/check-cross-project-contracts.mjs",
+    "wait:cross-contracts": "node scripts/dev/wait-cross-contracts.mjs",
+    "refresh:cross-contracts": "node scripts/dev/refresh-cross-contracts.mjs",
+    "check:identifier-runtime": "node scripts/check-identifier-regime-runtime.mjs",
+    "cross:autoheal": "node scripts/dev/cross-contract-autoheal.mjs",
+    "check:cross-autoheal": "node scripts/check-cross-contract-autoheal.mjs",
+    "check:cross-runtime": "node scripts/check-cross-runtime.mjs",
+    "validate:runtime-evidence": "node scripts/validate-runtime-evidence.mjs",
+    "watch:cross-runtime": "node scripts/dev/watch-cross-runtime.mjs",
+    "validate:runtime-evidence-status": "node scripts/validate-runtime-evidence-status.mjs",
+    "serve:integrated": "bash scripts/serve-integrated.sh",
+    "check:integrated-cold-start": "node scripts/check-integrated-cold-start.mjs",
+    "watch:integrated": "node scripts/dev/watch-integrated.mjs",
+    "validate:integrated-watch": "node scripts/validate-integrated-watch.mjs",
+    "report:oscraft-release": "node scripts/build-oscraft-release.mjs",
+    "validate:oscraft-release": "node scripts/validate-oscraft-release.mjs",
+    "check:workspace-pipeline": "node scripts/check-workspace-pipeline.mjs"
+  },
+  "type": "module"
+}

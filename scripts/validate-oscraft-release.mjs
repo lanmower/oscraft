@@ -1,0 +1,104 @@
+#!/usr/bin/env node
+import { spawnSync } from "node:child_process";
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { contractPaths, comparableSha256 } from "./cross-contract-inputs.mjs";
+import { buildContentContractStatus } from "./content-contract-status.mjs";
+import { buildFinalAssetStatus } from "./final-asset-status.mjs";
+import { extractionEvidence } from "./runtime-peer-evidence.mjs";
+import { buildWorkspacePipeline } from "./workspace-pipeline.mjs";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const paths = contractPaths(root);
+const jsonFile = path.join(root, "docs", "OSCRAFT_RELEASE.json");
+const mdFile = path.join(root, "docs", "OSCRAFT_RELEASE.md");
+const fail = (message) => { console.error(`validate:oscraft-release: ${message}`); process.exit(1); };
+const sha256 = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
+const run = (label, file, args = []) => {
+  const r = spawnSync(process.execPath, [path.join(root, file), ...args], { cwd: root, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
+  if (r.status !== 0) { console.error(`${r.stdout ?? ""}${r.stderr ?? ""}`.trim()); fail(`${label} exited ${r.status}`); }
+};
+if (!fs.existsSync(jsonFile) || !fs.existsSync(mdFile)) fail("docs/OSCRAFT_RELEASE.json/.md is missing; run npm run report:oscraft-release");
+const artifact = JSON.parse(fs.readFileSync(jsonFile, "utf8"));
+if (artifact.schema !== "oscraft.release-report/v1" || artifact.ok !== true) fail("schema or ok flag invalid");
+if (!artifact.generatedAt || !artifact.snapshotHash) fail("generatedAt or snapshotHash missing");
+const snapshotHash = sha256(fs.readFileSync(paths.snapshot));
+if (artifact.snapshotHash !== snapshotHash) fail(`snapshotHash is stale: artifact=${artifact.snapshotHash} live=${snapshotHash}`);
+const snapshot = JSON.parse(fs.readFileSync(paths.snapshot, "utf8"));
+if (!artifact.evidenceFiles?.["scenarios/bota/cross-contract-snapshot.json"] || artifact.evidenceFiles["scenarios/bota/cross-contract-snapshot.json"] !== snapshotHash) fail("snapshot hash column is stale");
+if (artifact.crossContracts?.driftStale !== 0 || artifact.crossContracts?.required !== 8) fail("cross-contract counts invalid");
+const regimes = artifact.identifierRegimes ?? {};
+if (regimes.default?.packParam !== "scenarios/moba-acronyms" || regimes.default?.pack !== "moba-acronyms" || regimes.default?.activeIds !== 127 || regimes.default?.acronymOnly !== true || artifact.packParam !== "scenarios/moba-acronyms") fail("default identifier regime invalid");
+if (regimes.bota?.pack !== "bota" || regimes.bota?.activeIds !== 26 || regimes.bota?.fullnameOnly !== true) fail("BOTA identifier regime invalid");
+if (regimes.historical?.pack !== "moba") fail("historical pack invalid");
+if (!Array.isArray(artifact.botaModels?.hashes) || artifact.botaModels.hashes.length !== 26 || artifact.botaModels.joints !== 28 || artifact.botaModels.clips !== 8) fail("26-model hash proof invalid");
+const skinned = JSON.parse(fs.readFileSync(path.join(root, "scenarios", "bota", "bota-skinned.json"), "utf8"));
+let matched = 0;
+for (const [id, row] of Object.entries(skinned.heroes ?? {})) {
+  const file = path.join(root, "scenarios", "bota", "assets", "models", `${id}-skinned.glb`);
+  if (!fs.existsSync(file) || sha256(fs.readFileSync(file)) !== row.skinnedSha256) fail(`${id}: live model hash differs`);
+  matched += 1;
+}
+if (matched !== 26) fail(`only ${matched}/26 live model hashes match`);
+if (artifact.menuBackdrop?.bytes !== 3654481 || artifact.menuBackdrop?.sha256 !== "431b1f861938c26edb7ce226e75d1c66a433c701d70a59463e064c402a077549") fail("menuBackdrop evidence invalid");
+const backdropHash = sha256(fs.readFileSync(path.join(root, "scenarios", "bota", "assets", "textures", "menu-backdrop.jpg")));
+if (backdropHash !== artifact.menuBackdrop.sha256) fail("live backdrop hash differs");
+const browser = artifact.browser ?? {};
+if (browser.ok !== true || browser.uSkinned !== 1 || browser.jointFloats !== 448 || browser.models !== 28 || browser.heroes !== 26 || browser.joints !== 28 || browser.clips !== 8 || browser.motion !== "walk/run" || browser.backdropHits < 1 || browser.other404s !== 0) fail(`browser/WebGL evidence invalid: ${JSON.stringify(browser)}`);
+const gate = artifact.gateCounts ?? {};
+if (gate.gates < 78 || gate.ok !== gate.gates || gate.failed !== 0) fail(`gate counts invalid: ${JSON.stringify(gate)}`);
+if (!Array.isArray(artifact.checks) || artifact.checks.some((row) => row.exit !== 0)) fail("one or more included checks had non-zero exit");
+const evidence = JSON.parse(fs.readFileSync(path.join(root, "scenarios", "bota", "runtime-evidence.json"), "utf8"));
+const runtimeStatus = JSON.parse(fs.readFileSync(path.join(root, "scenarios", "bota", "runtime-evidence-status.json"), "utf8"));
+const integrated = JSON.parse(fs.readFileSync(path.join(root, "scenarios", "bota", "integrated-watch-status.json"), "utf8"));
+if (!evidence.ok || !runtimeStatus.ok || !integrated.ok || evidence.snapshotHash !== snapshotHash || runtimeStatus.snapshotHash !== snapshotHash || integrated.snapshotHash !== snapshotHash) fail("live evidence/status artifacts are stale or contradictory");
+for (const [rel, expected] of Object.entries(artifact.evidenceFiles ?? {})) if (rel !== "scenarios/bota/cross-contract-snapshot.json" && sha256(fs.readFileSync(path.join(root, rel))) !== expected) fail(`evidence file hash changed: ${rel}`);
+const liveContentContracts = buildContentContractStatus(root);
+if (!liveContentContracts.ok) fail(`live content contracts: ${liveContentContracts.errors.join(" | ")}`);
+const storedContentContracts = artifact.contentContracts;
+if (!storedContentContracts || storedContentContracts.schema !== liveContentContracts.schema || storedContentContracts.ok !== true || storedContentContracts.sourceSha256 !== liveContentContracts.sourceSha256) fail("contentContracts evidence is missing or stale");
+if (JSON.stringify(storedContentContracts.identifierInversion) !== JSON.stringify(liveContentContracts.identifierInversion) || storedContentContracts.integration?.doNotPromote?.length !== liveContentContracts.integration.doNotPromote.length || storedContentContracts.demand?.rows !== liveContentContracts.demand.rows) fail("contentContracts inversion/gate/demand evidence is stale");
+const liveFinalAssets = buildFinalAssetStatus(root);
+if (!liveFinalAssets.ok) fail(`live final asset status: ${liveFinalAssets.errors.join(" | ")}`);
+const storedFinalAssets = artifact.finalAssets;
+if (!storedFinalAssets || storedFinalAssets.schema !== liveFinalAssets.schema || storedFinalAssets.ok !== true || storedFinalAssets.sourceSha256 !== liveFinalAssets.sourceSha256) fail("finalAssets evidence is missing or stale");
+if (JSON.stringify(storedFinalAssets.counts) !== JSON.stringify(liveFinalAssets.counts) || JSON.stringify(storedFinalAssets.blockers) !== JSON.stringify(liveFinalAssets.blockers) || storedFinalAssets.generatedHashVerification?.verified !== 24) fail("finalAssets counts, generated-hash proof or blocker facts are stale");
+if (storedFinalAssets.counts?.generated !== 24 || storedFinalAssets.counts?.blocked !== 30 || storedFinalAssets.counts?.ready !== 24) fail("finalAssets evidence must report generated=24 blocked=30 ready=24");
+const liveExtraction = extractionEvidence(paths);
+if (!Array.isArray(artifact.extractionSummaries) || artifact.extractionSummaries.length !== liveExtraction.length) fail("extraction summaries missing");
+for (let i = 0; i < liveExtraction.length; i += 1) {
+  const saved = artifact.extractionSummaries[i], live = liveExtraction[i];
+  if (saved?.peer !== live.peer || saved?.path !== live.path || saved?.present !== live.present || saved?.informational !== true || (saved.classes ?? null) !== (live.classes ?? null) || (saved.complete ?? null) !== (live.complete ?? null) || (saved.blocked ?? null) !== (live.blocked ?? null)) fail(`extraction summary ${live.peer} stale`);
+}
+const livePipeline = buildWorkspacePipeline();
+if (!livePipeline.ok) fail(`live workspace pipeline BLOCKING: ${livePipeline.blocking.join(" | ")}`);
+const pipeline = artifact.workspacePipeline;
+if (!pipeline || pipeline.schema !== "oscraft.workspace-pipeline/v1" || pipeline.state !== livePipeline.state || pipeline.ok !== livePipeline.ok) fail("workspacePipeline is missing or stale");
+if (pipeline.vendorPrep?.state !== livePipeline.vendorPrep.state || pipeline.vendor247420?.state !== livePipeline.vendor247420.state) fail("workspacePipeline vendor states are stale");
+if (pipeline.bitvoice?.contractSha256 !== livePipeline.bitvoice.contractSha256 || pipeline.bitvoice?.lockMatches !== livePipeline.bitvoice.lockMatches) fail("workspacePipeline BitTTS contract evidence is stale");
+if (JSON.stringify(pipeline.blocking ?? []) !== JSON.stringify(livePipeline.blocking)) fail("workspacePipeline BLOCKING rows differ");
+for (const row of pipeline.pending ?? []) if (!livePipeline.pending.includes(row)) fail(`workspacePipeline stale PENDING row: ${row}`);
+const cold = artifact.coldStart ?? {};
+if (!cold.url || !Number.isInteger(cold.pid) || !Number.isInteger(cold.port) || !Array.isArray(cold.httpResults) || cold.httpResults.length < 10 || cold.httpResults.some((row) => row.status !== 200)) fail("cold-start evidence invalid");
+let alive = false;
+try { process.kill(cold.pid, 0); alive = true; } catch (error) { if (error.code !== "ESRCH") alive = true; }
+if (alive || artifact.cleanup?.survivorCount !== 0 || artifact.cleanup?.ownedPidAlive !== false) fail("cleanup evidence invalid or owned PID survived");
+const survivorPattern = /serve-integrated|serve:integrated|\.dev-site-integrated|\.dev-site-integrated-check-|\.dev-site-cross-runtime-|\.dev-site-identifier-runtime-|check-bota-browser|check-cross-runtime|check-identifier-regime-runtime|watch-cross-runtime|watch-integrated/;
+const ps = spawnSync("bash", ["-lc", `ps -eo pid,args | grep -E ${JSON.stringify(survivorPattern.source)} | grep -v grep || true`], { cwd: root, encoding: "utf8" });
+if (`${ps.stdout ?? ""}`.trim()) fail(`integrated/test survivor process found: ${ps.stdout.trim()}`);
+const secret = spawnSync(process.execPath, [path.join(root, "scripts", "check-staged-secrets.mjs"), "--self-test"], { cwd: root, encoding: "utf8" });
+if (secret.status !== 0 || artifact.hiddenTokenScan?.status !== 0 || artifact.hiddenTokenScan?.hits?.length) fail("hidden-token evidence invalid");
+run("validate:runtime-evidence", "scripts/validate-runtime-evidence.mjs");
+run("validate:runtime-evidence-status", "scripts/validate-runtime-evidence-status.mjs");
+run("validate:integrated-watch", "scripts/validate-integrated-watch.mjs");
+run("check:workspace-pipeline", "scripts/check-workspace-pipeline.mjs");
+run("refresh --check", "scripts/dev/refresh-cross-contracts.mjs", ["--check"]);
+const moba = spawnSync("git", ["status", "--short", "--", "scenarios/moba"], { cwd: root, encoding: "utf8" });
+if (moba.status !== 0) fail("git status scenarios/moba failed");
+const mobaFiles = `${moba.stdout ?? ""}`.trim().split("\n").filter(Boolean).map((line) => line.slice(3)).sort();
+if (JSON.stringify(mobaFiles) !== JSON.stringify(["scenarios/moba/IDENTIFIERS.md", "scenarios/moba/tools/gen-moba-acronym-pack.mjs"])) fail(`scenarios/moba changed: ${mobaFiles.join(",")}`);
+if (!fs.readFileSync(mdFile, "utf8").includes(`Snapshot: ${snapshotHash}`)) fail("Markdown artifact does not name live snapshot");
+console.log(`validate:oscraft-release PASS: docs/OSCRAFT_RELEASE.json generatedAt=${artifact.generatedAt} snapshotHash=${snapshotHash} gates=${gate.ok}/${gate.gates} models=26 checks=${artifact.checks.length}`);
+console.log(`validate:oscraft-release PASS: live evidence, 26 model hashes, backdrop, WebGL, content-contract inversion/gates, final assets 24/30/24 and blockers, cold-start cleanup, hidden-token scan, peer status and ps cleanup agree`);

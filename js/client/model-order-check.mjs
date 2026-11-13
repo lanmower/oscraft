@@ -36,8 +36,9 @@ async function scenario(dir, gated) {
 
   globalThis.fetch = (url, init = {}) => {
     const href = String(url);
-    const packAt = href.indexOf("/scenarios/moba/");
-    if (packAt >= 0) return readPack(href.slice(packAt + "/scenarios/moba/".length));
+    const prefix = href.includes("/scenarios/moba-acronyms/") ? "/scenarios/moba-acronyms/" : "/scenarios/moba/";
+    const packAt = href.indexOf(prefix);
+    if (packAt >= 0) return readPack(href.slice(packAt + prefix.length));
     if (!href.includes("/models/")) return Promise.resolve({ ok: false, status: 404 });
     if (init.signal?.aborted) return Promise.reject(new DOMException("aborted", "AbortError"));
     return new Promise((resolveFetch, rejectFetch) => {

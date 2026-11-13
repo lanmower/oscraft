@@ -1,0 +1,85 @@
+# 6.88g attack feel from unit.ini: backSw1 (backswing_ms), MissileHoming_1 (missile_homing), Missilearc_1 (missile_arc, hundredths). Blank: unit.ini stores no value (the stock object has it). The lane creep kinds (creep*, sentinel_creep*) take a blank from their role family record (esen, edry, ebal), named in the evidence column.
+id	src	backswing_ms	homing	arc	evidence
+neutral_ghost	ngh1	300			
+be	UIN6		0		
+blo	UAG7	740			
+cm	Hjai	0		0	
+dr	Nbrn		1	5	
+ear	UST1	863			
+pud	U00F	1170			
+raz	E002	700	1	5	
+sk	U00K	470			
+ss	H00S	300			
+sve	H001	300			
+tin	UST4	1000			
+win	N0EG	500	1	5	
+zuu	UIN3		1		
+kun	H06S	300			
+lin	H004	780			
+lio	UC18	740			
+sla	UC91	640			
+wd	E01A	500		15	
+eni	UIN5	770			
+tik	Ntin			0	
+sni	UAG6		1		
+war	E01C			15	
+fv	EC45	560			
+dp	UC76	510			
+pug	H00H	500			
+ta	E01Y			0	
+vip	EC77	1000	1		
+lun	E005	540	1		
+daz	N01W			0	
+ds	H00N	580			
+cli	E004		1		
+enc	UIN1		1		
+hus	H00Q	500			
+bro	U006	500			
+wea	UAG5	360		0	
+jak	E00P	500	1		
+spe	E01B	700			
+db	UC42	700			
+aa	N0HP	300		5	
+urs	UAG1	300			
+spi	O00J	300			
+gyr	E02N	970	1		
+alc	N01I	650			
+inv	H00U	700			
+od	U00P	540	1	0	
+lyc	U008	550			
+sd	E02H	500		0	
+ld	N01O	530	1		
+mee	H00I	600			
+tre	UST2	400			
+dis	E02J			0	
+nag	HC49	500			
+wis	O01F	400		15	
+med	H00V	600			
+tw	N016	300			
+mag	UC11	840			
+shr	E032	640			
+tus	E02I	640			
+sm	H0DO	780			
+lc	E02K	640			
+esp	N0MU			0	
+tec	H00K	500	1	35	
+ww	N0M7			10	
+aw	N0MK	700		10	
+creep	ugho	533			
+sentinel_creep	esen	533			
+creep_super	u001	533			
+sentinel_creep_super	e00V	533			backSw1 from esen
+creep_mega	n12Q	533			
+sentinel_creep_mega	n12S	533			backSw1 from esen
+creep_ranged	unec	670			backSw1 from edry
+sentinel_creep_ranged	edry	670			
+creep_ranged_super	u002	670			backSw1 from edry
+sentinel_creep_ranged_super	e00W	670			backSw1 from edry
+creep_ranged_mega	n12R	670			backSw1 from edry
+sentinel_creep_ranged_mega	n12T	670			backSw1 from edry
+creep_siege	umtw	1300	1		backSw1 from ebal
+sentinel_creep_siege	ebal	1300	1		
+creep_siege_super	u00R	1300	1		backSw1 from ebal
+sentinel_creep_siege_super	e026	1300	1		
+creep_siege_mega	u00R	1300	1		backSw1 from ebal
+sentinel_creep_siege_mega	e026	1300	1		

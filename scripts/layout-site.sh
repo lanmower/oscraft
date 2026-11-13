@@ -26,7 +26,7 @@ cp -r mods "$out/mods"
 printf '{"sha":"%s","ref":"%s","run":"%s","built":"%s"}\n' "$sha" "$ref" "$run" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$out/version.json"
 cp "$out/version.json" "$out/js/client/version.json"
 printf '<meta http-equiv="refresh" content="0; url=js/client/play.html">\n' > "$out/index.html"
-for f in version.json js/client/editor.html js/client/play.html js/client/play.js js/client/pack_load.js scenarios/moba/manifest.json scenarios/moba/moba.osdt js/client/pkg/web.js js/client/pkg/web_bg.wasm js/client/vendor/wireweave/src/index.js js/client/vendor/three/libs/draco/draco_wasm_wrapper.js; do
+for f in version.json js/client/editor.html js/client/play.html js/client/play.js js/client/pack_load.js scenarios/moba-acronyms/manifest.json scenarios/moba-acronyms/moba.osdt scenarios/moba/manifest.json scenarios/moba/moba.osdt js/client/pkg/web.js js/client/pkg/web_bg.wasm js/client/vendor/wireweave/src/index.js js/client/vendor/three/libs/draco/draco_wasm_wrapper.js; do
   test -f "$out/$f" || { echo "layout-site: missing $f" >&2; exit 1; }
 done
 

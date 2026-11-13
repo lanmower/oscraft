@@ -5,7 +5,7 @@ A deterministic, generic game engine: a pack of data and Lua defines the game, p
 ## What it is
 
 - A fixed-point simulation (`rust/crates/sim`) with combat, pathfinding, attributed units, ability ranks, items, shops, camps and status effects.
-- A pack model: each scenario directory holds `.osd` data, Lua mods and a `manifest.json`; the engine has no built-in game types. `scenarios/moba` is one example pack (a 5v5 match of units, items and rules) and `scenarios/duel-routes` is a routes test.
+- A pack model: each scenario directory holds `.osd` data, Lua mods and a `manifest.json`; the engine has no built-in game types. `scenarios/moba` is one example pack (a 5v5 match of units, items and rules), `scenarios/duel-routes` is a routes test, and `scenarios/bota` is a selectable alternative pack cloned from the default MOBA rules.
 - A static browser client in `js/client` (GitHub Pages target): local ES modules load directly, Pages builds wasm, maps and bundles from source; peers join over WebRTC and Nostr.
 
 ## Run
@@ -23,6 +23,7 @@ The browser game is the static page in `js/client/`. Stage it the way Pages does
 ## Docs
 
 - [docs/QUICKSTART.md](docs/QUICKSTART.md): build, serve, play, mod, edit a map
+- [docs/BOTA.md](docs/BOTA.md): one-line local launch, BOTA features, verification
 - [docs/GAME.md](docs/GAME.md): how a match plays, with numbers
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): crates, data format, sim, browser host, wasm, client, wire, mod host
 - [docs/MODDING.md](docs/MODDING.md), [docs/SCENARIOS.md](docs/SCENARIOS.md), [docs/HOST.md](docs/HOST.md), [docs/WIRE.md](docs/WIRE.md)
@@ -49,3 +50,24 @@ All crates live in the `rust/` workspace (`rust/Cargo.toml`). The engine crates 
 | `oscraft-gate` | `rust/gate` | The check suite that runs against the sim and the packs. |
 | `wasip3-guest` | `rust/crates/wasip3` | Excluded from the workspace: the WASI guest that runs the mod host under wasmtime. |
 
+
+## Integrated cold start
+
+Run `npm run serve:integrated` for the validated default acronym pack, opt-in fullname BOTA pack and historical source pack. Use `npm run watch:integrated -- --once` for a bounded fresh-process proof. See [docs/INTEGRATED-COLD-START.md](docs/INTEGRATED-COLD-START.md).
+
+## Oscraft release artifact
+
+Generate and validate the operator-facing release report with `npm run report:oscraft-release` and `npm run validate:oscraft-release`. See [docs/CROSS-RUNTIME.md](docs/CROSS-RUNTIME.md) and [docs/INTEGRATED-COLD-START.md](docs/INTEGRATED-COLD-START.md).
+
+## Workspace pipeline context
+
+The oscraft release artifact is peer-aware of the wscheppity → 247420 compression/vendor pipeline and the stable BitTTS/BitVoice contract. All reads are read-only and all missing prep artifacts are reported, not hard-failed.
+
+```bash
+npm run check:workspace-pipeline
+npm run check:workspace-pipeline -- --watch --once
+npm run report:oscraft-release
+npm run validate:oscraft-release
+```
+
+`docs/OSCRAFT_RELEASE.json` has a `workspacePipeline` section with wscheppity extraction state, vendor-prep `UNAVAILABLE|NOT_READY|READY`, 247420 `WAITING|VENDORED|BLOCKED`, 12kbps Opus/Brotli/rerun counts when available, BitTTS contract schema/hash/lock, gmweb release readiness, extra status, and exact PENDING/BLOCKING rows. `READY.json ok=true` is required before any 247420 vendored content is valid; vendored files without READY are `BLOCKING`. A missing vendor-prep directory is `PENDING`, not a failure. The pipeline checker has a bounded default `--watch` loop of 10 minutes at 20-second intervals and `--watch --once` for one cycle. It starts no servers and writes nothing to peers.

@@ -1,0 +1,62 @@
+type	count	kind	pathTex	w	h	red_cells	red_rows_north_first	source
+ATtr	1567	destructable	PathTextures/4x4Default.tga	4	4	16	1111/1111/1111/1111	stock destructabledata.slk ATtr
+NTtw	1470	destructable	PathTextures/4x4Default.tga	4	4	16	1111/1111/1111/1111	stock destructabledata.slk NTtw
+ZPsh	419	prop		0	0	0		stock doodads.slk ZPsh
+CTtr	400	destructable	PathTextures/4x4Default.tga	4	4	16	1111/1111/1111/1111	stock destructabledata.slk CTtr
+ZPfw	165	prop		0	0	0		stock doodads.slk ZPfw
+YTpb	109	destructable	PathTextures/2x2Default.tga	2	2	4	11/11	stock destructabledata.slk YTpb
+CObl	88	prop		0	0	0		stock doodads.slk CObl
+APms	78	prop		0	0	0		map doodad.ini pathTex
+YTlb	48	destructable		0	0	0		map destructable.ini pathTex
+NTtc	38	destructable	PathTextures/2x2Default.tga	2	2	4	11/11	stock destructabledata.slk NTtc
+AOsr	36	prop		0	0	0		stock doodads.slk AOsr
+APtv	35	prop		0	0	0		map doodad.ini pathTex
+LOth	30	prop		0	0	0		stock doodads.slk LOth
+LOsk	29	prop		0	0	0		map doodad.ini pathTex
+AOnt	26	prop		0	0	0		map doodad.ini pathTex
+LOtz	22	prop		0	0	0		stock doodads.slk LOtz
+LWw0	18	prop		0	0	0		stock doodads.slk LWw0
+LOic	17	prop		0	0	0		map doodad.ini pathTex
+NObt	15	prop		0	0	0		stock doodads.slk NObt
+ZRrk	13	prop	PathTextures/4x4Default.tga	4	4	16	1111/1111/1111/1111	stock doodads.slk ZRrk
+LOsm	12	prop		0	0	0		stock doodads.slk LOsm
+CPms	12	prop		0	0	0		map doodad.ini pathTex
+AObd	11	prop		0	0	0		stock doodads.slk AObd
+ARrk	10	prop	PathTextures/4x4Default.tga	4	4	16	1111/1111/1111/1111	stock doodads.slk ARrk
+LOfl	9	prop		0	0	0		stock doodads.slk LOfl
+JOgr	9	prop		0	0	0		map doodad.ini pathTex
+LObz	7	prop		0	0	0		map doodad.ini pathTex
+LPfp	7	prop		0	0	0		stock doodads.slk LPfp
+VOfl	6	prop	PathTextures/8x2Default.tga	8	2	16	11111111/11111111	stock doodads.slk VOfl
+LOh1	6	prop		0	0	0		map doodad.ini pathTex
+CPct	6	prop		0	0	0		map doodad.ini pathTex
+LTrc	6	destructable	PathTextures/4x4Default.tga	4	4	16	1111/1111/1111/1111	stock destructabledata.slk LTrc
+NOfl	6	prop	PathTextures/8x2Default.tga	8	2	16	11111111/11111111	stock doodads.slk NOfl
+CRrk	6	prop	PathTextures/4x4Default.tga	4	4	16	1111/1111/1111/1111	stock doodads.slk CRrk
+LOo2	6	prop		0	0	0		stock doodads.slk LOo2
+ZWfs	6	prop		0	0	0		stock doodads.slk ZWfs
+AWfs	6	prop		0	0	0		stock doodads.slk AWfs
+LOpg	6	prop		0	0	0		map doodad.ini pathTex
+CSbl	5	prop	PathTextures/6x6Default.tga	6	6	36	111111/111111/111111/111111/111111/111111	stock doodads.slk CSbl
+NOfp	4	prop		0	0	0		map doodad.ini pathTex
+NOfg	3	prop		0	0	0		map doodad.ini pathTex
+LOlp	3	prop		0	0	0		map doodad.ini pathTex
+NOtb	3	prop		0	0	0		map doodad.ini pathTex
+ASbc	3	prop	PathTextures/4x4Default.tga	4	4	16	1111/1111/1111/1111	stock doodads.slk ASbc
+NRfs	2	prop	PathTextures/8x8Default.tga	8	8	64	11111111/11111111/11111111/11111111/11111111/11111111/11111111/11111111	stock doodads.slk NRfs
+IOst	2	prop		0	0	0		map doodad.ini pathTex
+LPwh	2	prop		0	0	0		stock doodads.slk LPwh
+ZWbg	2	prop		0	0	0		stock doodads.slk ZWbg
+LOgr	2	prop		0	0	0		map doodad.ini pathTex
+CPlp	2	prop		0	0	0		stock doodads.slk CPlp
+OOsd	2	prop		0	0	0		map doodad.ini pathTex
+LOsp	1	prop		0	0	0		stock doodads.slk LOsp
+NWrd	1	prop	PathTextures/4x8Default.tga	4	8	32	1111/1111/1111/1111/1111/1111/1111/1111	stock doodads.slk NWrd
+NWsd	1	prop	PathTextures/8x8Default.tga	8	8	64	11111111/11111111/11111111/11111111/11111111/11111111/11111111/11111111	stock doodads.slk NWsd
+LOca	1	prop		0	0	0		map doodad.ini pathTex
+NSct	1	prop	PathTextures/8x8Default.tga	8	8	64	11111111/11111111/11111111/11111111/11111111/11111111/11111111/11111111	stock doodads.slk NSct
+ZWsf	1	prop		0	0	0		stock doodads.slk ZWsf
+LOsc	1	prop	PathTextures/2x2Default.tga	2	2	4	11/11	stock doodads.slk LOsc
+ZPru	1	prop		0	0	0		map doodad.ini pathTex
+AOgs	1	prop	PathTextures/4x4Default.tga	4	4	16	1111/1111/1111/1111	map doodad.ini pathTex
+AObr	1	prop	PathTextures/4x4Default.tga	4	4	16	1111/1111/1111/1111	stock doodads.slk AObr

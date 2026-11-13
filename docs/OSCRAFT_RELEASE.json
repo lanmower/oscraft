@@ -1,0 +1,2628 @@
+{
+  "schema": "oscraft.release-report/v1",
+  "generatedAt": "2026-11-11T21:12:50.261Z",
+  "ok": true,
+  "identifierRegimes": {
+    "default": {
+      "packParam": "scenarios/moba-acronyms",
+      "pack": "moba-acronyms",
+      "mode": "default-dota-acronyms",
+      "activeIds": 127,
+      "acronymOnly": true
+    },
+    "bota": {
+      "pack": "bota",
+      "mode": "bota-fullname",
+      "activeIds": 26,
+      "fullnameOnly": true
+    },
+    "historical": {
+      "pack": "moba",
+      "ui": "moba_ui.json"
+    }
+  },
+  "packParam": "scenarios/moba-acronyms",
+  "snapshotHash": "652f8bbf5c616e8b3e67d2e43280269366714ae1777f3c05684eacad1283f728",
+  "checks": [
+    {
+      "label": "cross-contract snapshot stability",
+      "exit": 0,
+      "last": "stable peer snapshot reached"
+    },
+    {
+      "label": "check-all",
+      "exit": 0,
+      "last": "RESULT gates=80 ok=80 failed=0 drift=0 skipped=6 strict=false"
+    },
+    {
+      "label": "check:acronyms",
+      "exit": 0,
+      "last": "check-acronyms: default 127 acronym-only active IDs, BOTA 26 fullname active IDs; authority 127 unique 1-3 letter labels"
+    },
+    {
+      "label": "check:identifier-runtime",
+      "exit": 0,
+      "last": "identifier-runtime PASS: HTTP 200 for default, BOTA and historical play pages; PACK_PARAM=scenarios/moba-acronyms"
+    },
+    {
+      "label": "check:bota-pack",
+      "exit": 0,
+      "last": "bota animation: real skins active; source static mesh bytes preserved in bota-ready.json provenance"
+    },
+    {
+      "label": "check:cross-contracts",
+      "exit": 0,
+      "last": "read-only sources: required 8, optional 10, oscraft 5 contract files"
+    },
+    {
+      "label": "refresh:cross-contracts --check",
+      "exit": 0,
+      "last": "read-only sources: required 8, optional 10, oscraft 5 contract files"
+    },
+    {
+      "label": "check:cross-autoheal",
+      "exit": 0,
+      "last": "read-only peer status extra exit=128 evidenceLines=2"
+    },
+    {
+      "label": "check:cross-runtime",
+      "exit": 0,
+      "last": "extraction evidence extraCdnManifest: present=true classes=? complete=? blocked=? informational=true"
+    },
+    {
+      "label": "validate:runtime-evidence",
+      "exit": 0,
+      "last": "validate:runtime-evidence PASS: default 127 acronyms, BOTA 26 fullnames, historical moba, backdrop/hero hashes, 26/26 skinned hashes, WebGL summary, cross-contract counts"
+    },
+    {
+      "label": "watch:cross-runtime --once",
+      "exit": 0,
+      "last": "extraction evidence extraCdnManifest: present=true classes=? complete=? blocked=? informational=true"
+    },
+    {
+      "label": "validate:runtime-evidence-status",
+      "exit": 0,
+      "last": "validate:runtime-evidence-status PASS: checks match runtime evidence, live snapshot, identifier regimes, WebGL summary, cross-contract counts, extraction summaries and peer status"
+    },
+    {
+      "label": "check:integrated-cold-start",
+      "exit": 0,
+      "last": "check:integrated-cold-start PASS: url=http://127.0.0.1:40657/js/client/play.html pid=1108566 port=40657 ok=true"
+    },
+    {
+      "label": "watch:integrated --once",
+      "exit": 0,
+      "last": "watch:integrated PASS: owned PID cleaned; survivors=0; browser uSkinned=1 jointFloats=448 models=28 heroes=26 clips=8"
+    },
+    {
+      "label": "validate:integrated-watch",
+      "exit": 0,
+      "last": "validate:integrated-watch PASS: coldStart pid=1114701 port=40809 httpResults=10; no survivors; evidence, snapshot, browser, extraction and peer state agree"
+    },
+    {
+      "label": "check:bota-browser --all",
+      "exit": 0,
+      "last": "render evidence: live __ci hooks do not expose per-draw state; CDP WebGL2 createRenderer.drawSkinned probe proved uSkinned=1 with a 448-float joint palette through render3d.js:1007-1025"
+    },
+    {
+      "label": "check:workspace-pipeline",
+      "exit": 0,
+      "last": "check:workspace-pipeline PASS: state=PENDING pending=1 blocking=0 cycles=1"
+    },
+    {
+      "label": "git status scenarios/moba",
+      "exit": 0,
+      "last": "lines=2"
+    },
+    {
+      "label": "hidden-token scan",
+      "exit": 0,
+      "last": "hits=0"
+    },
+    {
+      "label": "ps survivor scan",
+      "exit": 0,
+      "last": "survivors=0"
+    }
+  ],
+  "gateCounts": {
+    "gates": 80,
+    "ok": 80,
+    "failed": 0,
+    "drift": 0,
+    "skipped": 6
+  },
+  "botaModels": {
+    "count": 26,
+    "joints": 28,
+    "clips": 8,
+    "hashes": [
+      {
+        "id": "neckbeard",
+        "sha256": "c4486208f48e9a3d70c3448eb1c4881ee25deda8f03f026dd2bcc69a6921b6a6",
+        "bytes": 1260884,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "chad",
+        "sha256": "f4da575295ef6e87c96a1a231f42bbeccfc3c55607cbfc5f921cdba440fcd086",
+        "bytes": 1257172,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "wojak",
+        "sha256": "9c701f0c08bff46f8c6371f7f373bd38abda658f1cbd490fa12a9de79f636682",
+        "bytes": 1122600,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "bloomer",
+        "sha256": "9652a0f6968b7edcc59797b46bf4c5bc67180df8ad7074c39c3895a52a8d38c8",
+        "bytes": 1232924,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "tradwife",
+        "sha256": "807c0f474ad78afbcb6ef58ff61180023a2ee0cceb7318f9c01e37ddf3b055bd",
+        "bytes": 1401668,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "boomer",
+        "sha256": "3c16c7eb05620cbbb83bb65401d3a8ac990b490ed91c1de1e70337060a9db186",
+        "bytes": 1592752,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "coomer",
+        "sha256": "e9ce0cf132d9230992935ebf8fd6fe793020d9223914998398cdc4913b372cc2",
+        "bytes": 1270516,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "gondola",
+        "sha256": "6e00ba21d41e2b0b1bcbbabb0b1c5e633882c8e133cec8c58dea112ceaeb2354",
+        "bytes": 1242396,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "spurdo",
+        "sha256": "4fcd632ab3b961e75757cdf6e5697ffc166378c12ae0ebf90cf1e328cd898c50",
+        "bytes": 1272508,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "karen",
+        "sha256": "78a3d98168eaa57d7416951a3b839c57ba21199b0a259677b0b7669b4c5b5ad4",
+        "bytes": 1512192,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "howard",
+        "sha256": "b25b3e06d2ffc00fc7e33caf39ec8fd5967001e7598509220233216c91fcea97",
+        "bytes": 1414304,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "sanic",
+        "sha256": "7211dab419f30a0f74c3a5a99558732cf3c0b4dfdebced61551718b4a6e878f3",
+        "bytes": 1228320,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "lankdad",
+        "sha256": "2fa27c5f1a5d108e13eaf3238f338d21e8cc3779215973437ba7ba9f9ebd4fba",
+        "bytes": 1228372,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "finger_dan",
+        "sha256": "4d71bdc4ef495ff9d904a45021aef593cabb713a61be41d48da2d353a0e4c1b5",
+        "bytes": 1288828,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "willie",
+        "sha256": "4f9dc165564903849149b9d76203571b0b760845a121692bc785a60a724bf879",
+        "bytes": 1167800,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "noscope",
+        "sha256": "c8cbe05c06e04a034fae2ebb603503c8ec4834d6040a8e957d6659fa6762608e",
+        "bytes": 1665608,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "dino",
+        "sha256": "6ac497f173d3c1ee20d5aaa1efe0083d721bb616af03b8622e3c2fcaf90c7c29",
+        "bytes": 1414892,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "ecce",
+        "sha256": "2af4c1111aa532a24bb6a6c0eb32a9e7e62b7b28792ceb7bbe72d1f1bd14d45b",
+        "bytes": 1517320,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "bot_bernard",
+        "sha256": "507946470c7715d1760d1952ffd83cb70f57baa0b3ffb8bbe84e283054afbb50",
+        "bytes": 1381260,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "shoop",
+        "sha256": "795cfe8b30d93950cb19c46961e7761f49b7546b80f9ef87631f1c3a91599fbe",
+        "bytes": 1399396,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "npc",
+        "sha256": "2ae33af4bf22b586b437246cf48ac5a5aa9e2c75494573cbf5bc429bab60410e",
+        "bytes": 1279516,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "forever",
+        "sha256": "db49ddb78ba125f480995df76bcc53d10c53e10e21a5bccc13dd81ee8d346ee5",
+        "bytes": 1367456,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "cole",
+        "sha256": "143593f53b5d7b107864a4b228cb5b5ab61e691942f8f675656a3cc0641201c5",
+        "bytes": 1559584,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "grey",
+        "sha256": "1582e8597915bfea5684935d48b183d3895eb6a5f0ae8976d25e0511bbd4d804",
+        "bytes": 1490816,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "ghillie",
+        "sha256": "853df7621bb160220167bda1076463f3b6c652174abd5b3319043e3167963560",
+        "bytes": 1514316,
+        "joints": 28,
+        "clips": 8
+      },
+      {
+        "id": "gothgirl",
+        "sha256": "ac7cea0927ae6b920088608bab18dea1703f4c5b42dc0febc9a49eb777c31720",
+        "bytes": 1433236,
+        "joints": 28,
+        "clips": 8
+      }
+    ]
+  },
+  "menuBackdrop": {
+    "status": 200,
+    "bytes": 3654481,
+    "sha256": "431b1f861938c26edb7ce226e75d1c66a433c701d70a59463e064c402a077549",
+    "key": "textures.menu_backdrop"
+  },
+  "browser": {
+    "ok": true,
+    "browser": "real CDP page",
+    "uSkinned": 1,
+    "jointFloats": 448,
+    "glError": 0,
+    "models": 28,
+    "heroes": 26,
+    "joints": 28,
+    "clips": 8,
+    "motion": "walk/run",
+    "backdropHits": 1,
+    "other404s": 0,
+    "criticalFailedRequests": 0
+  },
+  "crossContracts": {
+    "required": 8,
+    "optionalPresent": 10,
+    "optionalMissing": 0,
+    "extraPresent": 2,
+    "extraMissing": 0,
+    "hashBearingRowsVerified": 837,
+    "driftStale": 0
+  },
+  "contentContracts": {
+    "schema": "oscraft.content-contract-status/v1",
+    "ok": true,
+    "errors": [],
+    "sourceSha256": "ee56190ff0740953db290212bbc67527b1f044e76d70fef6156dcdd34b5d022b",
+    "integration": {
+      "schema": "bota.engine-integration-contract/v1",
+      "status": "decision-ready export handoff",
+      "activeHeroKeys": [
+        "blo",
+        "boo",
+        "bot",
+        "cha",
+        "col",
+        "coo",
+        "din",
+        "ecc",
+        "fin",
+        "for",
+        "ghi",
+        "gon",
+        "got",
+        "gre",
+        "how",
+        "kar",
+        "lan",
+        "nec",
+        "nos",
+        "npc",
+        "san",
+        "sho",
+        "spu",
+        "tra",
+        "wil",
+        "woj"
+      ],
+      "integrationRules": 11,
+      "doNotPromote": [
+        "intentionally_open_ability_3_passive_vs_aura_cost",
+        "intentionally_open_cross_hero_hook_guesses",
+        "owner_decision_default_damage_types",
+        "owner_decision_forever_eternal_loop_clip",
+        "owner_decision_sigma_value_tiers",
+        "owner_decision_voice_cooldown_8s",
+        "owner_decision_wojak_sorrowful_cancel_threshold",
+        "read_decision_confidence"
+      ],
+      "confidencePolicy": {
+        "AMBIGUOUS": "not canon; require an owner decision or explicit intentionally-open handling",
+        "GUESS": "not canon; use only the recommended_default and confidence label from decisions.json",
+        "UNVERIFIED": "not canon; keep status and test through balance/first-playable gates",
+        "intentionally-open": "do_not_promote: true",
+        "owner-decision": "do_not_promote: true",
+        "resolved-from-plan": "implementation default may be used only as specified by the decision record"
+      }
+    },
+    "demand": {
+      "schema": "hy3d.content-demand-v2/v1",
+      "rows": 382,
+      "available": 326,
+      "blocked": 0,
+      "generated": 0,
+      "ownerDecision": 1,
+      "intentionallyOpen": 1
+    },
+    "progress": {
+      "schema": "bota.progress-dashboard/v1",
+      "status": "PASS",
+      "doNotPromote": true,
+      "unavailable": 1
+    },
+    "coordination": {
+      "schema": "bota.coordination-status/v1",
+      "rows": 536,
+      "resolved": 439,
+      "unresolved": 97,
+      "unavailable": 0,
+      "readOnly": true
+    },
+    "identifierInversion": {
+      "canonicalExport": "bota active_hero_keys",
+      "oscraftBotaArtifacts": "full BOTA character names/slugs",
+      "defaultDotaHeroes": "three-letter acronym legacy IDs",
+      "upstreamAcronymKeys": 26,
+      "oscraftFullnameIds": 26,
+      "defaultDotaAcronymIds": 127,
+      "skinnedModels": 26,
+      "mappedFullnames": 26,
+      "validatorModes": [
+        "acronym",
+        "bota-fullname"
+      ]
+    }
+  },
+  "finalAssets": {
+    "schema": "oscraft.hy3d-final-asset-status/v1",
+    "ok": true,
+    "errors": [],
+    "generatedAt": "2026-11-11T20:38:20.062Z",
+    "sourceSha256": "6bb183f38cffc02ed4c35d947e5a3a731aafba5d3fba8d023d95434e2779eba5",
+    "fileHashes": {
+      "status": "1f0ff4c00d5ac6759722e63e644753a765c34961393cf974dadba420ced25f40",
+      "tsv": "8aa860f20fab01ccd6770e8afaf40d977a2b395293093b033d39c499a040d297",
+      "markdown": "63e05e96548e67f74d75394f59cb91b449487e78313edc51017460c254581946",
+      "evidence": "6d976794f9a68821ed7b78b239a0860bba37b9eeabda57295f19970673c02c64",
+      "reconciliation": "ce0d6d32928078d4d0c4c977cc09551fa2f4907ff94d52ba7f14f043ccf56a7b",
+      "slugs": "80c5b48b8b02650e37b5d05116bdd459993eeba11965e998bf296712daa06a67"
+    },
+    "counts": {
+      "generated": 24,
+      "blocked": 30,
+      "ready": 24,
+      "remaining": 30,
+      "rows": 56,
+      "ownerDecision": 1,
+      "intentionallyOpen": 1
+    },
+    "generatedKinds": [
+      "prop",
+      "structure"
+    ],
+    "blockedKinds": [
+      "clip",
+      "hero-voice"
+    ],
+    "generatedHashVerification": {
+      "verified": 24,
+      "failures": []
+    },
+    "quotaProbe": {
+      "command": "node scripts/quota.mjs acct1 acct2 acct3 acct4 acct5 acct6",
+      "total": 30,
+      "perAccount": 5,
+      "exitCode": 0
+    },
+    "pooledEmail": {
+      "attempted": true,
+      "quotaBefore": 30,
+      "quotaAfter": 30,
+      "recovery": false,
+      "blocker": "studio witch_doctor/rig service-side HTTP 500 no worksId; recovery watcher gated probe; quota preserved"
+    },
+    "relay": {
+      "roster": "/workspace/hy3d/output/rule-demand-roster/rule-demand.tsv",
+      "queued": 24,
+      "completeGlbs": 24,
+      "incomplete": 0
+    },
+    "audio": {
+      "wavCount": 0,
+      "healthStatus": 0,
+      "bridgeScriptExists": false,
+      "opusEncoder": false,
+      "brotliEncoder": false,
+      "requirementsPreserved": "12 kbps Opus and Brotli requirements were not relaxed; no uncompressed or fabricated audio was published"
+    },
+    "blockers": {
+      "pooledEmail": "studio witch_doctor/rig service-side HTTP 500 no worksId; recovery watcher gated probe; quota preserved",
+      "audio": "no studio/relay audio action; local BitVoice service absent and production bridge missing",
+      "requirements": "12 kbps Opus and Brotli requirements were not relaxed; no uncompressed or fabricated audio was published"
+    },
+    "policy": "pooled-email studio first; relay fallback for 3D only; no fabricated bytes; SHA-256 evidence for every generated artifact",
+    "authority": {
+      "ruleDemand": "/workspace/bota/export/rule-demand.json",
+      "contentForBota": "/workspace/hy3d/output/content-for-bota.json",
+      "contentDemandV2": "/workspace/hy3d/output/content-demand-v2.json",
+      "finalAssetInventory": "/workspace/hy3d/output/final-asset-inventory.json",
+      "assetDeliveryReport": "/workspace/hy3d/output/asset-delivery-report.json"
+    },
+    "evidencePaths": [
+      "/workspace/hy3d/output/bota-final-asset-status.json",
+      "/workspace/hy3d/output/bota-final-asset-status.tsv",
+      "/workspace/hy3d/output/BOTA-FINAL-ASSET-STATUS.md",
+      "/workspace/hy3d/output/bota-final-asset-evidence.json",
+      "/workspace/hy3d/output/bota-remaining-reconciliation.txt",
+      "/workspace/hy3d/output/bota-remaining-slugs.txt",
+      "/workspace/sa/runs/2026-11-11-19-46-26-199a9f/jobs/refetch-rule-demand.out",
+      "/workspace/sa/runs/2026-11-11-19-46-26-199a9f/jobs/relay-rule-demand-batch.out",
+      "/workspace/sa/runs/2026-11-11-19-46-26-199a9f/jobs/bota-quota.out"
+    ]
+  },
+  "extractionSummaries": [
+    {
+      "peer": "wscheppity",
+      "path": "wscheppity/.local/extraction-manifest.json",
+      "present": true,
+      "classes": 23,
+      "complete": 23,
+      "blocked": 0,
+      "informational": true
+    },
+    {
+      "peer": "extra",
+      "path": "extra/.local/extraction-manifest.json",
+      "present": true,
+      "classes": 22,
+      "complete": 22,
+      "blocked": 0,
+      "informational": true
+    },
+    {
+      "peer": "extraCdnManifest",
+      "path": "extra/.local/cdn/manifest-all.json",
+      "present": true,
+      "classes": null,
+      "complete": null,
+      "blocked": null,
+      "informational": true
+    }
+  ],
+  "workspacePipeline": {
+    "schema": "oscraft.workspace-pipeline/v1",
+    "state": "PENDING",
+    "ok": true,
+    "wscheppityExtraction": {
+      "ok": true,
+      "summary": {
+        "classes": 23,
+        "complete": 23,
+        "partial": 0,
+        "blocked": 0,
+        "trackedFiles": 189,
+        "activeAssets": 88,
+        "activeAssetsValid": 88,
+        "cdnNames": 402,
+        "cdnBad": 0,
+        "docsSections": 68,
+        "gitRefs": 7,
+        "gitCommits": 1600,
+        "gitNotes": 800,
+        "engineFiles": 27,
+        "apiDoorGroups": 42,
+        "apiCaptures": 37
+      },
+      "path": "wscheppity/.local/extraction-manifest.json"
+    },
+    "vendorPrep": {
+      "state": "UNAVAILABLE",
+      "readyOk": false,
+      "required": [
+        {
+          "path": "wscheppity/.local/vendor-prep/manifest.json",
+          "present": false,
+          "sha256": null
+        },
+        {
+          "path": "wscheppity/.local/vendor-prep/READY.json",
+          "present": false,
+          "sha256": null
+        },
+        {
+          "path": "wscheppity/.local/vendor-prep/handoff.json",
+          "present": false,
+          "sha256": null
+        },
+        {
+          "path": "wscheppity/.local/vendor-prep/247420-HANDOFF.md",
+          "present": false,
+          "sha256": null
+        }
+      ],
+      "handoffGate": null,
+      "counts": null
+    },
+    "vendor247420": {
+      "state": "WAITING",
+      "vendored": [],
+      "prepRequiredBeforeVendor": true
+    },
+    "bitvoice": {
+      "contractSchema": "1.0.0",
+      "contractName": "bitvoice-full-duplex",
+      "interfaceStability": "stable",
+      "contractSha256": "f26ca47439d610e244dff4166b5061e94f39039e29be16d83967309ceefdd567",
+      "lockSha256": "f26ca47439d610e244dff4166b5061e94f39039e29be16d83967309ceefdd567",
+      "lockMatches": true,
+      "release": {
+        "ok": true,
+        "path": "bitvoice/docs/BITVOICE_RELEASE.json"
+      }
+    },
+    "gmweb": {
+      "readinessOk": true,
+      "path": "gmweb/docs/RELEASE_READINESS.json"
+    },
+    "extra": {
+      "status": null,
+      "path": "extra/.local/extraction-status.json"
+    },
+    "docs247420": [],
+    "prepChecker": {
+      "path": "247420/scripts/check-wonschweppidytime-prep.mjs",
+      "present": true,
+      "sha256": "7a78f374161e78a3a270a5704a025a56141d56dd4c10f2844b2fcad974a9e4cf"
+    },
+    "botaHy3d": "existing oscraft cross-contract manifests remain authoritative",
+    "pending": [
+      "vendor-prep missing: wscheppity/.local/vendor-prep/manifest.json,wscheppity/.local/vendor-prep/READY.json,wscheppity/.local/vendor-prep/handoff.json,wscheppity/.local/vendor-prep/247420-HANDOFF.md"
+    ],
+    "blocking": [],
+    "evidence": {
+      "wscheppityExtraction": {
+        "path": "wscheppity/.local/extraction-manifest.json",
+        "present": true,
+        "bytes": 36078,
+        "sha256": "aac38900903c95343a729ee81679c199348490cfc7d22ce11753b0ccb82ef91d",
+        "json": {
+          "generatedAt": "2026-11-11",
+          "world": "@lanmower/wonschweppidytime",
+          "worldId": "e02a0984-df75-4d53-9b8f-84ea7e97b034",
+          "appId": "3cd7f878-6951-47bd-bc2d-0e0e5419eda8",
+          "sourceOfTruth": "local git checkout and authenticated read-only upstream doors",
+          "summary": {
+            "classes": 23,
+            "complete": 23,
+            "partial": 0,
+            "blocked": 0,
+            "trackedFiles": 189,
+            "activeAssets": 88,
+            "activeAssetsValid": 88,
+            "cdnNames": 402,
+            "cdnBad": 0,
+            "docsSections": 68,
+            "gitRefs": 7,
+            "gitCommits": 1600,
+            "gitNotes": 800,
+            "engineFiles": 27,
+            "apiDoorGroups": 42,
+            "apiCaptures": 37
+          },
+          "classes": [
+            {
+              "id": "gitTrackedTree",
+              "source": "git.spawn.co/@lanmower/wonschweppidytime.git refs/heads/main",
+              "destination": [
+                ".gitignore",
+                ".spawn/engine.yaml",
+                ".spawn/skills.md",
+                "AGENTS.md",
+                "CLAUDE.md",
+                "art/cleetus/build.py",
+                "art/her-body/build.py",
+                "art/her-tee/build.py",
+                "art/her-tee/drape.py",
+                "art/her-tee/drape_proof.py",
+                "art/her-tee/finish.py",
+                "art/her-tee/hang.py",
+                "art/her-tee/hemfix.py",
+                "art/her-tee/nocollar.py",
+                "art/her-tee/proof.py",
+                "art/her-tee/tune.yml",
+                "art/pep/build.py",
+                "art/pose-sample/sample.py",
+                "art/roz/build.py",
+                "clips/humanoid-locomotion-js-sit-7d6a6bbe.json",
+                "design.md",
+                "places/main/cells/x0z0.scene",
+                "places/main/cells/x1z0.scene",
+                "places/main/cells/x2z0.scene",
+                "places/main/config.yaml",
+                "places/main/sim.js",
+                "places/main/sim.js.held",
+                "places/main/sim.js.held-2",
+                "places/reruns/cells/x0z0.scene",
+                "places/reruns/cells/x1z0.scene",
+                "places/reruns/cells/x2z0.scene",
+                "places/reruns/config.yaml",
+                "places/reruns/sim.js",
+                "places/reruns/sim.js.held",
+                "places/reruns/sim.js.held-2",
+                "scripts/applause-sign.js",
+                "scripts/architecture.json",
+                "scripts/arrival.js",
+                "scripts/audience-look.js",
+                "scripts/audience.js",
+                "scripts/boom-mic.js",
+                "scripts/buyables/director-note.js",
+                "scripts/camera.js",
+                "scripts/db.js",
+                "scripts/flat-starter-terrain.js",
+                "scripts/flower.js",
+                "scripts/fly-prop.js",
+                "scripts/furn-armchair.js",
+                "scripts/furn-couch.js",
+                "scripts/furn-den.js",
+                "scripts/furn-frame.js",
+                "scripts/furn-kitchen.js",
+                "scripts/furn-living.js",
+                "scripts/grass-look.js",
+                "scripts/grass.js",
+                "scripts/humanoid-locomotion.js",
+                "scripts/lib/data/aesthetic.yml",
+                "scripts/lib/data/camera.yml",
+                "scripts/lib/data/cast.yml",
+                "scripts/lib/data/couch.yml",
+                "scripts/lib/data/gestures.yml",
+                "scripts/lib/data/player.yml",
+                "scripts/lib/data/poses.yml",
+                "scripts/lib/data/props.yml",
+                "scripts/lib/data/rise.yml",
+                "scripts/lib/data/seats.yml",
+                "scripts/lib/data/sets/cafe.yml",
+                "scripts/lib/data/sets/gym.yml",
+                "scripts/lib/data/sets/lounge.yml",
+                "scripts/lib/data/sets/momhouse.yml",
+                "scripts/lib/data/sets/office.yml",
+                "scripts/lib/data/sets/rooftop.yml",
+                "scripts/lib/data/stage.yml",
+                "scripts/lib/data/voices.json",
+                "scripts/lib/data/warehouse-props.yml",
+                "scripts/lib/data/world.yml",
+                "scripts/lib/data/writers.yml",
+                "scripts/lib/episode.js",
+                "scripts/lib/feet.js",
+                "scripts/lib/furn.js",
+                "scripts/lib/geo.js",
+                "scripts/lib/locations.js",
+                "scripts/lib/show-kit.js",
+                "scripts/lib/stagekit.js",
+                "scripts/lib/writers-ask.js",
+                "scripts/lib/writers-prompt.js",
+                "scripts/lib/writers.js",
+                "scripts/lightbox.js",
+                "scripts/lighting.js",
+                "scripts/look-default.js",
+                "scripts/player.js",
+                "scripts/reed.js",
+                "scripts/set-apartment.js",
+                "scripts/set-cafe-furn.js",
+                "scripts/set-cafe.js",
+                "scripts/set-door.js",
+                "scripts/set-gym.js",
+                "scripts/set-lounge.js",
+                "scripts/set-momhouse-decor.js",
+                "scripts/set-momhouse-furn.js",
+                "scripts/set-momhouse.js",
+                "scripts/set-office-city.js",
+                "scripts/set-office-decor.js",
+                "scripts/set-office-furn.js",
+                "scripts/set-office.js",
+                "scripts/set-picture-plane.js",
+                "scripts/set-rooftop-furn.js",
+                "scripts/set-rooftop-kit.js",
+                "scripts/set-rooftop.js",
+                "scripts/stage-grid.js",
+                "scripts/stage-shell.js",
+                "scripts/studio-prop.js",
+                "scripts/tv-camera.js",
+                "scripts/ui.js",
+                "sim.js",
+                "spawn6/cut-axis.yaml",
+                "spawn6/flat-anchor.yaml",
+                "templates/camera.js",
+                "templates/player.js",
+                "ui/nametag.js",
+                "world.assets/04/~2fcdn~2fvalue.78b67d7062d76c3f4d39bb07bdd928f619f784c560895ff439f6187b55a10f41.glb.yaml",
+                "world.assets/06/~2fcdn~2fvalue.2ae5d4ce319ec29130acff9b4478556f89923c6f674faebae3c3a565a04f6fef.glb.yaml",
+                "world.assets/06/~2fcdn~2fvalue.8f253580e3853a1c8d4f78301bd6eeaa797f4e372a9357705eaf5b15b9d26d48.glb.yaml",
+                "world.assets/15/~2fcdn~2fvalue.21910c47b9628f323380e3c8902ce3d1524b72e49a23331e692648139170d47d.glb.yaml",
+                "world.assets/17/~2fcdn~2fvalue.62b6b648c5689dfcad399df9e169f6315f95411e5e3455653c574bd2249b4379.glb.yaml",
+                "world.assets/17/~2fcdn~2fvalue.d31ef4ccae60cdc5ae3a79bd6f1b8cb84b8ad1e40f4c4edb2865a1dfdb09d136.glb.yaml",
+                "world.assets/21/~2fcdn~2fvalue.f486201caeece3934d56529211b27a1f587ec307732fcb6b9464e376888862cd.jpeg.yaml",
+                "world.assets/2f/~2fcdn~2fvalue.f05dd246229284658a50bcf1e0892429a7c6a2d50895a98aeeea442dabf47f8d.glb.yaml",
+                "world.assets/34/~2fcdn~2fvalue.7436dc054d4b7798415d6ee5da54593f5f8819929f4d9ae0fc5e7348a1d714a8.jpeg.yaml",
+                "world.assets/35/~2fcdn~2fvalue.77350db3fc01ec19252496a0fbfd87b3093d4fd0bf27b2b896ac1b2c431a96aa.glb.yaml",
+                "world.assets/39/~2fcdn~2fvalue.b4de333aec7fc700fd83c59eadb63e6b108eddddd7359d9bb38722adc77da567.jpeg.yaml",
+                "world.assets/3b/~2fcdn~2fvalue.ca2291e8b22b435dbee02382ea1069d9d21e534606b7e6f77a66623e55ed596a.glb.yaml",
+                "world.assets/41/~2fcdn~2fvalue.540ffb3b8e7a72691e01b37fc7f875c1067352ec1315bfa974e8a797f59657ee.jpeg.yaml",
+                "world.assets/47/~2fcdn~2fvalue.56e71cffa93ae2428f877572d28fb1b5ddba2fff10db1128a972dde85cfa20e9.glb.yaml",
+                "world.assets/48/~2fcdn~2fvalue.058dfbb65c0fa1c0ada316d75ba6aa1dba9efb37dbe41ce9c226b1679b9610c0.glb.yaml",
+                "world.assets/4a/~2fcdn~2fvalue.13ee24f57a2996af1cfd40e936196579f9e6ee1052fd91a0edce9c424b48bdf9.glb.yaml",
+                "world.assets/4a/~2fcdn~2fvalue.2d26e9d4d3c7ec6701aad14be72321979c5feded886be58eeddef7868ae55394.glb.yaml",
+                "world.assets/4d/~2fcdn~2fvalue.da430b33582bd85aa3f7460d5794630358e5b3d43c985ee65dca8a80e0fb730f.jpg.yaml",
+                "world.assets/52/~2fcdn~2fvalue.cd9cadb3945dca498ac352ef45dbedfe06231a83029c8802eb6b2d05c2523ad0.glb.yaml",
+                "world.assets/56/~2fcdn~2fvalue.c4b1663a65aa96fcd1b75de0867aabbaeb0e91724594ad32912c64c8557667ff.glb.yaml",
+                "world.assets/59/~2fcdn~2fvalue.ace991f22c4984a0c9d79141ab180cbd09f774bc332fce4a0637f227605b48a2.glb.yaml",
+                "world.assets/5c/~2fcdn~2fvalue.fe1b87896daffb0cc6a17db76e3f2624f40e2182521dc59b73bb7cdcf7b0df42.glb.yaml",
+                "world.assets/5e/~2fcdn~2fvalue.5f623c493ee6d451012020a17f5ee86782126dab27e13c6b09fd928588a5a5a0.jpeg.yaml",
+                "world.assets/60/~2fcdn~2fvalue.90981eeb54b1ab47df6d782302ca2709b53d3c095f0c8c74d07726365e567942.glb.yaml",
+                "world.assets/62/~2fcdn~2fvalue.f062109201715fb013ff7c440952f2d803a1df2b319ef7b49cd84b09cc5087ac.glb.yaml",
+                "world.assets/64/~2fcdn~2fvalue.e87e6895cedfbd5706e37852706ecc538e7611aa7c2459a9025e1e0f19eb13bd.glb.yaml",
+                "world.assets/65/~2fcdn~2fvalue.d1fe0d21ee7c9d290d620feb0a043644fb4f1c953a55e069e411086b3945576d.glb.yaml",
+                "world.assets/67/~2fcdn~2fvalue.71584aa3d35cd4a7d20a74b74a7f2c7fae71fba337dd11177ccf1d3660958760.jpeg.yaml",
+                "world.assets/67/~2fcdn~2fvalue.9584502acbff4c66668a4fc7e9f86fa2c5176f36f6675f38c91f9fe24868484e.glb.yaml",
+                "world.assets/6a/~2fcdn~2fvalue.bf88282167b4802f83987e52d2bd9d54b9554f7c17b12bfead3b44a6bf97487c.glb.yaml",
+                "world.assets/6b/~2fcdn~2fvalue.d7a83ae4b6fc5cb396b9d4b76973c38a70746245259bcb10c9b16f695310fad3.glb.yaml",
+                "world.assets/77/~2fcdn~2fvalue.eda4d2afb03ccc7baf6c743c6bbdaf7b9a67d194c92be8674149837bf4d39aad.jpeg.yaml",
+                "world.assets/7a/~2fcdn~2fvalue.f60906ade7d7c0ddaaa2443bbf5c07009d7b84e4a94eb2c3d36f4f51982e5c9d.glb.yaml",
+                "world.assets/7e/~2fcdn~2fvalue.d4442c80fd608df337969ad21856320134a0c84d2edbc8b1631e6e9b4e977599.glb.yaml",
+                "world.assets/86/~2fcdn~2fvalue.177764f16cf1616ae7bb4cbe4f117a886dddc72414d2749536abcd6c0529893f.glb.yaml",
+                "world.assets/87/~2fcdn~2fvalue.c61a75a0ba7d57f01a8dcc41b932f727d854daaad15beb3f25260873a77531b4.jpeg.yaml",
+                "world.assets/88/~2fcdn~2fvalue.dea22b7fe81bc91dbf4ff2847f0964daff173b75f6b00ddd271af45a42ae7fca.glb.yaml",
+                "world.assets/92/~2fcdn~2fvalue.a9832c1ad0fceee3b36710ad42699c0ac0884fd96582077e4aef1c7b77000327.glb.yaml",
+                "world.assets/99/~2fcdn~2fvalue.2155a0e9a0263a5313bcf01499e0e32347bc9df352462110e8a30a5478b2892a.jpeg.yaml",
+                "world.assets/9a/~2fcdn~2fvalue.d2dbe813e3fa237cc903e508a4c7d316cf046e2bfd32685ea6976a596837a9b6.glb.yaml",
+                "world.assets/9b/~2fcdn~2fvalue.00e8d397a422fd2c9dde3e56d62cb56cdb5a77fd20ffea46037e1bfbda278562.jpeg.yaml",
+                "world.assets/a3/~2fcdn~2fvalue.7324be7388d8f6d423bc929acfe534159e39a7bbb9903e64c17c3b6d5fc90035.glb.yaml",
+                "world.assets/a6/~2fcdn~2fvalue.88ab3f2bf81663a884d7731c01a2844d450161fbb3681289001d06e01d036132.glb.yaml",
+                "world.assets/a7/~2fcdn~2fvalue.ac80d686768166c0f7930497c1551de500f0d801f1706642ba21ed98a0a186c5.glb.yaml",
+                "world.assets/a9/~2fcdn~2fvalue.50099975f2b7a080dbbedc27439ed777ed6186060746e1a953cc3158684e2e02.glb.yaml",
+                "world.assets/a9/~2fcdn~2fvalue.c98f3080362e5509fc11457398a419af3001abcfabe26062f769d3cdbeb99626.glb.yaml",
+                "world.assets/a9/~2fcdn~2fvalue.e943bcbb18d6451f8066c3e1dd27faf8b210d73055fe111eb14beadedecee8c6.glb.yaml",
+                "world.assets/ab/~2fcdn~2fvalue.579d6a52fe55fffe52ebf1e00da02493c20b53625379054018f59ad14f89f188.jpg.yaml",
+                "world.assets/ae/~2fcdn~2fvalue.d74dc0e351229001f8d447e850b3b8efcd8b17c250943a2efb604ec29a1b358b.glb.yaml",
+                "world.assets/bb/~2fcdn~2fvalue.c035c7b8546535ab3afcab92e6b6832e3685d1468b56ca39bfd25a8fb733b554.jpeg.yaml",
+                "world.assets/be/~2fcdn~2fvalue.d11fe5255f57c63421783d40f7695777e2c1950d0eca5e8b846527cd82d56f12.glb.yaml",
+                "world.assets/c0/~2fcdn~2fvalue.b6d27cb3449a6a63651531d3917596cadf09510a2f48ebe50bf81a017ea289fa.glb.yaml",
+                "world.assets/c2/~2fcdn~2fvalue.e3528396918d0ba9fd095158a6e28bc73485dd661f39e842836b40c50552f428.glb.yaml",
+                "world.assets/c3/~2fcdn~2fvalue.0459c3895690eb40fd5de2e0af482905b7df4a3cb1fcf10770970787f835b0a0.glb.yaml",
+                "world.assets/c5/~2fcdn~2fvalue.4beb79e1ccd7f7a00f377a28c446233a568d5ccbaf767782a5ae9f3e7e333538.jpeg.yaml",
+                "world.assets/c7/~2fcdn~2fvalue.6b0231498e8dc8b96913125b260377894879abf8418c8492f262aac7bcb52bd5.jpeg.yaml",
+                "world.assets/cb/~2fcdn~2fvalue.3a5f0bc1450205a7ea70232330183075b5279778dc4c14d7c066251481be2807.glb.yaml",
+                "world.assets/cd/~2fcdn~2fvalue.1af227fa9a61b27229a3167cc71ec303cd4b2ae9c2d42e83079d00b20e1d023a.glb.yaml",
+                "world.assets/cd/~2fcdn~2fvalue.a99d18f1419743695fb3e3814a2bac7dd52b9bce640f158b847737baa28ca466.jpeg.yaml",
+                "world.assets/d6/~2fcdn~2fvalue.ba6b0d46e6d7a8f799078c8e7202f56cc3179e6bc2f4cc938bd0806874bdfb3a.glb.yaml",
+                "world.assets/d9/~2fcdn~2fvalue.e05b7500b6d1d19e4c4fef28eef5585f1d5167bb6ba0c05ea57e45e85a66d853.glb.yaml",
+                "world.assets/da/~2fcdn~2fvalue.c1b94755733e386dc329501bf9a03ed52902b1cb83541cf5a6d2991f5ae86150.jpeg.yaml",
+                "world.assets/e5/~2fcdn~2fvalue.960788dca6c74db4a1c749061c278d09d0b1e2edcaaf279c10ce062ba45c203c.glb.yaml",
+                "world.assets/f7/~2fcdn~2fvalue.78a5d18892975b3c57a998378e0da85d134c7cada02ce244ccf6c62606733fe1.glb.yaml",
+                "world.assets/fa/~2fcdn~2fvalue.3f6dc451a6734677db4d576dabba800eec087b413516b9a689b21fb5b3c3c6f2.glb.yaml",
+                "world.assets/fe/~2fcdn~2fvalue.a815938b4297d509b0b2e9ff5f0ce9cef428a455d879be6f8585945c6dab4ffe.jpeg.yaml",
+                "world.assets/ff/~2fcdn~2fvalue.7d68ad7ac8785d44131ba3f86a57848672fed65713ca440b41a0272b3b41140a.glb.yaml",
+                "world.config.yaml",
+                "world.facts.yaml"
+              ],
+              "count": 189,
+              "hash": "a91c7af49fa8f2ed3bc9ead98032b62ff3708d9cfa86dfdaf1716026586a7c65",
+              "status": "complete",
+              "evidence": "189 tracked files; HEAD 3a5de3aff5fae2e82b74e566cdefc3c87fb7ec8a"
+            },
+            {
+              "id": "gitAllRefs",
+              "source": "origin refs/heads/*, refs/notes/*, refs/spawn/live",
+              "destination": [
+                ".local/git/refs.txt",
+                ".local/git/tree-main.txt",
+                ".local/git/tree-spawn-live.txt",
+                ".local/git/world-all.bundle"
+              ],
+              "count": 7,
+              "hash": "7ef37a3cbf4e113c9f6a14d6ca47aca50be5865341ac4a1f746bb9fca68f2e56",
+              "status": "complete",
+              "evidence": "7 refs, bundle contains --all"
+            },
+            {
+              "id": "gitObjects",
+              "source": "git object database",
+              "destination": [
+                ".local/git/all-objects.txt",
+                ".local/git/world-all.bundle"
+              ],
+              "count": 7223,
+              "hash": "c6b16c56b6f3ee2c6ac7385842538db084573f4559a026d1cb78d99f4e4e7fa6",
+              "status": "complete",
+              "evidence": "git cat-file --batch-all-objects plus full bundle"
+            },
+            {
+              "id": "gitCommits",
+              "source": "git log --all",
+              "destination": [
+                ".local/git/commits.txt",
+                ".local/git/history.txt",
+                ".local/git/history-with-notes.txt"
+              ],
+              "count": 1600,
+              "hash": "96d59157ef6972f1ff843ddd2244c7df6534807e15a707544878419a6ca48f00",
+              "status": "complete",
+              "evidence": "readable full history including parents, dates, subjects"
+            },
+            {
+              "id": "gitNotes",
+              "source": "refs/notes/spawn; git notes --ref=spawn show",
+              "destination": [
+                ".local/git/notes-list.txt",
+                ".local/git/notes"
+              ],
+              "count": 800,
+              "hash": "736db3c63dea11ccdd6e1990761bfac0f0baf90260520fe6e6a383a9db455f27",
+              "status": "complete",
+              "evidence": "800 individual note bodies"
+            },
+            {
+              "id": "worldConfig",
+              "source": "world.config.yaml, world.facts.yaml, .spawn/engine.yaml",
+              "destination": [
+                "world.config.yaml",
+                "world.facts.yaml",
+                ".spawn/engine.yaml"
+              ],
+              "count": 3,
+              "hash": "4d92dd9b86c2221604c86f2c3d19b99775bf26a9815971096344c667ecafeb84",
+              "status": "complete",
+              "evidence": ""
+            },
+            {
+              "id": "places",
+              "source": "places/*/config.yaml and place sim programs",
+              "destination": [
+                "places/main/cells/x0z0.scene",
+                "places/main/cells/x1z0.scene",
+                "places/main/cells/x2z0.scene",
+                "places/main/config.yaml",
+                "places/main/sim.js",
+                "places/main/sim.js.held",
+                "places/main/sim.js.held-2",
+                "places/reruns/cells/x0z0.scene",
+                "places/reruns/cells/x1z0.scene",
+                "places/reruns/cells/x2z0.scene",
+                "places/reruns/config.yaml",
+                "places/reruns/sim.js",
+                "places/reruns/sim.js.held",
+                "places/reruns/sim.js.held-2"
+              ],
+              "count": 14,
+              "hash": "36ce1d431db7ccf16fc9b38daadfb1490f44f91008a7ae7ff6f4af9f1583fb45",
+              "status": "complete",
+              "evidence": ""
+            },
+            {
+              "id": "sceneCells",
+              "source": "places/*/cells/*.scene",
+              "destination": [
+                "places/main/cells/x0z0.scene",
+                "places/main/cells/x1z0.scene",
+                "places/main/cells/x2z0.scene",
+                "places/reruns/cells/x0z0.scene",
+                "places/reruns/cells/x1z0.scene",
+                "places/reruns/cells/x2z0.scene"
+              ],
+              "count": 6,
+              "hash": "2dca6e7170e1969f0db467889b807188ea65998673be8dfa25ecd4381909c03a",
+              "status": "complete",
+              "evidence": ""
+            },
+            {
+              "id": "templates",
+              "source": "templates/*.js",
+              "destination": [
+                "templates/camera.js",
+                "templates/player.js"
+              ],
+              "count": 2,
+              "hash": "3c2b5be1b3dcf346ad0dc448cef7a46c2bef1acddcae0ac9ab9e471db521e4ff",
+              "status": "complete",
+              "evidence": ""
+            },
+            {
+              "id": "behaviorScripts",
+              "source": "scripts/**/*.js, sim.js, places/*/sim.js",
+              "destination": [
+                "scripts/applause-sign.js",
+                "scripts/architecture.json",
+                "scripts/arrival.js",
+                "scripts/audience-look.js",
+                "scripts/audience.js",
+                "scripts/boom-mic.js",
+                "scripts/buyables/director-note.js",
+                "scripts/camera.js",
+                "scripts/db.js",
+                "scripts/flat-starter-terrain.js",
+                "scripts/flower.js",
+                "scripts/fly-prop.js",
+                "scripts/furn-armchair.js",
+                "scripts/furn-couch.js",
+                "scripts/furn-den.js",
+                "scripts/furn-frame.js",
+                "scripts/furn-kitchen.js",
+                "scripts/furn-living.js",
+                "scripts/grass-look.js",
+                "scripts/grass.js",
+                "scripts/humanoid-locomotion.js",
+                "scripts/lib/data/aesthetic.yml",
+                "scripts/lib/data/camera.yml",
+                "scripts/lib/data/cast.yml",
+                "scripts/lib/data/couch.yml",
+                "scripts/lib/data/gestures.yml",
+                "scripts/lib/data/player.yml",
+                "scripts/lib/data/poses.yml",
+                "scripts/lib/data/props.yml",
+                "scripts/lib/data/rise.yml",
+                "scripts/lib/data/seats.yml",
+                "scripts/lib/data/sets/cafe.yml",
+                "scripts/lib/data/sets/gym.yml",
+                "scripts/lib/data/sets/lounge.yml",
+                "scripts/lib/data/sets/momhouse.yml",
+                "scripts/lib/data/sets/office.yml",
+                "scripts/lib/data/sets/rooftop.yml",
+                "scripts/lib/data/stage.yml",
+                "scripts/lib/data/voices.json",
+                "scripts/lib/data/warehouse-props.yml",
+                "scripts/lib/data/world.yml",
+                "scripts/lib/data/writers.yml",
+                "scripts/lib/episode.js",
+                "scripts/lib/feet.js",
+                "scripts/lib/furn.js",
+                "scripts/lib/geo.js",
+                "scripts/lib/locations.js",
+                "scripts/lib/show-kit.js",
+                "scripts/lib/stagekit.js",
+                "scripts/lib/writers-ask.js",
+                "scripts/lib/writers-prompt.js",
+                "scripts/lib/writers.js",
+                "scripts/lightbox.js",
+                "scripts/lighting.js",
+                "scripts/look-default.js",
+                "scripts/player.js",
+                "scripts/reed.js",
+                "scripts/set-apartment.js",
+                "scripts/set-cafe-furn.js",
+                "scripts/set-cafe.js",
+                "scripts/set-door.js",
+                "scripts/set-gym.js",
+                "scripts/set-lounge.js",
+                "scripts/set-momhouse-decor.js",
+                "scripts/set-momhouse-furn.js",
+                "scripts/set-momhouse.js",
+                "scripts/set-office-city.js",
+                "scripts/set-office-decor.js",
+                "scripts/set-office-furn.js",
+                "scripts/set-office.js",
+                "scripts/set-picture-plane.js",
+                "scripts/set-rooftop-furn.js",
+                "scripts/set-rooftop-kit.js",
+                "scripts/set-rooftop.js",
+                "scripts/stage-grid.js",
+                "scripts/stage-shell.js",
+                "scripts/studio-prop.js",
+                "scripts/tv-camera.js",
+                "scripts/ui.js",
+                "sim.js",
+                "places/main/sim.js",
+                "places/main/sim.js.held",
+                "places/main/sim.js.held-2",
+                "places/reruns/sim.js",
+                "places/reruns/sim.js.held",
+                "places/reruns/sim.js.held-2"
+              ],
+              "count": 86,
+              "hash": "188f35acc45006c8f3eb75fd5224dda3fded141cf8da248715dfeca7eaa80313",
+              "status": "complete",
+              "evidence": ""
+            },
+            {
+              "id": "dataFiles",
+              "source": "scripts/lib/data/*, scripts/*.json, clips/*",
+              "destination": [
+                "scripts/lib/data/aesthetic.yml",
+                "scripts/lib/data/camera.yml",
+                "scripts/lib/data/cast.yml",
+                "scripts/lib/data/couch.yml",
+                "scripts/lib/data/gestures.yml",
+                "scripts/lib/data/player.yml",
+                "scripts/lib/data/poses.yml",
+                "scripts/lib/data/props.yml",
+                "scripts/lib/data/rise.yml",
+                "scripts/lib/data/seats.yml",
+                "scripts/lib/data/sets/cafe.yml",
+                "scripts/lib/data/sets/gym.yml",
+                "scripts/lib/data/sets/lounge.yml",
+                "scripts/lib/data/sets/momhouse.yml",
+                "scripts/lib/data/sets/office.yml",
+                "scripts/lib/data/sets/rooftop.yml",
+                "scripts/lib/data/stage.yml",
+                "scripts/lib/data/voices.json",
+                "scripts/lib/data/warehouse-props.yml",
+                "scripts/lib/data/world.yml",
+                "scripts/lib/data/writers.yml",
+                "scripts/architecture.json",
+                "scripts/lib/data/voices.json",
+                "clips/humanoid-locomotion-js-sit-7d6a6bbe.json"
+              ],
+              "count": 24,
+              "hash": "63595f507f5bccf63a147b2eef6f015216ce6271168e9f453431abbc7ba7d666",
+              "status": "complete",
+              "evidence": ""
+            },
+            {
+              "id": "hudUi",
+              "source": "scripts/ui.js, ui/nametag.js",
+              "destination": [
+                "scripts/ui.js",
+                "ui/nametag.js"
+              ],
+              "count": 2,
+              "hash": "038f0ae00271f8d4b889890acd4468cb5ad5d38800dc2606f583bda279579ce9",
+              "status": "complete",
+              "evidence": ""
+            },
+            {
+              "id": "artSource",
+              "source": "art/** generation scripts and tuning data",
+              "destination": [
+                "art/cleetus/build.py",
+                "art/her-body/build.py",
+                "art/her-tee/build.py",
+                "art/her-tee/drape.py",
+                "art/her-tee/drape_proof.py",
+                "art/her-tee/finish.py",
+                "art/her-tee/hang.py",
+                "art/her-tee/hemfix.py",
+                "art/her-tee/nocollar.py",
+                "art/her-tee/proof.py",
+                "art/her-tee/tune.yml",
+                "art/pep/build.py",
+                "art/pose-sample/sample.py",
+                "art/roz/build.py"
+              ],
+              "count": 14,
+              "hash": "0bcb29803d6bcafa0999b3eba208c4ae082fc7e840da920093c7e4a2e91b65a4",
+              "status": "complete",
+              "evidence": ""
+            },
+            {
+              "id": "worldAssetsMetadata",
+              "source": "world.assets/**/*.yaml",
+              "destination": [
+                "world.assets/04/~2fcdn~2fvalue.78b67d7062d76c3f4d39bb07bdd928f619f784c560895ff439f6187b55a10f41.glb.yaml",
+                "world.assets/06/~2fcdn~2fvalue.2ae5d4ce319ec29130acff9b4478556f89923c6f674faebae3c3a565a04f6fef.glb.yaml",
+                "world.assets/06/~2fcdn~2fvalue.8f253580e3853a1c8d4f78301bd6eeaa797f4e372a9357705eaf5b15b9d26d48.glb.yaml",
+                "world.assets/15/~2fcdn~2fvalue.21910c47b9628f323380e3c8902ce3d1524b72e49a23331e692648139170d47d.glb.yaml",
+                "world.assets/17/~2fcdn~2fvalue.62b6b648c5689dfcad399df9e169f6315f95411e5e3455653c574bd2249b4379.glb.yaml",
+                "world.assets/17/~2fcdn~2fvalue.d31ef4ccae60cdc5ae3a79bd6f1b8cb84b8ad1e40f4c4edb2865a1dfdb09d136.glb.yaml",
+                "world.assets/21/~2fcdn~2fvalue.f486201caeece3934d56529211b27a1f587ec307732fcb6b9464e376888862cd.jpeg.yaml",
+                "world.assets/2f/~2fcdn~2fvalue.f05dd246229284658a50bcf1e0892429a7c6a2d50895a98aeeea442dabf47f8d.glb.yaml",
+                "world.assets/34/~2fcdn~2fvalue.7436dc054d4b7798415d6ee5da54593f5f8819929f4d9ae0fc5e7348a1d714a8.jpeg.yaml",
+                "world.assets/35/~2fcdn~2fvalue.77350db3fc01ec19252496a0fbfd87b3093d4fd0bf27b2b896ac1b2c431a96aa.glb.yaml",
+                "world.assets/39/~2fcdn~2fvalue.b4de333aec7fc700fd83c59eadb63e6b108eddddd7359d9bb38722adc77da567.jpeg.yaml",
+                "world.assets/3b/~2fcdn~2fvalue.ca2291e8b22b435dbee02382ea1069d9d21e534606b7e6f77a66623e55ed596a.glb.yaml",
+                "world.assets/41/~2fcdn~2fvalue.540ffb3b8e7a72691e01b37fc7f875c1067352ec1315bfa974e8a797f59657ee.jpeg.yaml",
+                "world.assets/47/~2fcdn~2fvalue.56e71cffa93ae2428f877572d28fb1b5ddba2fff10db1128a972dde85cfa20e9.glb.yaml",
+                "world.assets/48/~2fcdn~2fvalue.058dfbb65c0fa1c0ada316d75ba6aa1dba9efb37dbe41ce9c226b1679b9610c0.glb.yaml",
+                "world.assets/4a/~2fcdn~2fvalue.13ee24f57a2996af1cfd40e936196579f9e6ee1052fd91a0edce9c424b48bdf9.glb.yaml",
+                "world.assets/4a/~2fcdn~2fvalue.2d26e9d4d3c7ec6701aad14be72321979c5feded886be58eeddef7868ae55394.glb.yaml",
+                "world.assets/4d/~2fcdn~2fvalue.da430b33582bd85aa3f7460d5794630358e5b3d43c985ee65dca8a80e0fb730f.jpg.yaml",
+                "world.assets/52/~2fcdn~2fvalue.cd9cadb3945dca498ac352ef45dbedfe06231a83029c8802eb6b2d05c2523ad0.glb.yaml",
+                "world.assets/56/~2fcdn~2fvalue.c4b1663a65aa96fcd1b75de0867aabbaeb0e91724594ad32912c64c8557667ff.glb.yaml",
+                "world.assets/59/~2fcdn~2fvalue.ace991f22c4984a0c9d79141ab180cbd09f774bc332fce4a0637f227605b48a2.glb.yaml",
+                "world.assets/5c/~2fcdn~2fvalue.fe1b87896daffb0cc6a17db76e3f2624f40e2182521dc59b73bb7cdcf7b0df42.glb.yaml",
+                "world.assets/5e/~2fcdn~2fvalue.5f623c493ee6d451012020a17f5ee86782126dab27e13c6b09fd928588a5a5a0.jpeg.yaml",
+                "world.assets/60/~2fcdn~2fvalue.90981eeb54b1ab47df6d782302ca2709b53d3c095f0c8c74d07726365e567942.glb.yaml",
+                "world.assets/62/~2fcdn~2fvalue.f062109201715fb013ff7c440952f2d803a1df2b319ef7b49cd84b09cc5087ac.glb.yaml",
+                "world.assets/64/~2fcdn~2fvalue.e87e6895cedfbd5706e37852706ecc538e7611aa7c2459a9025e1e0f19eb13bd.glb.yaml",
+                "world.assets/65/~2fcdn~2fvalue.d1fe0d21ee7c9d290d620feb0a043644fb4f1c953a55e069e411086b3945576d.glb.yaml",
+                "world.assets/67/~2fcdn~2fvalue.71584aa3d35cd4a7d20a74b74a7f2c7fae71fba337dd11177ccf1d3660958760.jpeg.yaml",
+                "world.assets/67/~2fcdn~2fvalue.9584502acbff4c66668a4fc7e9f86fa2c5176f36f6675f38c91f9fe24868484e.glb.yaml",
+                "world.assets/6a/~2fcdn~2fvalue.bf88282167b4802f83987e52d2bd9d54b9554f7c17b12bfead3b44a6bf97487c.glb.yaml",
+                "world.assets/6b/~2fcdn~2fvalue.d7a83ae4b6fc5cb396b9d4b76973c38a70746245259bcb10c9b16f695310fad3.glb.yaml",
+                "world.assets/77/~2fcdn~2fvalue.eda4d2afb03ccc7baf6c743c6bbdaf7b9a67d194c92be8674149837bf4d39aad.jpeg.yaml",
+                "world.assets/7a/~2fcdn~2fvalue.f60906ade7d7c0ddaaa2443bbf5c07009d7b84e4a94eb2c3d36f4f51982e5c9d.glb.yaml",
+                "world.assets/7e/~2fcdn~2fvalue.d4442c80fd608df337969ad21856320134a0c84d2edbc8b1631e6e9b4e977599.glb.yaml",
+                "world.assets/86/~2fcdn~2fvalue.177764f16cf1616ae7bb4cbe4f117a886dddc72414d2749536abcd6c0529893f.glb.yaml",
+                "world.assets/87/~2fcdn~2fvalue.c61a75a0ba7d57f01a8dcc41b932f727d854daaad15beb3f25260873a77531b4.jpeg.yaml",
+                "world.assets/88/~2fcdn~2fvalue.dea22b7fe81bc91dbf4ff2847f0964daff173b75f6b00ddd271af45a42ae7fca.glb.yaml",
+                "world.assets/92/~2fcdn~2fvalue.a9832c1ad0fceee3b36710ad42699c0ac0884fd96582077e4aef1c7b77000327.glb.yaml",
+                "world.assets/99/~2fcdn~2fvalue.2155a0e9a0263a5313bcf01499e0e32347bc9df352462110e8a30a5478b2892a.jpeg.yaml",
+                "world.assets/9a/~2fcdn~2fvalue.d2dbe813e3fa237cc903e508a4c7d316cf046e2bfd32685ea6976a596837a9b6.glb.yaml",
+                "world.assets/9b/~2fcdn~2fvalue.00e8d397a422fd2c9dde3e56d62cb56cdb5a77fd20ffea46037e1bfbda278562.jpeg.yaml",
+                "world.assets/a3/~2fcdn~2fvalue.7324be7388d8f6d423bc929acfe534159e39a7bbb9903e64c17c3b6d5fc90035.glb.yaml",
+                "world.assets/a6/~2fcdn~2fvalue.88ab3f2bf81663a884d7731c01a2844d450161fbb3681289001d06e01d036132.glb.yaml",
+                "world.assets/a7/~2fcdn~2fvalue.ac80d686768166c0f7930497c1551de500f0d801f1706642ba21ed98a0a186c5.glb.yaml",
+                "world.assets/a9/~2fcdn~2fvalue.50099975f2b7a080dbbedc27439ed777ed6186060746e1a953cc3158684e2e02.glb.yaml",
+                "world.assets/a9/~2fcdn~2fvalue.c98f3080362e5509fc11457398a419af3001abcfabe26062f769d3cdbeb99626.glb.yaml",
+                "world.assets/a9/~2fcdn~2fvalue.e943bcbb18d6451f8066c3e1dd27faf8b210d73055fe111eb14beadedecee8c6.glb.yaml",
+                "world.assets/ab/~2fcdn~2fvalue.579d6a52fe55fffe52ebf1e00da02493c20b53625379054018f59ad14f89f188.jpg.yaml",
+                "world.assets/ae/~2fcdn~2fvalue.d74dc0e351229001f8d447e850b3b8efcd8b17c250943a2efb604ec29a1b358b.glb.yaml",
+                "world.assets/bb/~2fcdn~2fvalue.c035c7b8546535ab3afcab92e6b6832e3685d1468b56ca39bfd25a8fb733b554.jpeg.yaml",
+                "world.assets/be/~2fcdn~2fvalue.d11fe5255f57c63421783d40f7695777e2c1950d0eca5e8b846527cd82d56f12.glb.yaml",
+                "world.assets/c0/~2fcdn~2fvalue.b6d27cb3449a6a63651531d3917596cadf09510a2f48ebe50bf81a017ea289fa.glb.yaml",
+                "world.assets/c2/~2fcdn~2fvalue.e3528396918d0ba9fd095158a6e28bc73485dd661f39e842836b40c50552f428.glb.yaml",
+                "world.assets/c3/~2fcdn~2fvalue.0459c3895690eb40fd5de2e0af482905b7df4a3cb1fcf10770970787f835b0a0.glb.yaml",
+                "world.assets/c5/~2fcdn~2fvalue.4beb79e1ccd7f7a00f377a28c446233a568d5ccbaf767782a5ae9f3e7e333538.jpeg.yaml",
+                "world.assets/c7/~2fcdn~2fvalue.6b0231498e8dc8b96913125b260377894879abf8418c8492f262aac7bcb52bd5.jpeg.yaml",
+                "world.assets/cb/~2fcdn~2fvalue.3a5f0bc1450205a7ea70232330183075b5279778dc4c14d7c066251481be2807.glb.yaml",
+                "world.assets/cd/~2fcdn~2fvalue.1af227fa9a61b27229a3167cc71ec303cd4b2ae9c2d42e83079d00b20e1d023a.glb.yaml",
+                "world.assets/cd/~2fcdn~2fvalue.a99d18f1419743695fb3e3814a2bac7dd52b9bce640f158b847737baa28ca466.jpeg.yaml",
+                "world.assets/d6/~2fcdn~2fvalue.ba6b0d46e6d7a8f799078c8e7202f56cc3179e6bc2f4cc938bd0806874bdfb3a.glb.yaml",
+                "world.assets/d9/~2fcdn~2fvalue.e05b7500b6d1d19e4c4fef28eef5585f1d5167bb6ba0c05ea57e45e85a66d853.glb.yaml",
+                "world.assets/da/~2fcdn~2fvalue.c1b94755733e386dc329501bf9a03ed52902b1cb83541cf5a6d2991f5ae86150.jpeg.yaml",
+                "world.assets/e5/~2fcdn~2fvalue.960788dca6c74db4a1c749061c278d09d0b1e2edcaaf279c10ce062ba45c203c.glb.yaml",
+                "world.assets/f7/~2fcdn~2fvalue.78a5d18892975b3c57a998378e0da85d134c7cada02ce244ccf6c62606733fe1.glb.yaml",
+                "world.assets/fa/~2fcdn~2fvalue.3f6dc451a6734677db4d576dabba800eec087b413516b9a689b21fb5b3c3c6f2.glb.yaml",
+                "world.assets/fe/~2fcdn~2fvalue.a815938b4297d509b0b2e9ff5f0ce9cef428a455d879be6f8585945c6dab4ffe.jpeg.yaml",
+                "world.assets/ff/~2fcdn~2fvalue.7d68ad7ac8785d44131ba3f86a57848672fed65713ca440b41a0272b3b41140a.glb.yaml"
+              ],
+              "count": 67,
+              "hash": "bed69a085dd74253b65a3ebc8521434b207b8547d4e5191767ed5d27e460b3aa",
+              "status": "complete",
+              "evidence": ""
+            },
+            {
+              "id": "enginePin",
+              "source": "https://git.spawn.co/engine/6.0.0.git",
+              "destination": [
+                ".spawn/engine/README.md",
+                ".spawn/engine/api-reference.md",
+                ".spawn/engine/engine.yaml",
+                ".spawn/engine/skills.md",
+                ".spawn/engine/skills/2d-mode.md",
+                ".spawn/engine/skills/buyables.md",
+                ".spawn/engine/skills/cameras.md",
+                ".spawn/engine/skills/fx.md",
+                ".spawn/engine/skills/game-ui.md",
+                ".spawn/engine/skills/geometry.md",
+                ".spawn/engine/skills/heightmap-terrain.md",
+                ".spawn/engine/skills/interactive-objects.md",
+                ".spawn/engine/skills/jev.md",
+                ".spawn/engine/skills/leaf-sprays.md",
+                ".spawn/engine/skills/mobile-controls.md",
+                ".spawn/engine/skills/physics.md",
+                ".spawn/engine/skills/platform-systems.md",
+                ".spawn/engine/skills/player-settings.md",
+                ".spawn/engine/skills/pointer-raycasting.md",
+                ".spawn/engine/skills/portals.md",
+                ".spawn/engine/skills/projectiles.md",
+                ".spawn/engine/skills/rooms-and-matchmaking.md",
+                ".spawn/engine/skills/spawn-engine.md",
+                ".spawn/engine/skills/trees.md",
+                ".spawn/engine/skills/uploaded-models.md",
+                ".spawn/engine/skills/vehicles.md",
+                ".spawn/engine/skills/voxel-terrain.md"
+              ],
+              "count": 27,
+              "hash": "38e6835a7a6e3011472b47653991fbb81144f4b0801e4ffe7a0a2ed877b56a0a",
+              "status": "complete",
+              "evidence": "pinned engine repo, API reference, README and 23 skill files",
+              "engineHead": "0121771a0af1fac3e30a28e55b0c52f3d8b9b680"
+            },
+            {
+              "id": "tomeDocs",
+              "source": "GET /api/sdk/v1/{worldId}/agent/docs and ?section=",
+              "destination": [
+                ".local/docs"
+              ],
+              "count": 73,
+              "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "status": "complete",
+              "evidence": "68/68 raw section envelopes, 68 rendered sections, opening, guide, skills.json, skills 404 evidence",
+              "expectedSections": 68,
+              "sectionFiles": 68,
+              "skills": 23
+            },
+            {
+              "id": "apiDoors",
+              "source": "/me doors plus read-only API responses",
+              "destination": [
+                ".local/api"
+              ],
+              "count": 77,
+              "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "status": "complete",
+              "evidence": "exact statuses/bodies saved; write-only doors documented as such; stream bounded with timeout",
+              "doorGroups": 42,
+              "captured": 37
+            },
+            {
+              "id": "cdnActive",
+              "source": "/cdn names referenced by active world tree",
+              "destination": [
+                ".local/cdn/manifest.json",
+                ".local/cdn/files"
+              ],
+              "count": 88,
+              "hash": "37e21646333db9177a8e047b2c3b67c6ed421a0a7243fca1bbaabefd8e74f694",
+              "status": "complete",
+              "evidence": "magic, GLB declared length, JPEG/PNG terminators, MP3 frame/ID3",
+              "valid": 88,
+              "bad": 0
+            },
+            {
+              "id": "cdnAllNames",
+              "source": "wider scan: active references, world.assets metadata, generated names",
+              "destination": [
+                ".local/cdn/manifest-all.json",
+                ".local/cdn/http"
+              ],
+              "count": 402,
+              "hash": "75c3dd30f1401cda870e9df38d40c15f1a079ed8dee208e01ef7fb7ce28a2d0d",
+              "status": "complete",
+              "evidence": "every row has HTTP HEAD/GET status, exact classification, validation and preserved response body",
+              "classes": {
+                "generated-stable-after-fetch": 256,
+                "generated-on-demand-no-stable-bytes": 62,
+                "real-bytes": 84
+              }
+            },
+            {
+              "id": "apiOpenApi",
+              "source": "GET /openapi.json",
+              "destination": [
+                ".local/api/openapi.json"
+              ],
+              "count": 1,
+              "hash": "2bd5453877694e626d24e0592290c4b8144438fbd3d525b2aa25559ed1093e97",
+              "status": "complete",
+              "evidence": ""
+            },
+            {
+              "id": "platformGuide",
+              "source": "AGENTS.md, design.md, CLAUDE.md, .spawn/skills.md, llms.txt, openapi.json",
+              "destination": [
+                "AGENTS.md",
+                "design.md",
+                "CLAUDE.md",
+                ".spawn/skills.md",
+                ".local/api/llms.json",
+                ".local/api/openapi.json"
+              ],
+              "count": 6,
+              "hash": "868c2b44912af3a73541c675862fd0329468015d837bb36ae2d122e688bd3779",
+              "status": "complete",
+              "evidence": ""
+            },
+            {
+              "id": "liveRoomState",
+              "source": "agent/rooms, logs, health, exec, packaged client body",
+              "destination": [
+                ".local/api/rooms.json",
+                ".local/api/logs.json",
+                ".local/api/health.json",
+                ".local/api/exec-readonly.json"
+              ],
+              "count": 4,
+              "hash": "503a549588c50dfaec1d123a05271143f908007d8a63b34df9b34c7d83d83f64",
+              "status": "complete",
+              "evidence": "rooms=[] liveRooms=0; exec 409 no_live_room; see liveRoomCapture.json for client attempt"
+            },
+            {
+              "id": "localReproduction",
+              "source": "local server, page, launcher, checker",
+              "destination": [
+                ".local/serve.mjs",
+                ".local/index.html",
+                ".local/run-local.sh",
+                "scripts/check-extraction-complete.py"
+              ],
+              "count": 4,
+              "hash": "5eea9dea305e27b36c729fb2cb750d9e52b7ef57bf4b47e8991f884a4fab33ea",
+              "status": "complete",
+              "evidence": "deterministic routes and Chromium verification"
+            }
+          ],
+          "notes": [
+            "No commits, pushes, publishes or upstream writes were made.",
+            "Generated on-demand CDN names are classified by exact HEAD/GET evidence; no bytes were fabricated.",
+            "The one-time login-link URL was redacted because it is a credential-bearing URL."
+          ]
+        }
+      },
+      "vendorPrepManifest": {
+        "path": "wscheppity/.local/vendor-prep/manifest.json",
+        "present": false
+      },
+      "vendorPrepReady": {
+        "path": "wscheppity/.local/vendor-prep/READY.json",
+        "present": false
+      },
+      "vendorPrepHandoff": {
+        "path": "wscheppity/.local/vendor-prep/handoff.json",
+        "present": false
+      },
+      "vendorPrepNotes": {
+        "path": "wscheppity/.local/vendor-prep/247420-HANDOFF.md",
+        "present": false
+      },
+      "bitvoiceContract": {
+        "path": "bitvoice/service-contract.json",
+        "present": true,
+        "bytes": 9843,
+        "sha256": "f26ca47439d610e244dff4166b5061e94f39039e29be16d83967309ceefdd567",
+        "json": {
+          "schemaVersion": "1.0.0",
+          "contractName": "bitvoice-full-duplex",
+          "interfaceStability": "stable",
+          "owner": "local BitTTS realtime/two-way implementation",
+          "paper": "arXiv:2506.03515v1",
+          "description": "Stable local contract for text-to-PCM16LE streaming, health, full-duplex input, ASR capability reporting, and barge-in cancellation. TTS is paper-derived; ASR/dialogue/transport are local glue.",
+          "process": {
+            "cwd": "/workspace/bitvoice",
+            "start": "python3 -m bitvoice.server --host 127.0.0.1 --port 8765",
+            "ephemeralPort": "python3 -m bitvoice.server --host 127.0.0.1 --port 0",
+            "cliOptions": [
+              "--host",
+              "--port",
+              "--checkpoint",
+              "--chunk-frames",
+              "--asr",
+              "--asr-command"
+            ],
+            "defaultHost": "127.0.0.1",
+            "defaultPort": 8765,
+            "urlPattern": "http://{host}:{port}",
+            "stop": "SIGTERM or KeyboardInterrupt; bounded verification always stops the process",
+            "env": {
+              "BITVOICE_ASR_ADAPTER": "null | text | command (default null)",
+              "BITVOICE_ASR_COMMAND": "JSON argv array or argv text for CommandASR; shell=False",
+              "BITVOICE_ASR_MODEL": "informational local model path; no secrets",
+              "BITVOICE_ASR_TIMEOUT": "CommandASR subprocess timeout seconds (default 5.0)",
+              "BITVOICE_LIBRITTSR": "optional external LibriTTS-R/MFA data root; not bundled"
+            }
+          },
+          "http": {
+            "health": {
+              "method": "GET",
+              "path": "/health",
+              "contentType": "application/json",
+              "statusCode": 200,
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ok",
+                  "service",
+                  "schemaVersion",
+                  "contract",
+                  "interfaceStability",
+                  "asr",
+                  "sessions",
+                  "metrics",
+                  "sample_rate",
+                  "paper"
+                ],
+                "properties": {
+                  "ok": {
+                    "type": "boolean",
+                    "const": true
+                  },
+                  "service": {
+                    "type": "string",
+                    "const": "bitvoice-full-duplex"
+                  },
+                  "schemaVersion": {
+                    "type": "string",
+                    "const": "1.0.0"
+                  },
+                  "contract": {
+                    "type": "string",
+                    "const": "service-contract.json"
+                  },
+                  "interfaceStability": {
+                    "type": "string",
+                    "const": "stable"
+                  },
+                  "asr": {
+                    "type": "object",
+                    "required": [
+                      "available",
+                      "modelPath",
+                      "reason"
+                    ],
+                    "properties": {
+                      "available": {
+                        "type": "boolean"
+                      },
+                      "modelPath": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "sessions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "metrics": {
+                    "type": "object"
+                  },
+                  "sample_rate": {
+                    "type": "integer",
+                    "const": 24000
+                  },
+                  "paper": {
+                    "type": "string",
+                    "const": "arXiv:2506.03515v1"
+                  }
+                }
+              },
+              "example": {
+                "ok": true,
+                "service": "bitvoice-full-duplex",
+                "schemaVersion": "1.0.0",
+                "contract": "service-contract.json",
+                "interfaceStability": "stable",
+                "asr": {
+                  "available": false,
+                  "modelPath": "",
+                  "reason": "No offline ASR model is bundled; use the text control channel."
+                },
+                "sessions": [],
+                "metrics": {
+                  "connections": 0,
+                  "turns": 0,
+                  "audio_chunks": 0,
+                  "barge_ins": 0,
+                  "input_audio_samples": 0,
+                  "first_chunk_latencies_s": [],
+                  "rtfs": []
+                },
+                "sample_rate": 24000,
+                "paper": "arXiv:2506.03515v1"
+              }
+            },
+            "static": {
+              "method": "GET",
+              "path": "/",
+              "statusCode": 200,
+              "contentType": "text/html; charset=utf-8",
+              "contains": [
+                "BitVoice",
+                "WebSocket"
+              ]
+            },
+            "textSynthesis": {
+              "exists": false,
+              "method": "none",
+              "path": "none",
+              "note": "There is no POST/HTTP synthesis endpoint. Use WebSocket /ws text frames or the CLI demo."
+            }
+          },
+          "websocket": {
+            "url": "ws://{host}:{port}/ws",
+            "handshake": [
+              "Upgrade: websocket",
+              "Connection: Upgrade",
+              "Sec-WebSocket-Key",
+              "Sec-WebSocket-Version: 13"
+            ],
+            "framing": "RFC 6455; client frames masked; server text frames JSON; server audio frames are binary opcode 0x2",
+            "textFrame": {
+              "encoding": "UTF-8 JSON object",
+              "baseFields": {
+                "type": "string; discriminator",
+                "session_id": "string; opaque session identifier; omitted uses server-assigned id",
+                "generation": "integer; monotonic turn generation on event frames"
+              },
+              "clientToServer": {
+                "hello": {
+                  "type": "hello",
+                  "session_id": "string"
+                },
+                "text": {
+                  "type": "text",
+                  "text": "string <= 4096 chars",
+                  "session_id": "string"
+                },
+                "audio": {
+                  "type": "audio",
+                  "session_id": "string",
+                  "followedBy": "one binary PCM16LE frame"
+                },
+                "audio_base64": {
+                  "type": "audio_base64",
+                  "pcm16le_base64": "base64 PCM16LE",
+                  "session_id": "string"
+                },
+                "barge_in": {
+                  "type": "barge_in",
+                  "session_id": "string"
+                },
+                "cancel": {
+                  "type": "cancel",
+                  "session_id": "string",
+                  "aliasOf": "barge_in"
+                },
+                "metrics": {
+                  "type": "metrics",
+                  "session_id": "string"
+                },
+                "ping": {
+                  "type": "ping",
+                  "t": "number|string",
+                  "session_id": "string"
+                }
+              },
+              "serverToClient": {
+                "status": "type=status, session_id, schemaVersion, asr_available, asr_status, asr_modelPath, text_channel, sample_rate, full_duplex",
+                "partial_transcript": "type=partial_transcript, text, session_id, generation",
+                "turn_start": "type=turn_start, text, reply, session_id, generation, barge_in",
+                "audio_start": "type=audio_start, session_id, generation, sample_rate, encoding=pcm_s16le",
+                "audio_chunk": "type=audio_chunk, session_id, generation, bytes, t",
+                "audio_end": "type=audio_end, session_id, generation, first_chunk_latency_s, rtf, audio_duration_s, state",
+                "cancelled": "type=cancelled, session_id, generation",
+                "audio_cancelled": "type=audio_cancelled, session_id, generation",
+                "asr": "type=asr, status, text, partial, available, reason, session_id",
+                "audio_ack": "type=audio_ack, session_id, expect=binary",
+                "metrics": "type=metrics, session_id, state, first_chunk_latency_s_avg, rtf_avg, audio_chunks, turns, barge_ins",
+                "pong": "type=pong, t, server_t",
+                "error": "type=error, error, optional detail, optional session_id, optional generation"
+              }
+            },
+            "audioFrames": {
+              "direction": "server-to-client PCM and client-to-server mic",
+              "binaryOpcode": 2,
+              "binarySchema": "raw bytes; little-endian signed 16-bit PCM",
+              "base64JsonAlternative": {
+                "type": "audio_base64",
+                "pcm16le_base64": "base64 string of raw PCM16LE bytes"
+              },
+              "format": {
+                "encoding": "pcm_s16le",
+                "sampleRateHz": 24000,
+                "channels": 1,
+                "sampleWidthBytes": 2,
+                "chunkFrames": "chunk_frames mel frames x hop_length 256 samples; default 8 => 2048 samples => 4096 bytes per full chunk",
+                "defaultChunkBytes": 4096,
+                "finalChunkMayBeShorter": true,
+                "endianness": "little",
+                "signed": true
+              },
+              "endOfTurnMarker": {
+                "type": "audio_end",
+                "generation": "integer",
+                "required": true
+              },
+              "bargeInCancel": {
+                "client": [
+                  {
+                    "type": "barge_in",
+                    "session_id": "string"
+                  },
+                  {
+                    "type": "cancel",
+                    "session_id": "string"
+                  }
+                ],
+                "server": [
+                  {
+                    "type": "cancelled"
+                  },
+                  {
+                    "type": "audio_cancelled"
+                  }
+                ],
+                "effect": "increments generation and stops emitting audio chunks at the next chunk boundary"
+              },
+              "errorFrames": {
+                "invalid_json": {
+                  "type": "error",
+                  "error": "invalid_json"
+                },
+                "invalid_base64": {
+                  "type": "error",
+                  "error": "invalid_base64",
+                  "session_id": "string"
+                },
+                "synthesis_failed": {
+                  "type": "error",
+                  "error": "synthesis_failed",
+                  "detail": "string",
+                  "session_id": "string",
+                  "generation": "integer"
+                },
+                "not_found": {
+                  "error": "not_found",
+                  "path": "string"
+                }
+              }
+            }
+          },
+          "asr": {
+            "defaultAdapter": "NullASR",
+            "honestFallback": {
+              "available": false,
+              "text": "",
+              "status": "asr_unavailable_audio_buffered"
+            },
+            "interface": [
+              "transcribe_stream",
+              "available",
+              "modelPath",
+              "reason",
+              "capability",
+              "start",
+              "accept_audio",
+              "finish"
+            ],
+            "adapters": [
+              "NullASR",
+              "TextASR",
+              "CommandASR"
+            ],
+            "noFabricatedTranscripts": true,
+            "commandSecurity": "argv list, shell=False, bounded timeout, no secrets logged"
+          },
+          "cli": {
+            "demoCommand": "python3 -m bitvoice.demo --text \"Feels good, man.\" --out demo.wav",
+            "wav": {
+              "container": "RIFF WAVE PCM",
+              "encoding": "pcm_s16le",
+              "sampleRateHz": 24000,
+              "channels": 1,
+              "sampleWidthBytes": 2,
+              "headerBytes": 44,
+              "nonZeroPayload": true,
+              "qualityLabel": "DSP/untrained fallback; not paper-quality speech"
+            }
+          },
+          "metrics": {
+            "names": {
+              "first_chunk_latency_s": "seconds from synthesis start to first emitted PCM chunk",
+              "total_wall_s": "CLI wall time for synthesis",
+              "audio_duration_s": "PCM samples / sample_rate",
+              "rtf": "total_wall_s / audio_duration_s",
+              "chunks": "number of emitted PCM chunks",
+              "frames": "number of mel frames",
+              "backend": "dsp | neural; dsp is deterministic fallback",
+              "first_chunk_latency_s_avg": "server average first-chunk latency",
+              "rtf_avg": "server average RTF"
+            },
+            "healthMetricsKeys": [
+              "connections",
+              "turns",
+              "audio_chunks",
+              "barge_ins",
+              "input_audio_samples",
+              "first_chunk_latencies_s",
+              "rtfs"
+            ],
+            "paperRtfIsNotClaimed": true
+          },
+          "consumerNotes": {
+            "hy3d": "Read /health first; open ws://host:port/ws; send text frames; consume binary opcode 0x2 PCM16LE; stop on audio_end; send barge_in/cancel to interrupt. If ASR is unavailable, use text frames as the authoritative transcript.",
+            "stabilityEnforcement": "scripts/validate-service-contract.py checks this file against server.py, wsproto.py, tts.py, web/index.html, demo.py, and README.md; it exits nonzero on drift."
+          },
+          "validation": {
+            "validator": "python3 scripts/validate-service-contract.py",
+            "smoke": "python3 scripts/service-contract-smoke.py",
+            "metrics": "python3 scripts/metrics-report.py",
+            "unitTests": "python3 -m unittest discover -s tests -v"
+          }
+        }
+      },
+      "bitvoiceLock": {
+        "path": "bitvoice/service-contract.lock.json",
+        "present": true,
+        "bytes": 1082,
+        "sha256": "daaa59321c632c28eacebecb28328e9f0ec61ede2183437ba4691402a3f55fb0",
+        "json": {
+          "allowedDependencies": {
+            "audioFormat": [
+              "PCM16LE",
+              "24000Hz",
+              "mono",
+              "s16le"
+            ],
+            "cancel": [
+              "barge_in",
+              "cancel"
+            ],
+            "errorFrames": [
+              "invalid_json",
+              "invalid_base64",
+              "synthesis_failed",
+              "not_found"
+            ],
+            "http": [
+              "/health"
+            ],
+            "hy3dBridgePlanFile": "bittts-bridge-plan.json",
+            "interfaceStability": "stable",
+            "postHttpTextSynthesis": "none",
+            "schemaVersion": "1.0.0",
+            "streamEvents": [
+              "audio_chunk",
+              "audio_end"
+            ],
+            "textFrame": [
+              "type",
+              "text",
+              "session_id"
+            ],
+            "websocket": [
+              "/ws"
+            ]
+          },
+          "consumer": "hy3d",
+          "contractPath": "service-contract.json",
+          "generatedAt": "2026-11-11T10:40:51+00:00",
+          "interfaceStability": "stable",
+          "notes": "hy3d's bittts-bridge-plan.json may depend only on listed stable fields. Do not change schemaVersion without regenerating this lock deliberately.",
+          "schemaVersion": "1.0.0",
+          "sha256": "f26ca47439d610e244dff4166b5061e94f39039e29be16d83967309ceefdd567"
+        }
+      },
+      "bitvoiceRelease": {
+        "path": "bitvoice/docs/BITVOICE_RELEASE.json",
+        "present": true,
+        "bytes": 10832,
+        "sha256": "2c7a138e2aae4a888c077a0ea14fccfeecf442f5f2ea3164ae51ee7f8e5f3b7a",
+        "json": {
+          "action": "generated",
+          "asrBoundary": {
+            "default": "NullASR",
+            "env": [
+              "BITVOICE_ASR_ADAPTER",
+              "BITVOICE_ASR_COMMAND",
+              "BITVOICE_ASR_MODEL",
+              "BITVOICE_ASR_TIMEOUT"
+            ],
+            "fabricatedTranscripts": false,
+            "nullStatus": "asr_unavailable_audio_buffered",
+            "offlineAsrWeightsBundled": false,
+            "pluggable": "CommandASR"
+          },
+          "bargeInEvidence": {
+            "cancelGeneration": "1->2",
+            "cleanShutdown": true,
+            "postCancelAudioChunks": 0,
+            "regressionScenarios": 5,
+            "validTerminals": {
+              "A": "audio_cancelled",
+              "B": "audio_end"
+            }
+          },
+          "contract": {
+            "interfaceStability": "stable",
+            "path": "service-contract.json",
+            "schemaVersion": "1.0.0",
+            "sha256": "f26ca47439d610e244dff4166b5061e94f39039e29be16d83967309ceefdd567"
+          },
+          "demoWav": {
+            "bytes": 8236,
+            "channels": 1,
+            "encoding": "pcm_s16le",
+            "exists": true,
+            "format": "RIFF WAVE PCM",
+            "headerBytes": 44,
+            "nonZeroPayload": true,
+            "path": "demo.wav",
+            "sampleRateHz": 24000,
+            "sampleWidthBytes": 2
+          },
+          "fullDuplexEvidence": {
+            "path": "docs/full-duplex-metrics.json",
+            "pcmBytesTotal": null,
+            "result": "unavailable",
+            "rtf": null,
+            "wall_s": null
+          },
+          "gates": [
+            {
+              "command": "/data/cache/venvs/ml/bin/python3 -m unittest discover -s tests -v",
+              "exitCode": 0,
+              "marker": "Ran (\\d+) tests",
+              "markerFound": true,
+              "name": "unit_tests",
+              "ok": true,
+              "tail": "test_uint8_indices_and_compression_320_to_64 (test_bitvoice.TestWeightIndex.test_uint8_indices_and_compression_320_to_64) ... ok\n\n----------------------------------------------------------------------\nRan 27 tests in 3.071s\n\nOK",
+              "tests": 27
+            },
+            {
+              "command": "/data/cache/venvs/ml/bin/python3 scripts/validate-service-contract.py",
+              "exitCode": 0,
+              "marker": "SERVICE_CONTRACT_VALIDATION=OK",
+              "markerFound": true,
+              "name": "contract_validator",
+              "ok": true,
+              "tail": "SERVICE_CONTRACT_VALIDATION=OK\nschemaVersion=1.0.0 interfaceStability=stable\nchecked=service-contract.json server.py wsproto.py tts.py web/index.html demo.py README.md asr.py\nlive_health=200 schema_shape=ok process=stopped",
+              "tests": null
+            },
+            {
+              "command": "/data/cache/venvs/ml/bin/python3 scripts/validate-service-contract-lock.py",
+              "exitCode": 0,
+              "marker": "SERVICE_CONTRACT_LOCK_VALIDATION=OK",
+              "markerFound": true,
+              "name": "lock_validator",
+              "ok": true,
+              "tail": "SERVICE_CONTRACT_LOCK_VALIDATION=OK\nschemaVersion=1.0.0 sha256=f26ca47439d610e244dff4166b5061e94f39039e29be16d83967309ceefdd567 interfaceStability=stable\nallowedDependencies={\"audioFormat\":[\"PCM16LE\",\"24000Hz\",\"mono\",\"s16le\"],\"cancel\":[\"barge_in\",\"cancel\"],\"errorFrames\":[\"invalid_json\",\"invalid_base64\",\"synthesis_failed\",\"not_found\"],\"http\":[\"/health\"],\"hy3dBridgePlanFile\":\"bittts-bridge-plan.json\",\"interfaceStability\":\"stable\",\"postHttpTextSynthesis\":\"none\",\"schemaVersion\":\"1.0.0\",\"streamEvents\":[\"audio_chunk\",\"audio_end\"],\"textFrame\":[\"type\",\"text\",\"session_id\"],\"websocket\":[\"/ws\"]}\nhy3dBridgePlanFile=bittts-bridge-plan.json postHttpTextSynthesis=none",
+              "tests": null
+            },
+            {
+              "command": "/data/cache/venvs/ml/bin/python3 scripts/service-contract-smoke.py",
+              "exitCode": 0,
+              "marker": "SMOKE_RESULT=OK",
+              "markerFound": true,
+              "name": "service_contract_smoke",
+              "ok": true,
+              "tail": "WAV_EXIT=0 PATH=docs/contract-smoke.wav BYTES=33324 FRAMES=16640\nASR_FALLBACK_EXIT=0 {\"type\":\"asr\",\"status\":\"asr_unavailable_audio_buffered\",\"text\":\"\",\"partial\":false,\"available\":false,\"reason\":\"No offline ASR model is bundled; use the text control channel.\",\"session_id\":\"session-1794400587818-137436839134912\"}\nBARGE_IN_EXIT=0 {\"type\":\"cancelled\",\"session_id\":\"session-1794400587818-137436839134912\",\"generation\":3}\nSERVER_TERMINATED_EXIT=-15\nPS_AFTER_STOP_EXIT=1 OUTPUT=''\nSMOKE_RESULT=OK",
+              "tests": null
+            },
+            {
+              "command": "/data/cache/venvs/ml/bin/python3 scripts/full-duplex-benchmark.py",
+              "exitCode": 0,
+              "marker": "BENCHMARK_RESULT=OK",
+              "markerFound": true,
+              "name": "full_duplex_benchmark",
+              "ok": true,
+              "tail": "CANCEL_GENERATION=1->2 POST_CANCEL_AUDIO_CHUNKS=0\nAUDIO_END_B_CHUNK_SEQ=6 AUDIO_END_A=audio_cancelled\nB_EVENT_TYPES=status,partial_transcript,turn_start,audio_start,asr,asr,asr,audio_chunk,audio_chunk,audio_chunk,audio_chunk,audio_chunk,audio_chunk,audio_end\nB_TURN_SID='fd-B' A_TURN_SID='fd-A'\nCLEAN_SHUTDOWN=True\nBENCHMARK_RESULT=OK",
+              "tests": null
+            },
+            {
+              "command": "/data/cache/venvs/ml/bin/python3 scripts/check-barge-in-regression.py",
+              "exitCode": 0,
+              "marker": "BARGE_IN_REGRESSION_RESULT=OK",
+              "markerFound": true,
+              "name": "barge_in_regression",
+              "ok": true,
+              "tail": "SCENARIO={\"scenario\":\"after_20ms\",\"alias\":\"cancel\",\"turnGeneration\":1,\"terminal\":{\"type\":\"audio_end\",\"generation\":1,\"chunkSeq\":12,\"cancelSeen\":true,\"staleAudioChunkMetadata\":0,\"staleBinaryBytes\":0,\"chunkSeqs\":[1,2,3,4,5,6,7,8,9,10,11,12]},\"zeroPostCancelAudioChunks\":true,\"ok\":true}\nSCENARIO={\"scenario\":\"second_generation\",\"alias\":\"barge_in\",\"turnGeneration\":2,\"terminal\":{\"type\":\"cancelled_ack_quiescent\",\"cancelSeen\":true,\"staleAudioChunkMetadata\":0,\"staleBinaryBytes\":0,\"chunkSeqs\":[]},\"zeroPostCancelAudioChunks\":true,\"ok\":true}\nSCENARIO={\"scenario\":\"third_generation\",\"alias\":\"cancel\",\"turnGeneration\":2,\"terminal\":{\"type\":\"audio_cancelled\",\"generation\":2,\"chunkSeq\":0,\"cancelSeen\":true,\"staleAudioChunkMetadata\":0,\"staleBinaryBytes\":0,\"chunkSeqs\":[]},\"zeroPostCancelAudioChunks\":true,\"ok\":true}\nCLEAN_SHUTDOWN=True\nSECRET_HITS=0\nBARGE_IN_REGRESSION_RESULT=OK",
+              "tests": null
+            },
+            {
+              "command": "/data/cache/venvs/ml/bin/python3 scripts/metrics-report.py",
+              "exitCode": 0,
+              "marker": "METRICS_RESULT=OK",
+              "markerFound": true,
+              "name": "metrics_report",
+              "ok": true,
+              "tail": "QUALITY_LABEL=DSP/untrained fallback; not paper-quality speech\nDETERMINISTIC_PAYLOAD=True\nVARIANCE={\"first_chunk_latency_s\":8.73122755555555e-06,\"total_wall_s\":8.587184666666672e-06,\"rtf\":0.0002948048926666666}\nMEAN={\"first_chunk_latency_s\":0.030102333333333335,\"total_wall_s\":0.030462,\"rtf\":0.178487}\nMETRICS_REPORT={\"runs\":3,\"commands\":[\"/data/cache/venvs/ml/bin/python3 -m bitvoice.demo --text Feels good, man. --out /tmp/tmphoz8bcb_/metrics-0.wav --json\",\"/data/cache/venvs/ml/bin/python3 -m bitvoice.demo --text Feels good, man. --out /tmp/tmphoz8bcb_/metrics-1.wav --json\",\"/data/cache/venvs/ml/bin/python3 -m bitvoice.demo --text Feels good, man. --out /tmp/tmphoz8bcb_/metrics-2.wav --json\"],\"exit_codes\":[0,0,0],\"quality_label\":\"DSP/untrained fallback; not paper-quality speech\",\"paper_quality_claimed\":false,\"wav\":{\"bytes\":[8236,8236,8236],\"frames\":[4096,4096,4096],\"sample_rate\":24000,\"channels\":1,\"sample_width_bytes\":2},\"backend\":\"dsp\",\"metrics\":{\"first_chunk_latency_s\":[0.026235,0.030665,0.033407],\"total_wall_s\":[0.026629,0.031014,0.033743],\"rtf\":[0.156029,0.18172,0.197712]},\"variance\":{\"first_chunk_latency_s\":8.73122755555555e-06,\"total_wall_s\":8.587184666666672e-06,\"rtf\":0.0002948048926666666},\"mean\":{\"first_chunk_latency_s\":0.030102333333333335,\"total_wall_s\":0.030462,\"rtf\":0.178487},\"deterministic_payload\":true}\nMETRICS_RESULT=OK",
+              "tests": null
+            },
+            {
+              "command": "bash scripts/verify.sh",
+              "exitCode": 0,
+              "marker": "=== done ===",
+              "markerFound": true,
+              "name": "verify_sh",
+              "ok": true,
+              "tail": "test_no_hardcoded_secrets (tests.test_bitvoice.TestSecretScan.test_no_hardcoded_secrets) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.027s\n\nOK",
+              "tests": null
+            }
+          ],
+          "generatedAt": "2026-11-11T12:37:58+00:00",
+          "hiddenTokenScan": {
+            "command": "local regex scan + TestSecretScan",
+            "exitCode": 0,
+            "hits": [],
+            "ok": true
+          },
+          "lock": {
+            "path": "service-contract.lock.json",
+            "recordedContractSha256": "f26ca47439d610e244dff4166b5061e94f39039e29be16d83967309ceefdd567",
+            "schemaVersion": "1.0.0",
+            "sha256": "daaa59321c632c28eacebecb28328e9f0ec61ede2183437ba4691402a3f55fb0"
+          },
+          "ok": true,
+          "paperQualityMosClaim": false,
+          "pcmEvidence": {
+            "contractSmokePcmBytes": 33280,
+            "contractSmokeWavBytes": 33324,
+            "contractSmokeWavFrames": 16640,
+            "encoding": "PCM16LE 24kHz mono"
+          },
+          "qualityDisclaimer": "DSP/untrained fallback; no offline ASR model, no pretrained LibriTTS-R/HiFi-GAN weights, no paper-quality MOS or naturalness claim.",
+          "releaseArtifactVersion": "1.0.0",
+          "schemaVersion": "1.0.0",
+          "sourceFingerprint": {
+            "files": {
+              "bitvoice/asr.py": "df6dc92397119843b9620cad7d4732fa7ec6f1c691cac6d06afe33aa4770a5fb",
+              "bitvoice/server.py": "29d9de5a3c376900f33171e6d2db08fa7cf1db60dd99a26aa84d7e2197dc5a4c",
+              "bitvoice/tts.py": "af323fc72d6450cc491ab431b014ec8ecaa3553b1690e8c1fddee84a48a172ca",
+              "bitvoice/wsproto.py": "a5d62f6ad7c9d8a08949be7a52f346bde67d1ebbf3d63718edc602a841ca85fe",
+              "scripts/check-barge-in-regression.py": "3a5ad41e3eb75791e6771da75fda8af91a7354ea86f8e0c2f39cc357c10c91c9",
+              "scripts/check-downstream-contracts.py": "c44e433ab7db17246bbb0f6f2a4bdb11ca95c79ef2854db47575cd5023101574",
+              "scripts/full-duplex-benchmark.py": "84bdb0b8f87cd77f3c36a91f735903ba63f95f9473c3818cd14d99c70da61dcb",
+              "scripts/metrics-report.py": "6d1181b7799074b321fd8dd01ef4be8ad4347a635778647c95dc2210dd57fc82",
+              "scripts/service-contract-smoke.py": "9a6844f07f0338d08783cca4a87299a7f57c46cb03b8bb34cb8b5adf4fb926d2",
+              "scripts/validate-service-contract-lock.py": "9399ddcc7d68f9b5eb8b9e730c7faa2136bdc7facfd3225b44b0b0004ff890bb",
+              "scripts/validate-service-contract.py": "87fbd31e482bac8b5a2a7cd6f942802ccf276b23b61b4fda3be89150e25e0811",
+              "scripts/verify.sh": "85b4c3a6a99b9681fa0f244589f58c3f7558b96e1d086b3c9b61fb631c945d71",
+              "service-contract.json": "f26ca47439d610e244dff4166b5061e94f39039e29be16d83967309ceefdd567",
+              "service-contract.lock.json": "daaa59321c632c28eacebecb28328e9f0ec61ede2183437ba4691402a3f55fb0",
+              "tests/test_bitvoice.py": "e3426402af6cba4acbb80bae4cece43dfadb91f2c80209289e21406db651d3f9"
+            },
+            "sha256": "71b2778208bc6706b877b546c448be0df07c93db098c50bc9dcc9a84df20143d"
+          },
+          "speechRecognitionClaim": false,
+          "survivorScan": {
+            "command": "ps -eo pid=,stat=,cmd=",
+            "exitCode": 0,
+            "matches": [],
+            "ok": true
+          }
+        }
+      },
+      "gmwebReadiness": {
+        "path": "gmweb/docs/RELEASE_READINESS.json",
+        "present": true,
+        "bytes": 10209,
+        "sha256": "964bbc269e7664bbaa60ee0d922207a3b86abc6550601d8663b808080803c7a4",
+        "json": {
+          "schema": 1,
+          "generatedAt": "2026-11-11T11:47:54.810Z",
+          "ok": true,
+          "tool": "startup/check-release-readiness.mjs",
+          "sourceFingerprint": "7397241c7dabee04cf3ed190b4be4e2e741d3137d2fa0fc34c8cb075a8f753fe",
+          "gm": {
+            "head": "f6a655ded929762414377b686dc07df2312f37bf",
+            "dirty": false,
+            "status": "",
+            "installerSha256": "18318fed9c32d6625d7512e45a3c92278597745ba26cb98cd60ae5fc56e3d62e"
+          },
+          "gmweb": {
+            "head": "6b646abcd39acc89b0bc38958abdb61a8ef96020",
+            "dirty": true,
+            "status": "M GM_INSTALL.md\n M docs/CONTAINER-ROLLOUT.md\n M docs/POST-RESTART.md\n M docs/ROLLOUT_REPORT.json\n M docs/ROLLOUT_REPORT.md\n M docs/SIMULATED_STARTUP_OUTPUT.txt\n M package.json\n M readme.md\n M startup/check-release-readiness.mjs\n M startup/package.json\n M startup/rollout-report.mjs\n M startup/validate-rollout-report.mjs\n?? docs/RELEASE_READINESS.json\n?? docs/RELEASE_READINESS.md\n?? startup/check-hidden-tokens.mjs\n?? startup/check-survivors.mjs\n?? startup/validate-release-readiness.mjs",
+            "vendoredInstallerSha256": "18318fed9c32d6625d7512e45a3c92278597745ba26cb98cd60ae5fc56e3d62e"
+          },
+          "installerByteParity": true,
+          "gateCounts": [
+            "82/82",
+            "71/71",
+            "65/65",
+            "38/38",
+            "27/27",
+            "22/22",
+            "19/19",
+            "16/16",
+            "13/13",
+            "9/9",
+            "4/4"
+          ],
+          "commands": [
+            {
+              "label": "root-check",
+              "command": "npm run check",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [
+                "82/82",
+                "38/38",
+                "65/65",
+                "27/27",
+                "22/22",
+                "9/9",
+                "19/19"
+              ],
+              "outputTail": " | npm notice run check | npm notice run node startup/check-startup-sources.mjs && node startup/check-runtime-install.mjs && node startup/check-container-startup-path.mjs && node scripts/check-rollout-docs.mjs && node startup/check-post-restart.mjs --offline && node scripts/check-gm-upstream-drift.mjs && node startup/validate-rollout-report.mjs && node startup/check-live-probe-fixtures.mjs && node startup/check-simulated-startup.mjs"
+            },
+            {
+              "label": "startup-check",
+              "command": "npm --prefix startup run check",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [
+                "82/82",
+                "38/38",
+                "65/65",
+                "27/27",
+                "22/22",
+                "9/9",
+                "19/19"
+              ],
+              "outputTail": " | npm notice run gmweb-startup@1.0.0 check | npm notice run node check-startup-sources.mjs && node check-runtime-install.mjs && node check-container-startup-path.mjs && node ../scripts/check-rollout-docs.mjs && node check-post-restart.mjs --offline && node ../scripts/check-gm-upstream-drift.mjs && node validate-rollout-report.mjs && node check-live-probe-fixtures.mjs && node check-simulated-startup.mjs"
+            },
+            {
+              "label": "runtime-install",
+              "command": "/data/cache/node/node-v24.22.0-linux-x64/bin/node startup/check-runtime-install.mjs",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [
+                "38/38"
+              ],
+              "outputTail": "PASS runtime smoke: no test service or install command survives |  | 38/38 runtime checks passed"
+            },
+            {
+              "label": "container-path",
+              "command": "/data/cache/node/node-v24.22.0-linux-x64/bin/node startup/check-container-startup-path.mjs",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [
+                "65/65"
+              ],
+              "outputTail": "PASS bash -n ../startup.sh |  | 65/65 container-path checks passed"
+            },
+            {
+              "label": "rollout-docs",
+              "command": "/data/cache/node/node-v24.22.0-linux-x64/bin/node scripts/check-rollout-docs.mjs",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [
+                "27/27"
+              ],
+              "outputTail": "PASS docs includes this docs gate command |  | 27/27 rollout-docs checks passed"
+            },
+            {
+              "label": "post-restart-offline",
+              "command": "/data/cache/node/node-v24.22.0-linux-x64/bin/node startup/check-post-restart.mjs --offline",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [
+                "22/22"
+              ],
+              "outputTail": "PASS offline mode performs no HTTP/log/container probes -- static command validation only |  | 22/22 post-restart checks passed; STATUS=OFFLINE_PLAN_VALID"
+            },
+            {
+              "label": "post-restart-live",
+              "command": "/data/cache/node/node-v24.22.0-linux-x64/bin/node startup/check-post-restart.mjs --live",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "UNAVAILABLE",
+              "counts": [
+                "22/22"
+              ],
+              "outputTail": "PASS live probe was bounded and read-only -- 1200ms, GET only |  | 22/22 post-restart checks passed; STATUS=UNAVAILABLE"
+            },
+            {
+              "label": "gm-drift-watch-once",
+              "command": "/data/cache/node/node-v24.22.0-linux-x64/bin/node scripts/check-gm-upstream-drift.mjs --watch --once",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [],
+              "outputTail": "WATCH_RESULT once=true iterations=1 interval_ms=15000 duration_ms=0 gm_sha=18318fed9c32d6625d7512e45a3c92278597745ba26cb98cd60ae5fc56e3d62e drift_exit=0 action=NONE | WATCH_GUARANTEE no files copied; no gm/gmweb source modified; no install/registration/restart/publish"
+            },
+            {
+              "label": "probe-selftest",
+              "command": "npm run probe:post-restart",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [],
+              "outputTail": " | npm notice run probe:post-restart | npm notice run node startup/live-post-restart-probe.mjs"
+            },
+            {
+              "label": "probe-fixtures",
+              "command": "/data/cache/node/node-v24.22.0-linux-x64/bin/node startup/check-live-probe-fixtures.mjs",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [],
+              "outputTail": "PASS probe performs no writes/restarts/installs/registration |  | 16/16 live-probe fixture checks passed"
+            },
+            {
+              "label": "simulate-startup",
+              "command": "npm run simulate:startup",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [
+                "19/19"
+              ],
+              "outputTail": " | npm notice run simulate:startup | npm notice run node startup/simulate-container-startup.mjs"
+            },
+            {
+              "label": "simulation-gate",
+              "command": "/data/cache/node/node-v24.22.0-linux-x64/bin/node startup/check-simulated-startup.mjs",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [
+                "19/19"
+              ],
+              "outputTail": " | 13/13 simulated-startup gate checks passed | SIMULATED_STARTUP_GATE=PASS output=docs/SIMULATED_STARTUP_OUTPUT.txt"
+            },
+            {
+              "label": "report-rollout",
+              "command": "npm run report:rollout",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [],
+              "outputTail": " | npm notice run report:rollout | npm notice run node startup/rollout-report.mjs"
+            },
+            {
+              "label": "validate-rollout-report",
+              "command": "npm run validate:rollout-report",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [],
+              "outputTail": " | npm notice run validate:rollout-report | npm notice run node startup/validate-rollout-report.mjs"
+            },
+            {
+              "label": "sha256-parity",
+              "command": "sha256sum docker/install-gm.sh /workspace/gm/scripts/install.sh",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [],
+              "outputTail": "18318fed9c32d6625d7512e45a3c92278597745ba26cb98cd60ae5fc56e3d62e  docker/install-gm.sh | 18318fed9c32d6625d7512e45a3c92278597745ba26cb98cd60ae5fc56e3d62e  /workspace/gm/scripts/install.sh"
+            },
+            {
+              "label": "node-check-js",
+              "command": "/data/cache/node/node-v24.22.0-linux-x64/bin/node --check startup/check-release-readiness.mjs",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [],
+              "outputTail": ""
+            },
+            {
+              "label": "bash-n-start",
+              "command": "bash -n startup/start.sh",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [],
+              "outputTail": ""
+            },
+            {
+              "label": "bash-n-root-startup",
+              "command": "bash -n startup.sh",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [],
+              "outputTail": ""
+            },
+            {
+              "label": "sh-n-installer",
+              "command": "sh -n docker/install-gm.sh",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [],
+              "outputTail": ""
+            },
+            {
+              "label": "git-diff-check",
+              "command": "git diff --check",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [],
+              "outputTail": ""
+            },
+            {
+              "label": "hidden-token-scan",
+              "command": "/data/cache/node/node-v24.22.0-linux-x64/bin/node startup/check-hidden-tokens.mjs",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [],
+              "outputTail": "no hidden-token matches"
+            },
+            {
+              "label": "active-forbidden-grep",
+              "command": "grep -RInE agentgui@1\\.0\\.1126|agentgui@latest|bunx.*agentgui@|npx -y agentgui startup docker Dockerfile Dockerfile.headless --exclude=check-*.mjs --exclude=validate-*.mjs --exclude=rollout-report.mjs --exclude=live-post-restart-probe.mjs --exclude=gm-install.log",
+              "exitCode": 1,
+              "expectedExit": 1,
+              "status": "PASS",
+              "counts": [],
+              "outputTail": ""
+            },
+            {
+              "label": "ps-survivor-scan",
+              "command": "/data/cache/node/node-v24.22.0-linux-x64/bin/node startup/check-survivors.mjs",
+              "exitCode": 0,
+              "expectedExit": 0,
+              "status": "PASS",
+              "counts": [],
+              "outputTail": "no survivor processes"
+            }
+          ],
+          "livePostRestart": "UNAVAILABLE",
+          "rolloutAction": "READY: docker compose restart gmweb (or headless variant) after change is accepted on STARTUP_REF=main",
+          "guarantees": [
+            "no network",
+            "no real install",
+            "no MCP registration overwrite",
+            "no restart",
+            "no publish",
+            "no long-lived service"
+          ]
+        }
+      },
+      "bitvoiceReleaseDuplicate": {
+        "path": "bitvoice/docs/BITVOICE_RELEASE.json",
+        "present": true,
+        "bytes": 10832,
+        "sha256": "2c7a138e2aae4a888c077a0ea14fccfeecf442f5f2ea3164ae51ee7f8e5f3b7a",
+        "json": {
+          "action": "generated",
+          "asrBoundary": {
+            "default": "NullASR",
+            "env": [
+              "BITVOICE_ASR_ADAPTER",
+              "BITVOICE_ASR_COMMAND",
+              "BITVOICE_ASR_MODEL",
+              "BITVOICE_ASR_TIMEOUT"
+            ],
+            "fabricatedTranscripts": false,
+            "nullStatus": "asr_unavailable_audio_buffered",
+            "offlineAsrWeightsBundled": false,
+            "pluggable": "CommandASR"
+          },
+          "bargeInEvidence": {
+            "cancelGeneration": "1->2",
+            "cleanShutdown": true,
+            "postCancelAudioChunks": 0,
+            "regressionScenarios": 5,
+            "validTerminals": {
+              "A": "audio_cancelled",
+              "B": "audio_end"
+            }
+          },
+          "contract": {
+            "interfaceStability": "stable",
+            "path": "service-contract.json",
+            "schemaVersion": "1.0.0",
+            "sha256": "f26ca47439d610e244dff4166b5061e94f39039e29be16d83967309ceefdd567"
+          },
+          "demoWav": {
+            "bytes": 8236,
+            "channels": 1,
+            "encoding": "pcm_s16le",
+            "exists": true,
+            "format": "RIFF WAVE PCM",
+            "headerBytes": 44,
+            "nonZeroPayload": true,
+            "path": "demo.wav",
+            "sampleRateHz": 24000,
+            "sampleWidthBytes": 2
+          },
+          "fullDuplexEvidence": {
+            "path": "docs/full-duplex-metrics.json",
+            "pcmBytesTotal": null,
+            "result": "unavailable",
+            "rtf": null,
+            "wall_s": null
+          },
+          "gates": [
+            {
+              "command": "/data/cache/venvs/ml/bin/python3 -m unittest discover -s tests -v",
+              "exitCode": 0,
+              "marker": "Ran (\\d+) tests",
+              "markerFound": true,
+              "name": "unit_tests",
+              "ok": true,
+              "tail": "test_uint8_indices_and_compression_320_to_64 (test_bitvoice.TestWeightIndex.test_uint8_indices_and_compression_320_to_64) ... ok\n\n----------------------------------------------------------------------\nRan 27 tests in 3.071s\n\nOK",
+              "tests": 27
+            },
+            {
+              "command": "/data/cache/venvs/ml/bin/python3 scripts/validate-service-contract.py",
+              "exitCode": 0,
+              "marker": "SERVICE_CONTRACT_VALIDATION=OK",
+              "markerFound": true,
+              "name": "contract_validator",
+              "ok": true,
+              "tail": "SERVICE_CONTRACT_VALIDATION=OK\nschemaVersion=1.0.0 interfaceStability=stable\nchecked=service-contract.json server.py wsproto.py tts.py web/index.html demo.py README.md asr.py\nlive_health=200 schema_shape=ok process=stopped",
+              "tests": null
+            },
+            {
+              "command": "/data/cache/venvs/ml/bin/python3 scripts/validate-service-contract-lock.py",
+              "exitCode": 0,
+              "marker": "SERVICE_CONTRACT_LOCK_VALIDATION=OK",
+              "markerFound": true,
+              "name": "lock_validator",
+              "ok": true,
+              "tail": "SERVICE_CONTRACT_LOCK_VALIDATION=OK\nschemaVersion=1.0.0 sha256=f26ca47439d610e244dff4166b5061e94f39039e29be16d83967309ceefdd567 interfaceStability=stable\nallowedDependencies={\"audioFormat\":[\"PCM16LE\",\"24000Hz\",\"mono\",\"s16le\"],\"cancel\":[\"barge_in\",\"cancel\"],\"errorFrames\":[\"invalid_json\",\"invalid_base64\",\"synthesis_failed\",\"not_found\"],\"http\":[\"/health\"],\"hy3dBridgePlanFile\":\"bittts-bridge-plan.json\",\"interfaceStability\":\"stable\",\"postHttpTextSynthesis\":\"none\",\"schemaVersion\":\"1.0.0\",\"streamEvents\":[\"audio_chunk\",\"audio_end\"],\"textFrame\":[\"type\",\"text\",\"session_id\"],\"websocket\":[\"/ws\"]}\nhy3dBridgePlanFile=bittts-bridge-plan.json postHttpTextSynthesis=none",
+              "tests": null
+            },
+            {
+              "command": "/data/cache/venvs/ml/bin/python3 scripts/service-contract-smoke.py",
+              "exitCode": 0,
+              "marker": "SMOKE_RESULT=OK",
+              "markerFound": true,
+              "name": "service_contract_smoke",
+              "ok": true,
+              "tail": "WAV_EXIT=0 PATH=docs/contract-smoke.wav BYTES=33324 FRAMES=16640\nASR_FALLBACK_EXIT=0 {\"type\":\"asr\",\"status\":\"asr_unavailable_audio_buffered\",\"text\":\"\",\"partial\":false,\"available\":false,\"reason\":\"No offline ASR model is bundled; use the text control channel.\",\"session_id\":\"session-1794400587818-137436839134912\"}\nBARGE_IN_EXIT=0 {\"type\":\"cancelled\",\"session_id\":\"session-1794400587818-137436839134912\",\"generation\":3}\nSERVER_TERMINATED_EXIT=-15\nPS_AFTER_STOP_EXIT=1 OUTPUT=''\nSMOKE_RESULT=OK",
+              "tests": null
+            },
+            {
+              "command": "/data/cache/venvs/ml/bin/python3 scripts/full-duplex-benchmark.py",
+              "exitCode": 0,
+              "marker": "BENCHMARK_RESULT=OK",
+              "markerFound": true,
+              "name": "full_duplex_benchmark",
+              "ok": true,
+              "tail": "CANCEL_GENERATION=1->2 POST_CANCEL_AUDIO_CHUNKS=0\nAUDIO_END_B_CHUNK_SEQ=6 AUDIO_END_A=audio_cancelled\nB_EVENT_TYPES=status,partial_transcript,turn_start,audio_start,asr,asr,asr,audio_chunk,audio_chunk,audio_chunk,audio_chunk,audio_chunk,audio_chunk,audio_end\nB_TURN_SID='fd-B' A_TURN_SID='fd-A'\nCLEAN_SHUTDOWN=True\nBENCHMARK_RESULT=OK",
+              "tests": null
+            },
+            {
+              "command": "/data/cache/venvs/ml/bin/python3 scripts/check-barge-in-regression.py",
+              "exitCode": 0,
+              "marker": "BARGE_IN_REGRESSION_RESULT=OK",
+              "markerFound": true,
+              "name": "barge_in_regression",
+              "ok": true,
+              "tail": "SCENARIO={\"scenario\":\"after_20ms\",\"alias\":\"cancel\",\"turnGeneration\":1,\"terminal\":{\"type\":\"audio_end\",\"generation\":1,\"chunkSeq\":12,\"cancelSeen\":true,\"staleAudioChunkMetadata\":0,\"staleBinaryBytes\":0,\"chunkSeqs\":[1,2,3,4,5,6,7,8,9,10,11,12]},\"zeroPostCancelAudioChunks\":true,\"ok\":true}\nSCENARIO={\"scenario\":\"second_generation\",\"alias\":\"barge_in\",\"turnGeneration\":2,\"terminal\":{\"type\":\"cancelled_ack_quiescent\",\"cancelSeen\":true,\"staleAudioChunkMetadata\":0,\"staleBinaryBytes\":0,\"chunkSeqs\":[]},\"zeroPostCancelAudioChunks\":true,\"ok\":true}\nSCENARIO={\"scenario\":\"third_generation\",\"alias\":\"cancel\",\"turnGeneration\":2,\"terminal\":{\"type\":\"audio_cancelled\",\"generation\":2,\"chunkSeq\":0,\"cancelSeen\":true,\"staleAudioChunkMetadata\":0,\"staleBinaryBytes\":0,\"chunkSeqs\":[]},\"zeroPostCancelAudioChunks\":true,\"ok\":true}\nCLEAN_SHUTDOWN=True\nSECRET_HITS=0\nBARGE_IN_REGRESSION_RESULT=OK",
+              "tests": null
+            },
+            {
+              "command": "/data/cache/venvs/ml/bin/python3 scripts/metrics-report.py",
+              "exitCode": 0,
+              "marker": "METRICS_RESULT=OK",
+              "markerFound": true,
+              "name": "metrics_report",
+              "ok": true,
+              "tail": "QUALITY_LABEL=DSP/untrained fallback; not paper-quality speech\nDETERMINISTIC_PAYLOAD=True\nVARIANCE={\"first_chunk_latency_s\":8.73122755555555e-06,\"total_wall_s\":8.587184666666672e-06,\"rtf\":0.0002948048926666666}\nMEAN={\"first_chunk_latency_s\":0.030102333333333335,\"total_wall_s\":0.030462,\"rtf\":0.178487}\nMETRICS_REPORT={\"runs\":3,\"commands\":[\"/data/cache/venvs/ml/bin/python3 -m bitvoice.demo --text Feels good, man. --out /tmp/tmphoz8bcb_/metrics-0.wav --json\",\"/data/cache/venvs/ml/bin/python3 -m bitvoice.demo --text Feels good, man. --out /tmp/tmphoz8bcb_/metrics-1.wav --json\",\"/data/cache/venvs/ml/bin/python3 -m bitvoice.demo --text Feels good, man. --out /tmp/tmphoz8bcb_/metrics-2.wav --json\"],\"exit_codes\":[0,0,0],\"quality_label\":\"DSP/untrained fallback; not paper-quality speech\",\"paper_quality_claimed\":false,\"wav\":{\"bytes\":[8236,8236,8236],\"frames\":[4096,4096,4096],\"sample_rate\":24000,\"channels\":1,\"sample_width_bytes\":2},\"backend\":\"dsp\",\"metrics\":{\"first_chunk_latency_s\":[0.026235,0.030665,0.033407],\"total_wall_s\":[0.026629,0.031014,0.033743],\"rtf\":[0.156029,0.18172,0.197712]},\"variance\":{\"first_chunk_latency_s\":8.73122755555555e-06,\"total_wall_s\":8.587184666666672e-06,\"rtf\":0.0002948048926666666},\"mean\":{\"first_chunk_latency_s\":0.030102333333333335,\"total_wall_s\":0.030462,\"rtf\":0.178487},\"deterministic_payload\":true}\nMETRICS_RESULT=OK",
+              "tests": null
+            },
+            {
+              "command": "bash scripts/verify.sh",
+              "exitCode": 0,
+              "marker": "=== done ===",
+              "markerFound": true,
+              "name": "verify_sh",
+              "ok": true,
+              "tail": "test_no_hardcoded_secrets (tests.test_bitvoice.TestSecretScan.test_no_hardcoded_secrets) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.027s\n\nOK",
+              "tests": null
+            }
+          ],
+          "generatedAt": "2026-11-11T12:37:58+00:00",
+          "hiddenTokenScan": {
+            "command": "local regex scan + TestSecretScan",
+            "exitCode": 0,
+            "hits": [],
+            "ok": true
+          },
+          "lock": {
+            "path": "service-contract.lock.json",
+            "recordedContractSha256": "f26ca47439d610e244dff4166b5061e94f39039e29be16d83967309ceefdd567",
+            "schemaVersion": "1.0.0",
+            "sha256": "daaa59321c632c28eacebecb28328e9f0ec61ede2183437ba4691402a3f55fb0"
+          },
+          "ok": true,
+          "paperQualityMosClaim": false,
+          "pcmEvidence": {
+            "contractSmokePcmBytes": 33280,
+            "contractSmokeWavBytes": 33324,
+            "contractSmokeWavFrames": 16640,
+            "encoding": "PCM16LE 24kHz mono"
+          },
+          "qualityDisclaimer": "DSP/untrained fallback; no offline ASR model, no pretrained LibriTTS-R/HiFi-GAN weights, no paper-quality MOS or naturalness claim.",
+          "releaseArtifactVersion": "1.0.0",
+          "schemaVersion": "1.0.0",
+          "sourceFingerprint": {
+            "files": {
+              "bitvoice/asr.py": "df6dc92397119843b9620cad7d4732fa7ec6f1c691cac6d06afe33aa4770a5fb",
+              "bitvoice/server.py": "29d9de5a3c376900f33171e6d2db08fa7cf1db60dd99a26aa84d7e2197dc5a4c",
+              "bitvoice/tts.py": "af323fc72d6450cc491ab431b014ec8ecaa3553b1690e8c1fddee84a48a172ca",
+              "bitvoice/wsproto.py": "a5d62f6ad7c9d8a08949be7a52f346bde67d1ebbf3d63718edc602a841ca85fe",
+              "scripts/check-barge-in-regression.py": "3a5ad41e3eb75791e6771da75fda8af91a7354ea86f8e0c2f39cc357c10c91c9",
+              "scripts/check-downstream-contracts.py": "c44e433ab7db17246bbb0f6f2a4bdb11ca95c79ef2854db47575cd5023101574",
+              "scripts/full-duplex-benchmark.py": "84bdb0b8f87cd77f3c36a91f735903ba63f95f9473c3818cd14d99c70da61dcb",
+              "scripts/metrics-report.py": "6d1181b7799074b321fd8dd01ef4be8ad4347a635778647c95dc2210dd57fc82",
+              "scripts/service-contract-smoke.py": "9a6844f07f0338d08783cca4a87299a7f57c46cb03b8bb34cb8b5adf4fb926d2",
+              "scripts/validate-service-contract-lock.py": "9399ddcc7d68f9b5eb8b9e730c7faa2136bdc7facfd3225b44b0b0004ff890bb",
+              "scripts/validate-service-contract.py": "87fbd31e482bac8b5a2a7cd6f942802ccf276b23b61b4fda3be89150e25e0811",
+              "scripts/verify.sh": "85b4c3a6a99b9681fa0f244589f58c3f7558b96e1d086b3c9b61fb631c945d71",
+              "service-contract.json": "f26ca47439d610e244dff4166b5061e94f39039e29be16d83967309ceefdd567",
+              "service-contract.lock.json": "daaa59321c632c28eacebecb28328e9f0ec61ede2183437ba4691402a3f55fb0",
+              "tests/test_bitvoice.py": "e3426402af6cba4acbb80bae4cece43dfadb91f2c80209289e21406db651d3f9"
+            },
+            "sha256": "71b2778208bc6706b877b546c448be0df07c93db098c50bc9dcc9a84df20143d"
+          },
+          "speechRecognitionClaim": false,
+          "survivorScan": {
+            "command": "ps -eo pid=,stat=,cmd=",
+            "exitCode": 0,
+            "matches": [],
+            "ok": true
+          }
+        }
+      },
+      "extraExtractionStatus": {
+        "path": "extra/.local/extraction-status.json",
+        "present": false
+      }
+    }
+  },
+  "peerStatus": [
+    {
+      "peer": "bota",
+      "exit": 0,
+      "lines": 84,
+      "readOnly": true
+    },
+    {
+      "peer": "hy3d",
+      "exit": 0,
+      "lines": 21,
+      "readOnly": true
+    },
+    {
+      "peer": "wscheppity",
+      "exit": 0,
+      "lines": 2,
+      "readOnly": true
+    },
+    {
+      "peer": "extra",
+      "exit": 128,
+      "lines": 2,
+      "readOnly": true
+    }
+  ],
+  "coldStart": {
+    "url": "http://127.0.0.1:40809/js/client/play.html",
+    "pid": 1114701,
+    "port": 40809,
+    "cleanup": "pid=1114701 stopped; pidFile removed; peer servers untouched",
+    "httpResults": [
+      {
+        "label": "root",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 65
+      },
+      {
+        "label": "default play",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 16126
+      },
+      {
+        "label": "bota play",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 16126
+      },
+      {
+        "label": "historical play",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 16126
+      },
+      {
+        "label": "default manifest",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 5859
+      },
+      {
+        "label": "bota manifest",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 5928
+      },
+      {
+        "label": "historical manifest",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 5850
+      },
+      {
+        "label": "backdrop",
+        "status": 200,
+        "contentType": "image/jpeg",
+        "bytes": 3654481
+      },
+      {
+        "label": "hero GLB",
+        "status": 200,
+        "contentType": "model/gltf-binary",
+        "bytes": 1260884
+      },
+      {
+        "label": "health",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 65
+      }
+    ]
+  },
+  "cleanup": {
+    "survivorCount": 0,
+    "ownedPidAlive": false,
+    "peerServersUntouched": true
+  },
+  "historicalMobaFiles": [
+    "scenarios/moba/IDENTIFIERS.md",
+    "scenarios/moba/tools/gen-moba-acronym-pack.mjs"
+  ],
+  "hiddenTokenScan": {
+    "status": 0,
+    "selfTest": "secret patterns ok 5/5",
+    "hits": []
+  },
+  "evidenceFiles": {
+    "scenarios/bota/runtime-evidence.json": "47a26fb4da2764193c02c22aaae9cda8165468a1c53fd94736f7a54d629f749d",
+    "scenarios/bota/runtime-evidence-status.json": "8ccd85547f843e2c8fe13feb7f8a2ec8b74e15e9655db5fc37a02017c5f9c5ef",
+    "scenarios/bota/integrated-watch-status.json": "b7471ab890f7d1e705b3a74c01366bd526930ecd8afe67ad27012a963c27e2bd",
+    "scenarios/bota/cross-contract-snapshot.json": "652f8bbf5c616e8b3e67d2e43280269366714ae1777f3c05684eacad1283f728"
+  }
+}

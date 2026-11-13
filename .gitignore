@@ -3,6 +3,8 @@
 node_modules/
 target/
 .dev-site/
+.dev-site-*/
+.dev-site-*.log
 /.cargo-stage-final/
 /.gm/browser-lease/
 /.gm/browser-cdp-sessions/
