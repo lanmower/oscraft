@@ -1175,3 +1175,63 @@ Incidents in this run, recorded:
 - Wall time of the claim witness: first click 19:10:42, last reading before cleanup, finished before 19:13:39 (about 3 minutes; per-step times not timed to the second).
 - Cleanup, each by its own PID: dev server 1890680 stopped; local relay 1890494 stopped; playwriter session 42 deleted (its browser closed). Port 8851 closed. Renderers 1890833/1890841/1890868 belong to another session's browser (user-data-dir thebird-profile-shared, under witness.mjs 1847014) and were left alone.
 - Result: the joiner lobby syncs from the host and the joiner's claim lands on a bot seat (Slot 2) on both pages. The earlier "players 1" defect is resolved by the committed fixes listed above; the remaining open item is the external relay availability, recorded here, not a repo defect.
+
+## 2026-11-16 dev build profile: measured candidates and committed setting (lanmower)
+- Method: rust/ workspace through the cargo shim (2 flock slots). Per row: wall seconds (bash time, includes any shim slot wait), user and sys CPU seconds (children), 1-minute load at the step's start and end, rustc process count at start, swap-out MB/s sampled at the step's start. Cold = fresh CARGO_TARGET_DIR and `cargo build --workspace --timings`; warm no-op = the same command again; warm edit = touch crates/replay/src/lib.rs, then the same command; test rows = `cargo test -p web --test <probe> --no-run`. One build at a time. Cold builds are gated on swap-out at or below 20 MB/s, read as the step's first sample; the first baseline attempt was not valid (46 MB/s sampled at its start) and was rerun.
+- Longest unit (baseline cold, cargo timings): starlark 0.14.2, 39.8 s; longest workspace crate: mod-host, 14.2 s.
+- Candidate settings are passed as --config for measurement only; the committed one is in rust/Cargo.toml.
+
+| candidate | step | wall s | user s | sys s | load start | load end | rustc | swap MB/s |
+|---|---|---|---|---|---|---|---|---|
+| base | cold | 113.674 | 316.093 | 62.196 | 17.29 | 19.69 | 3 | 0 |
+| base | warm_noop | 0.919 | 0.241 | 0.305 | 19.69 | 20.20 | 4 | 0 |
+| base | warm_edit | 3.396 | 3.127 | 2.550 | 20.20 | 20.20 | 4 | 0 |
+| base | test_teamfight | 50.368 | 85.647 | 12.394 | 19.70 | 15.06 | 4 | 0 |
+| base | test_win_counters | 2.482 | 3.742 | 1.637 | 15.06 | 15.06 | 4 | 0 |
+| deps0 | cold | 105.344 | 262.437 | 55.451 | 19.80 | 20.07 | 4 | 0 |
+| deps0 | warm_noop | 0.486 | 0.164 | 0.213 | 20.07 | 20.07 | 4 | 0 |
+| deps0 | warm_edit | 2.211 | 1.922 | 1.138 | 20.07 | 21.19 | 4 | 0 |
+| deps0 | test_teamfight | 48.256 | 73.869 | 8.973 | 21.19 | 16.03 | 4 | 0 |
+| deps0 | test_win_counters | 4.373 | 3.994 | 1.623 | 16.03 | 19.15 | 4 | 19 |
+| unpacked | cold | 127.897 | 330.242 | 64.503 | 19.15 | 22.60 | 4 | 0 |
+| unpacked | warm_noop | 0.590 | 0.181 | 0.207 | 22.60 | 22.60 | 4 | 0 |
+| unpacked | warm_edit | 1.832 | 1.653 | 1.043 | 22.60 | 22.60 | 4 | 0 |
+| unpacked | test_teamfight | 70.272 | 107.885 | 13.293 | 21.59 | 23.09 | 4 | 0 |
+| unpacked | test_win_counters | 3.258 | 3.509 | 1.243 | 23.09 | 22.69 | 4 | 0 |
+| linetables | cold | 117.355 | 288.488 | 77.835 | 17.73 | 20.46 | 4 | 2 |
+| linetables | warm_noop | 0.514 | 0.158 | 0.207 | 20.46 | 20.46 | 4 | 0 |
+| linetables | warm_edit | 2.298 | 1.803 | 0.908 | 20.46 | 21.71 | 4 | 0 |
+| linetables | test_teamfight | 49.113 | 71.485 | 11.963 | 21.71 | 19.04 | 4 | 1 |
+| linetables | test_win_counters | 2.946 | 2.864 | 1.527 | 19.04 | 19.04 | 4 | 0 |
+| wsopt1 | cold | 117.961 | 369.292 | 60.911 | 18.48 | 19.48 | 4 | 6 |
+| wsopt1 | warm_noop | 1.439 | 0.178 | 0.217 | 19.48 | 19.37 | 4 | 0 |
+| wsopt1 | warm_edit | 2.279 | 2.444 | 2.678 | 19.37 | 19.37 | 4 | 3 |
+| wsopt1 | test_teamfight | 71.501 | 141.582 | 20.879 | 18.38 | 19.79 | 4 | 0 |
+| wsopt1 | test_win_counters | 3.872 | 5.717 | 2.090 | 19.79 | 18.84 | 3 | 41 |
+| combo_deps0_linetables | cold | 111.890 | 271.683 | 57.645 | 15.09 | 25.55 | 3 | 1 |
+| combo_deps0_linetables | warm_noop | 0.637 | 0.179 | 0.229 | 25.55 | 25.55 | 4 | 0 |
+| combo_deps0_linetables | warm_edit | 1.662 | 1.495 | 0.931 | 25.55 | 25.55 | 4 | 0 |
+| combo_deps0_linetables | test_teamfight | 49.794 | 69.328 | 12.946 | 24.30 | 23.66 | 4 | 1 |
+| combo_deps0_linetables | test_win_counters | 2.759 | 2.593 | 1.060 | 23.66 | 23.66 | 2 | 32 |
+| combo_deps0_unpacked | cold | 98.895 | 247.781 | 55.479 | 18.43 | 18.72 | 1 | 0 |
+| combo_deps0_unpacked | warm_noop | 0.521 | 0.105 | 0.099 | 18.72 | 17.70 | 0 | 58 |
+| combo_deps0_unpacked | warm_edit | 2.008 | 1.287 | 1.435 | 17.70 | 17.70 | 1 | 31 |
+| combo_deps0_unpacked | test_teamfight | 39.402 | 56.206 | 8.362 | 17.70 | 16.18 | 1 | 1 |
+| combo_deps0_unpacked | test_win_counters | 1.926 | 2.178 | 0.851 | 16.18 | 15.84 | 4 | 5 |
+| combo3 | cold | 87.540 | 228.186 | 42.292 | 11.39 | 19.05 | 4 | 0 |
+| combo3 | warm_noop | 5.355 | 0.184 | 0.229 | 19.05 | 18.17 | 3 | 20 |
+| combo3 | warm_edit | 2.573 | 1.527 | 0.936 | 18.17 | 18.17 | 3 | 0 |
+| combo3 | test_teamfight | 48.579 | 69.708 | 14.093 | 17.27 | 16.65 | 3 | 0 |
+| combo3 | test_win_counters | 2.978 | 2.935 | 0.991 | 16.65 | 18.12 | 3 | 0 |
+| combo_unpacked_linetables | cold | 118.066 | 308.930 | 52.977 | 15.79 | 26.87 | 4 | 0 |
+| combo_unpacked_linetables | warm_noop | 0.742 | 0.205 | 0.260 | 26.87 | 26.87 | 4 | 0 |
+| combo_unpacked_linetables | warm_edit | 2.456 | 2.118 | 1.110 | 26.72 | 26.72 | 4 | 0 |
+| combo_unpacked_linetables | test_teamfight | 42.335 | 69.788 | 7.687 | 26.72 | 22.31 | 4 | 0 |
+| combo_unpacked_linetables | test_win_counters | 1.950 | 2.364 | 0.971 | 22.31 | 22.31 | 4 | 0 |
+
+- Reading the table: host load moved from 11 to 27 across the runs (other sessions' rustc builds), so single-run wall times carry that noise. CPU seconds are the less load-sensitive check. Cold CPU: base 316, deps0 262, unpacked alone 330, linetables alone 288, wsopt1 369, deps0+linetables 272, deps0+unpacked 248, deps0+unpacked+linetables (committed) 228, unpacked+linetables 309.
+- Candidates: deps0 (`profile.dev.package."*".debug = 0`) cut cold 7% and warm edit 35%; unpacked alone raised cold 12% and the teamfight test build 39%, so it only helps combined with deps0; linetables alone was flat on cold; wsopt1 (opt-level 1 on each workspace member) raised cold 4% and the teamfight test build 42%, dropped. Final combination: deps0 + unpacked + line-tables-only, which cut cold from 113.7 s to 87.5 s (−23%) and cold CPU from 316 s to 228 s.
+- Trade-off recorded: the final combination's warm edit (2.6 s) and teamfight test build (48.6 s) are slower than deps0 + unpacked (2.0 s and 39.4 s). Both were single runs under different load; I did not repeat them. The choice rests on cold, the largest wall-time cost.
+- Stop: the next combination (unpacked + line-tables without deps) was slower on cold than the final by 35%, so no candidate still gains on cold; the owner's listed set is exhausted.
+- Witnesses on the committed configuration (rust/Cargo.toml, target-combo3): teamfight_recap_probe 1 passed, 559.28 s test time (562 s wall); win_counters_probe 4 passed, 684.90 s (687 s wall); cargo test -p sim -p replay all passed (110 s wall). Committed config builds fresh with no flags after one fingerprint refresh (2 crates compiled once, then 0 on the second run).
+- Not pruned: no artifact that a build needs was removed. The rust/target directory (27 GB) is untouched; the measurement target dirs are under /workspace/.bt-measure.
