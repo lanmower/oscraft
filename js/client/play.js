@@ -44,7 +44,7 @@ import { createDraftClock } from "./draft_clock.js";
 import { chainFrame } from "./frame_chain.js";
 import { readItem, writeItem, removeItem } from "./safe_storage.js";
 import { keyNameOf } from "./key_names.js";
-import { LOBBY_LINK_WAIT_MS, lobbyInputRoute, heldCallsAfterSettle, replayHeldCalls } from "./lobby_link.js";
+import { LOBBY_LINK_WAIT_MS, lobbyInputRoute, heldCallsAfterSettle, replayHeldCalls, relaysUiEvent, mirrorsHostLobby } from "./lobby_link.js";
 import { createGuiFlow, packMenuBackdrop } from "./gui_flow.js";
 import { createPodium, podiumScene, podiumCameraStep, podiumPlinthTransforms } from "./podium.js";
 import { saveReplayFile } from "./replay_save.js";
@@ -397,7 +397,7 @@ let guiFlow = null;
 let podium = createPodium();
 let flowCameraSaved = null;
 
-function routeUi(ev) {
+function routeUi(ev, relayed = false) {
   const data = ev.data || {};
   if (ev.kind === "debug") { debugReply = data; return; }
   if (ev.kind === "load") {
@@ -413,6 +413,7 @@ function routeUi(ev) {
   }
   if (ev.kind === "lobby") {
     if (!data.started) {
+      if (mirrorsHostLobby({ hosting, relayed, kind: ev.kind, started: data.started })) mirrorHostLobby(data);
       flowLobby = { ...flowLobby, ...data, started: false };
       preloadPickedModels(data.slots);
       flowLoadIcons(data.heroes);
@@ -529,8 +530,14 @@ function pumpUi() {
   announceWorldReady();
   for (const ev of JSON.parse(localGame.drain_ui())) {
     routeUi(ev);
-    if (peers.size > 0) relayUi(ev);
+    if (peers.size > 0 && relaysUiEvent(ev)) relayUi(ev);
   }
+}
+
+function mirrorHostLobby(state) {
+  if (!localGame) return;
+  logModError(localGame.dispatch_action("lobby_mirror", JSON.stringify(state)));
+  pumpUi();
 }
 
 function newGame() {
@@ -2631,7 +2638,7 @@ session.addEventListener("data", (e) => {
     return;
   }
   if (frame.type === FRAME.UI) {
-    if (!hosting) routeUi(JSON.parse(frame.body));
+    if (!hosting) routeUi(JSON.parse(frame.body), true);
     return;
   }
   if (frame.type === FRAME.ORDER || frame.type === FRAME.CAST || frame.type === FRAME.ATTACK || frame.type === FRAME.HOLD || frame.type === FRAME.USE_ITEM || frame.type === FRAME.ATTACK_MOVE || frame.type === FRAME.CLASS_OVERRIDE || frame.type === FRAME.HOLD_OVERRIDE) {
