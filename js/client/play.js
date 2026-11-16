@@ -543,7 +543,7 @@ function pumpUi() {
 function mirrorHostLobby(state) {
   if (!localGame) return;
   logModError(localGame.dispatch_action("lobby_mirror", JSON.stringify(state)));
-  pumpUi();
+  for (const ev of JSON.parse(localGame.drain_ui())) routeUi(ev);
 }
 
 function newGame() {
