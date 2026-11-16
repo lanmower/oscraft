@@ -30,13 +30,13 @@ async function fetchJson(url) {
   if (!response.ok) throw new Error(`${url} HTTP ${response.status}`);
   return JSON.parse(await response.text());
 }
-async function waitFor(fn, timeoutMs = 30000) {
-  const end = Date.now() + timeoutMs;
-  let last;
-  while (Date.now() < end) {
-    try { return await fn(); } catch (error) { last = error; await sleep(150); }
+async function waitFor(fn) {
+  for (;;) {
+    try { return await fn(); } catch (error) {
+      if (child.exitCode !== null) throw new Error(`launch wrapper exited with ${child.exitCode} before the pack was served: ${error.message}`);
+      await sleep(150);
+    }
   }
-  throw last ?? new Error("timeout");
 }
 try {
   const base = `http://127.0.0.1:${port}`;
@@ -51,7 +51,7 @@ try {
     historicalManifest: `${base}/scenarios/moba/manifest.json`,
   };
   await waitFor(async () => {
-    if (!output.includes("BOTA URL:")) throw new Error("launch wrapper has not printed a URL");
+    if (!output.includes("BOTA URL:")) throw new Error("launch wrapper has not printed a URL yet");
     const response = await fetch(urls.defaultManifest, { cache: "no-store" });
     if (!response.ok) throw new Error(`default manifest HTTP ${response.status}`);
   });

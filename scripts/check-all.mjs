@@ -7,6 +7,8 @@ const args = process.argv.slice(2);
 const strict = args.includes("--strict");
 const listOnly = args.includes("--list");
 const asJson = args.includes("--json");
+const GATE_CPU_BUDGET_S = 30;
+const GATE_HANG_WATCHDOG_MS = 600000;
 
 const tools = (name) => ["scenarios/moba/tools/" + name, "--check"];
 
@@ -139,11 +141,11 @@ const rows = [];
 for (const e of entries) {
   if (e.state === "external") { rows.push(Object.assign({}, e, { verdict: "SKIP", ms: 0, text: e.reason })); continue; }
   const begun = process.hrtime.bigint();
-  const r = spawnSync(e.exe || process.execPath, e.argv, { cwd: root, encoding: "utf8", timeout: 30000, maxBuffer: 4 * 1024 * 1024 });
+  const r = spawnSync("/bin/sh", ["-c", `ulimit -c 0 && ulimit -S -t ${GATE_CPU_BUDGET_S} && exec "$@"`, "sh", e.exe || process.execPath, ...e.argv], { cwd: root, encoding: "utf8", timeout: GATE_HANG_WATCHDOG_MS, maxBuffer: 4 * 1024 * 1024 });
   const ms = Number((process.hrtime.bigint() - begun) / 1000000n);
   const text = (String(r.stdout || "") + String(r.stderr || "")).trim();
   const code = r.status === null ? 124 : r.status;
-  const last = text.split("\n").map((s) => s.trim()).filter(Boolean).at(-1) || "";
+  const last = r.signal === "SIGXCPU" ? `CPU budget of ${GATE_CPU_BUDGET_S} s exceeded` : r.signal ? `killed by ${r.signal} (hang watchdog ${GATE_HANG_WATCHDOG_MS} ms)` : text.split("\n").map((s) => s.trim()).filter(Boolean).at(-1) || "";
   let verdict = e.state === "gate" ? (code === 0 ? "ok" : "FAIL") : (code === 0 ? "ok" : "DRIFT");
   if (e.state === "drift" && /ENOENT|usage:|required|--src/.test(text)) verdict = "SKIP";
   rows.push(Object.assign({}, e, { verdict: verdict, code: code, ms: ms, text: last.slice(0, 150) }));
