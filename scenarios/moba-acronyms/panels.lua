@@ -1398,7 +1398,7 @@ local function lobby_seats_event()
   if LOBBY.started then return end
   local items = {}
   for _, s in ipairs(LOBBY.slots) do
-    items[#items + 1] = obj({ S("owner", s.owner or ""), S("hero", s.hero or ""), B("ready", s.ready == true), S("model", s.hero and hero_model(s.hero) or "") })
+    items[#items + 1] = obj({ S("owner", s.owner or ""), S("hero", s.hero or ""), B("ready", s.ready == true), B("bot", s.bot == true), S("model", s.hero and hero_model(s.hero) or "") })
   end
   local mode_items = {}
   local mode_names = TEXT.lobby.modes or {}
@@ -2103,7 +2103,7 @@ local function mirror_host_lobby(state)
         owner = s.owner ~= "" and s.owner or nil,
         hero = s.hero ~= "" and s.hero or nil,
         ready = s.ready == true,
-        bot = false,
+        bot = s.bot == true,
       }
     end
   end
