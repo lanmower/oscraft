@@ -3449,19 +3449,6 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
         s.replace(c, i64::from(sh.sim.kills_of(u)));
         Ok(CallbackReturn::Return)
     });
-    native!(ctx, game, "unit_kinds", [sh], |c, s| {
-        let sh = sh.borrow();
-        let cat = sh.sim.catalog();
-        let out = Table::new(&c);
-        for (k, unit) in cat.units.iter().enumerate() {
-            let row = Table::new(&c);
-            row.set(c, "name", cat.name(unit.name).to_owned()).expect("kind");
-            row.set(c, "player_controlled", cat.unit_ext.get(k).is_some_and(|e| e.player_controlled)).expect("kind");
-            out.set(c, k as i64 + 1, row).expect("kind");
-        }
-        s.replace(c, out);
-        Ok(CallbackReturn::Return)
-    });
     native!(ctx, game, "unit_buffs", [sh], |c, s| {
         let unit = a(c, &s, 0)?;
         let sh = sh.borrow();
@@ -3606,6 +3593,7 @@ fn bind<'gc>(ctx: Context<'gc>, env: Table<'gc>, sh: &Sh) {
             row.put(c, "name", cat.name(unit.name).to_owned());
             row.put(c, "player_controlled", cat.unit_ext.get(k).is_some_and(|e| e.player_controlled));
             row.put(c, "melee", cat.unit_ext.get(k).is_some_and(|e| e.melee));
+            row.put(c, "form", cat.unit_ext.get(k).is_some_and(|e| e.form));
             if let Some(d) = sh.sim.kind_attr_def(k) {
                 row.put(c, "primary", i64::from(d.primary));
             }

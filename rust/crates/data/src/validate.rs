@@ -393,6 +393,7 @@ pub fn validate(collector: Collector) -> Result<Catalog> {
             deny_xp_pct: bounded("deny_xp_pct", raw.deny_xp_pct, 100)? as u8,
             player_controlled: raw.player_controlled,
             melee: raw.melee,
+            form: raw.form,
             xp_reward: unsigned("xp_reward", raw.xp_reward)?,
             xp_share_radius: unsigned("assist_radius_milli", raw.xp_share_radius_milli)?,
             acquire: unsigned("acquire", raw.acquire)?,

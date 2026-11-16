@@ -67,6 +67,7 @@ fn check_pick_menu(pack: &str, roster: usize, want: &[(&str, &str)]) {
     eprintln!("menu-probe pack={pack} pick-menu heroes={} question_marks={question_marks} sample={:?}", heroes.len(), &acronyms[..acronyms.len().min(8)]);
     assert_eq!(heroes.len(), roster, "{pack}: the pick menu lists {} heroes, expected {roster}", heroes.len());
     assert_eq!(question_marks, 0, "{pack}: the pick menu shows \"?\" for {question_marks} heroes that have an acronym");
+    assert!(heroes.iter().all(|h| h["unit"].as_str() != Some("lycan_wolf_form")), "{pack}: a shapeshift form is in the pick menu");
     for (unit, acronym) in want {
         let shown = heroes.iter().find(|h| h["unit"].as_str() == Some(unit)).and_then(|h| h["acronym"].as_str());
         assert_eq!(shown, Some(*acronym), "{pack}: the pick menu shows {shown:?} for {unit}");
@@ -81,4 +82,9 @@ fn default_acronym_pack_pick_menu_shows_every_hero_acronym() {
 #[test]
 fn full_name_pack_pick_menu_shows_every_hero_acronym() {
     check_pick_menu("moba", 127, &[("antimage", "AM"), ("axe", "AXE"), ("crystal_maiden", "CM")]);
+}
+
+#[test]
+fn bota_pack_pick_menu_lists_every_active_hero() {
+    check_pick_menu("bota", 24, &[("neckbeard", "Neckbeard"), ("wojak", "Wojak")]);
 }

@@ -145,7 +145,7 @@ pub fn encode(catalog: &Catalog) -> Vec<u8> {
         u32_le(&mut uext, ext.reward);
         uext.push(ext.deny_pct);
         uext.push(ext.deny_xp_pct);
-        uext.push(ext.player_controlled as u8 | (ext.melee as u8) << 1);
+        uext.push(ext.player_controlled as u8 | (ext.melee as u8) << 1 | (ext.form as u8) << 2);
         pad(&mut uext, 1);
         u32_le(&mut uext, ext.xp_reward);
         u32_le(&mut uext, ext.xp_share_radius);

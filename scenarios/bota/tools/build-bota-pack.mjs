@@ -102,9 +102,12 @@ write("character-mapping.tsv", [
 
 write("bota_roster.lua", luaStamp + "return {\n" + active.map((a) => `  ["${a.slug}"] = { slot = "${a.slot}", label = "${a.label}", legacy_acronym = "${a.acro}", model = "${modelFor(a)}", portrait = "${portraitFor(a)}" },`).join("\n") + "\n}\n");
 
+const baselineLine = (kind, id) => baselineHeroText.split("\n").find((line) => line.startsWith(`${kind}("${id}"`));
 write("units_heroes.osd", stamp + active.map((a) => {
-  const source = baselineHeroText.split("\n").find((line) => line.startsWith(`unit("${byActiveId.get(a.slug)[0]}"`));
-  return source.replace(/^unit\("\w+"/, `unit("${a.slug}"`).replace(/model="[^"]*"/, `model="${modelFor(a)}"`);
+  const id = byActiveId.get(a.slug)[0];
+  const unitLine = baselineLine("unit", id).replace(/^unit\("\w+"/, `unit("${a.slug}"`).replace(/model="[^"]*"/, `model="${modelFor(a)}"`);
+  const extraLine = baselineLine("unit_extra", id).replace(/^unit_extra\("\w+"/, `unit_extra("${a.slug}"`);
+  return [unitLine, extraLine].join("\n");
 }).join("\n") + "\n");
 
 write("draft_data.lua", `local data = {}\n\ndata.heroes = {\n${active.map((a) => `    "${a.slug}",`).join("\n")}\n}\n\ndata.groups = "${"1".repeat(active.length)}"\n\ndata.SENTINEL_LAST = ${Math.floor(active.length / 2) - 1}\ndata.TECHIES = 0\n\nreturn data\n`);
