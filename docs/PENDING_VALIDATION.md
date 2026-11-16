@@ -1101,3 +1101,10 @@ Incidents in this run, recorded:
 - Bota pick grid: the menu test witnesses 24 heroes and 0 "?" from the mod. A browser pick-grid run was not done in this pass.
 - Lycan roster: a form flag (unit_extra form=True, exposed as unit_kinds form) replaces the acronym proxy. The moba roster is 127 and excludes lycan_wolf_form (asserted in hero_acronym_menus.rs).
 - Not touched: scenarios/bota/cross-contract-snapshot.json (unstaged), core.3919258, core.3925535, core.3926897 (left in place).
+
+## 2026-11-16 joiner Start label and playwriter WebGL witness (Phase A, lanmower)
+- scenarios/moba/moba_ui.json: four lobby text keys, joinerNoHost, joinerLoadingWorld, joinerNotReady and joinerStart. Joiners see the host's state instead of "loading world assets" forever.
+- scenarios/moba/panels.lua: start_label(host) picks the Start label. The host keeps startMatch or loadingWorld. A joiner sees, in order: no host, the host's world loading (LOBBY.worldReady is the host's flag, replicated), every seat not ready, or waiting for the host to start. The button stays disabled for joiners, because only the host can start.
+- rust/crates/web/tests/lobby_flow_probe.rs: probe_joiner_start_label_follows_the_host walks the host's sequence (claim, mode, fill, pick, world_ready, ready each seat) and asserts the joiner's label and the host's enabled Start at each step. Not run in Phase A.
+- Generated copies follow in Phase B: scenarios/moba-acronyms (moba_ui.json, panels.lua) via gen-moba-acronym-pack --apply; scenarios/bota (bota_ui.json, panels.lua) via build-bota-pack --apply; the moba, moba-acronyms and bota images via mapexport.
+- Playwriter WebGL, correction: PLAYWRITER_WEBGPU is not read by the installed playwriter 0.9.0 (zero matches in its package). The session without GL flags reports no WebGL2. The working route is PLAYWRITER_BROWSER_PATH pointing at a wrapper (/tmp/pw-gl/chromium-gl) that execs the chromium-browser the CLI would pick, adding --use-angle=swiftshader and --ignore-gpu-blocklist. This keeps the browser under playwriter.

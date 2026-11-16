@@ -1960,6 +1960,16 @@ local function mode_row(host)
   return box(kids, "row")
 end
 
+local function start_label(host)
+  if host then
+    return LOBBY.worldReady and TEXT.lobby.startMatch or TEXT.lobby.loadingWorld
+  end
+  if LOBBY.host == nil then return TEXT.lobby.joinerNoHost end
+  if not LOBBY.worldReady then return TEXT.lobby.joinerLoadingWorld end
+  if not all_ready() then return TEXT.lobby.joinerNotReady end
+  return TEXT.lobby.joinerStart
+end
+
 local function lobby_tree()
   if LOBBY.started then return nil end
   local mine = my_seat()
@@ -1979,7 +1989,7 @@ local function lobby_tree()
     button(TEXT.lobby.fillBots, "fill", "{}", not (host and any_open())),
   }
   if not any_open() then actions[#actions + 1] = label(TEXT.lobby.refusals["nothing-to-fill"], "muted") end
-  actions[#actions + 1] = button(LOBBY.worldReady and TEXT.lobby.startMatch or TEXT.lobby.loadingWorld, "start", "{}", not (host and all_ready() and LOBBY.worldReady))
+  actions[#actions + 1] = button(start_label(host), "start", "{}", not (host and all_ready() and LOBBY.worldReady))
   return panel(TEXT.lobby.title, {
     mode_row(host),
     box(actions, "row"),
