@@ -86,5 +86,5 @@ fn full_name_pack_pick_menu_shows_every_hero_acronym() {
 
 #[test]
 fn bota_pack_pick_menu_lists_every_active_hero() {
-    check_pick_menu("bota", 24, &[("neckbeard", "Neckbeard"), ("wojak", "Wojak")]);
+    check_pick_menu("bota", 24, &[("neckbeard", "neckbeard"), ("wojak", "wojak")]);
 }

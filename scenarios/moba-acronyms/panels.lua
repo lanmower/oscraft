@@ -1802,7 +1802,7 @@ LATE.acronym = acronym
 local function roster_names()
   local out = {}
   for _, k in ipairs(game.unit_kinds()) do
-    if k.player_controlled and k.model ~= "" and acronym(k.name) ~= "?" then out[#out + 1] = k.name end
+    if k.player_controlled and not k.form and k.model ~= "" then out[#out + 1] = k.name end
   end
   return out
 end

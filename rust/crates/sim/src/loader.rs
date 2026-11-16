@@ -1069,7 +1069,7 @@ pub fn parse(bytes: &[u8]) -> Result<(Catalog, Grid), LoadError> {
         if size >= SIZE_CATEGORY_COUNT || damage_type >= DAMAGE_TYPE_COUNT || cloak > 0b111 || !(0..=65536).contains(&miss_chance) || burrow_ticks < 0 || bounty < 0 {
             return Err(LoadError::Range("unit extension outside its table"));
         }
-        if deny_pct > 100 || deny_xp_pct > 100 || flags > 3 || xp_bounty < 0 || assist_radius < 0 || night_sight < 0 {
+        if deny_pct > 100 || deny_xp_pct > 100 || flags > 7 || xp_bounty < 0 || assist_radius < 0 || night_sight < 0 {
             return Err(LoadError::Range("unit extension deny or xp outside its table"));
         }
         unit_ext.push(UnitExt {
