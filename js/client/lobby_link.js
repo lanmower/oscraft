@@ -14,3 +14,11 @@ export function replayHeldCalls(held, { hasHost }) {
   if (!hasHost) return [];
   return held.splice(0);
 }
+
+export function relaysUiEvent(ev) {
+  return !(ev.kind === "widget" && ev.id === "lobby");
+}
+
+export function mirrorsHostLobby({ hosting, relayed, kind, started }) {
+  return !hosting && relayed === true && kind === "lobby" && !started;
+}
