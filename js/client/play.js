@@ -8,7 +8,7 @@ import { createAmbientFx, AMBIENT_KINDS } from "./ambient_fx.js";
 import { encodeFrame, decodeFrame, frameTypeName, FRAME, MAX_PLAYERS, TEAM_SIZE, SPECTATOR } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
 import { assetJson, assetRel, assetUrl, fetchRetrying, loadLuaBundle, manifest, manifestOf, moduleClosure, moduleTextReader, modulePaths, packBytes, packJson, packText, packUrl, readPackFile, stashPack, UI } from "./pack_load.js";
-import { applyFrame, createAutoSeats, createSeating, createStateEncoder, startFrame } from "./delta.js";
+import { applyFrame, createSeating, createStateEncoder, startFrame } from "./delta.js";
 import { createFrameRecovery } from "./net_recovery.js";
 import { AnimationPlayer, cycleSpeed, globalMatrices, jointMatrices, retargetLibrary, skinFloor } from "./anim.js";
 import { parseGlb, parseGlbAnimations } from "./glb.js";
@@ -209,7 +209,6 @@ let heroRun = createHeroRun();
 const LOCK_FOLLOW_RATE = 14;
 let lockedFocus = null;
 const seating = createSeating();
-const autoSeats = createAutoSeats(seating, MAX_PLAYERS);
 let seatsExplicit = false;
 let encoder = createStateEncoder();
 let myPlayer = 0;
@@ -414,6 +413,7 @@ function routeUi(ev, relayed = false) {
   if (ev.kind === "lobby") {
     if (!data.started) {
       if (mirrorsHostLobby({ hosting, relayed, kind: ev.kind, started: data.started })) mirrorHostLobby(data);
+      if (hosting) seating.start(lobbySeats(data.slots));
       flowLobby = { ...flowLobby, ...data, started: false };
       preloadPickedModels(data.slots);
       flowLoadIcons(data.heroes);
@@ -1614,9 +1614,8 @@ function bindInput() {
   window.addEventListener("resize", resize);
 }
 
-function autoSeat(peerPubkey) {
-  if (seatsExplicit) return;
-  autoSeats.join(peerPubkey);
+function lobbySeats(slots) {
+  return (slots || []).flatMap((s, slot) => (s.owner ? [{ slot, owner: s.owner }] : []));
 }
 
 function sendTo(peerPubkey, bytes) {
@@ -2586,7 +2585,6 @@ session.addEventListener("peer-open", (e) => {
   if (hosting) {
     const key = e.detail.peerPubkey;
     seating.join(key);
-    autoSeat(key);
     reportSeat("peer_back", key, seating.seat(key).you);
     encoder.keyframe();
     sendRoster(key);
@@ -2609,7 +2607,6 @@ session.addEventListener("peer-close", (e) => {
     const seat = seating.seat(e.detail.peerPubkey).you;
     seating.leave(e.detail.peerPubkey);
     reportSeat("peer_left", e.detail.peerPubkey, seat);
-    if (!seatsExplicit) autoSeats.leave(e.detail.peerPubkey);
   }
   telemetry(`peer-close ${String(e.detail.peerPubkey).slice(0, 8)}`);
   if (peers.size === 0) {
