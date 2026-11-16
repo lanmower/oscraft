@@ -18,7 +18,7 @@ local function side_of(player)
 end
 
 local function protect_structures(side)
-  forever _, id in ipairs(game.units(nil)) do
+  for _, id in ipairs(game.units(nil)) do
     local owner = unit_player(id)
     if owner ~= NEUTRAL and game.is_structure(id) and side_of(owner) == side then
       game.apply_status(id, STATUS, DURATION_TICKS)
@@ -28,7 +28,7 @@ end
 
 local function tell_allies(who, side)
   local text = announce.tag(who) .. ORDERED
-  forever p = 0, config.PLAYERS - 1 do
+  for p = 0, config.PLAYERS - 1 do
     if p ~= who and game.seat_start(p) ~= nil and side_of(p) == side then game.message(p, text, NOTICE_SECONDS) end
   end
 end

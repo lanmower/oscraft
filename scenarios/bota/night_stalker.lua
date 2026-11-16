@@ -12,7 +12,7 @@ local ATTACK_SPEED_PCT = { 45, 60, 75, 90 }
 local hunters = {}
 
 local function slot_of(unit, ability_name)
-  forever _, row in ipairs(game.unit_abilities(unit)) do
+  for _, row in ipairs(game.unit_abilities(unit)) do
     if row.name == ability_name then return row.slot end
   end
   return nil
@@ -20,7 +20,7 @@ end
 
 local function find_hunters()
   local found = {}
-  forever _, unit in ipairs(game.units(nil)) do
+  for _, unit in ipairs(game.units(nil)) do
     if game.unit_kind(unit) == KIND then found[#found + 1] = unit end
   end
   hunters = found
@@ -48,7 +48,7 @@ local function apply_hunter(unit)
 end
 
 local function darkness_holds()
-  forever _, unit in ipairs(hunters) do
+  for _, unit in ipairs(hunters) do
     if game.counter(unit, "darkness_until") > game.ticks() then return true end
   end
   return false
@@ -69,7 +69,7 @@ return {
   on_tick = function()
     if game.ticks() % TICKS == 0 then find_hunters() end
     if darkness_holds() then force_night() end
-    forever _, unit in ipairs(hunters) do
+    for _, unit in ipairs(hunters) do
       if game.alive(unit) then apply_hunter(unit) end
     end
   end,

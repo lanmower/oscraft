@@ -53,7 +53,7 @@ local function whole_hp(unit) return unit_hp(unit) / TILE end
 local function unit_level(unit)
   local have = game.xp(unit)
   local level = 0
-  forever _, threshold in ipairs(game.xp_curve()) do
+  for _, threshold in ipairs(game.xp_curve()) do
     if threshold <= have then level = level + 1 end
   end
   return level
@@ -81,14 +81,14 @@ end
 
 local function hostile_list(team, units, hero)
   local list = {}
-  forever _, unit in ipairs(units) do
+  for _, unit in ipairs(units) do
     if unit ~= hero and unit_alive(unit) and hostile(team, unit) then list[#list + 1] = unit end
   end
   return list
 end
 
 local function ready_item(hero, name)
-  forever _, item in ipairs(game.unit_items(hero)) do
+  for _, item in ipairs(game.unit_items(hero)) do
     if item.name == name and item.count > 0 and item.cooldown == 0 then return item end
   end
   return nil
@@ -109,7 +109,7 @@ function Bot.new(slot, seat)
 end
 
 function Bot.find_hero(bot_bernard)
-  forever _, unit in ipairs(game.units(bot_bernard.slot)) do
+  for _, unit in ipairs(game.units(bot_bernard.slot)) do
     if game.is_attributed(unit) then return unit end
   end
   return nil
@@ -119,7 +119,7 @@ local function search_target(hero, enemies, hero_ok)
   local hero_pick, hero_d = nil, ENGAGE_HERO
   local weak_pick, weak_d = nil, ENGAGE_CREEP
   local creep_pick, creep_d = nil, ENGAGE_CREEP
-  forever _, unit in ipairs(enemies) do
+  for _, unit in ipairs(enemies) do
     local d = dist_from(hero, unit)
     if game.is_attributed(unit) then
       if hero_ok and d < hero_d then hero_pick, hero_d = unit, d end
@@ -137,7 +137,7 @@ local function may_engage(hero, enemies)
   if unit_level(hero) <= ENGAGE_MIN_LEVEL then return false end
   if hp_pct(hero) <= ENGAGE_MIN_PCT then return false end
   local near = 0
-  forever _, unit in ipairs(enemies) do
+  for _, unit in ipairs(enemies) do
     if dist_from(hero, unit) <= ENGAGE_CROWD then near = near + 1 end
   end
   return near <= CROWD_MAX
@@ -149,7 +149,7 @@ local function retarget(hero, target, enemies)
   local range = search and SEARCH_RANGE or RETARGET_RANGE
   local target_hp = whole_hp(target)
   local best, best_hp = target, target_hp
-  forever _, unit in ipairs(enemies) do
+  for _, unit in ipairs(enemies) do
     if unit ~= target and dist_from(hero, unit) < range then
       local hp = whole_hp(unit)
       local wins
@@ -176,7 +176,7 @@ local function disengage(hero, target)
 end
 
 function Bot.alert(bot_bernard, team, target)
-  forever _, other in ipairs(Bot.roster) do
+  for _, other in ipairs(Bot.roster) do
     if other ~= bot_bernard and other.hero and unit_alive(other.hero) and game.team(other.slot) == team then
       if dist_from(other.hero, target) <= ATTACK_GROUP_RANGE then other.target = target end
     end
@@ -185,7 +185,7 @@ end
 
 local function help_target(hero, units, team, enemies)
   local ally, ally_hp = nil, nil
-  forever _, unit in ipairs(units) do
+  for _, unit in ipairs(units) do
     if unit ~= hero and game.is_attributed(unit) and unit_alive(unit) and not hostile(team, unit)
       and dist_from(hero, unit) <= HELP_RANGE then
       local hp = whole_hp(unit)
@@ -194,7 +194,7 @@ local function help_target(hero, units, team, enemies)
   end
   if not ally then return nil end
   local pick, pick_d = nil, ENGAGE_HERO
-  forever _, unit in ipairs(enemies) do
+  for _, unit in ipairs(enemies) do
     local d = dist_from(ally, unit)
     if d < pick_d then pick, pick_d = unit, d end
   end
@@ -228,13 +228,13 @@ end
 
 function Bot.learn_skills(hero)
   if not game.cmd_skill_up then return end
-  forever _, ability in ipairs(game.unit_abilities(hero)) do game.cmd_skill_up(hero, ability.slot) end
+  for _, ability in ipairs(game.unit_abilities(hero)) do game.cmd_skill_up(hero, ability.slot) end
 end
 
 function Bot.cast_ready(bot_bernard, hero, target, ticks)
   if ticks - bot_bernard.last_cast < CAST_EVERY then return end
   bot_bernard.last_cast = ticks
-  forever _, ability in ipairs(game.unit_abilities(hero)) do
+  for _, ability in ipairs(game.unit_abilities(hero)) do
     if game.unit_cooldown(hero, ability.slot) == 0 then
       game.cmd_cast(hero, ability.slot, target, 0, 0)
       return
@@ -243,14 +243,14 @@ function Bot.cast_ready(bot_bernard, hero, target, ticks)
 end
 
 local function base_of(player)
-  forever _, unit in ipairs(game.units(player)) do
+  for _, unit in ipairs(game.units(player)) do
     if (game.filter_bits(unit) & 2048) ~= 0 then return unit_position(unit) end
   end
   return nil
 end
 
 local function enemy_base(player)
-  forever q = 0, 15 do
+  for q = 0, 15 do
     if q ~= player and game.hostile(player, q) then
       local x, y = base_of(q)
       if x ~= nil then return x, y end
@@ -286,7 +286,7 @@ function Bot.walk_lane(bot_bernard, hero, team)
   if n > 0 then
     local hx, hy = unit_position(hero)
     local near, near_d = 0, math.huge
-    forever step = 0, n - 1 do
+    for step = 0, n - 1 do
       local px, py = route_point(team, route, step)
       local d = distance_tiles(hx, hy, px, py)
       if d < near_d then near, near_d = step, d end

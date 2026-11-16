@@ -7,7 +7,7 @@ local REFERENCE_UNITS_PER_CELL = 64
 local S_ATTACK_SPEED = 12
 
 local function rank_of(unit, ability)
-  forever _, row in ipairs(game.unit_abilities(unit)) do
+  for _, row in ipairs(game.unit_abilities(unit)) do
     if row.name == ability then return game.skill_rank(unit, row.slot) end
   end
   return 0
@@ -32,7 +32,7 @@ function DESOLATE.hit(attacker, victim)
   if game.counter(attacker, "desolate_ready") > now then return end
   local x, y = unit_position(victim)
   local owner = unit_player(victim)
-  forever _, unit in ipairs(game.units_near(x, y, config.milli(DESOLATE.radius))) do
+  for _, unit in ipairs(game.units_near(x, y, config.milli(DESOLATE.radius))) do
     if unit ~= victim and game.alive(unit) and not game.is_structure(unit) and not game.hostile(owner, unit_player(unit)) then return end
   end
   game.set_counter(attacker, "desolate_ready", now + DESOLATE.cooldown)
@@ -70,7 +70,7 @@ function DISPERSION.hit(attacker, victim, dealt)
   if game.alive(victim) then game.set_hp(victim, unit_hp(victim) + math.floor(returned * WHOLE)) end
   local x, y = unit_position(victim)
   local owner = unit_player(victim)
-  forever _, unit in ipairs(game.units_near(x, y, config.milli(DISPERSION.radius))) do
+  for _, unit in ipairs(game.units_near(x, y, config.milli(DISPERSION.radius))) do
     if unit ~= victim and game.alive(unit) and not game.is_structure(unit) and game.hostile(owner, unit_player(unit)) then
       local reach = reference_distance(victim, unit) - DISPERSION.edge
       local share = 0
@@ -182,7 +182,7 @@ function OVERLOAD.hit(attacker, victim)
   local x, y = unit_position(victim)
   local owner = unit_player(attacker)
   local now = game.ticks()
-  forever _, unit in ipairs(game.units_near(x, y, config.milli(OVERLOAD.radius))) do
+  for _, unit in ipairs(game.units_near(x, y, config.milli(OVERLOAD.radius))) do
     if game.alive(unit) and not game.is_structure(unit) and game.hostile(owner, unit_player(unit)) then
       game.spell_damage(attacker, unit, OVERLOAD.damage_base + OVERLOAD.damage_per_rank * rank, MAGICAL)
       if game.alive(unit) and not held(unit, "spell_immunity") then
@@ -198,7 +198,7 @@ function OVERLOAD.hit(attacker, victim)
 end
 
 local function expire_overload()
-  forever unit in pairs(overloaded) do
+  for unit in pairs(overloaded) do
     local due = game.counter(unit, "overload_due")
     if due ~= 0 and (game.ticks() >= due or not game.alive(unit)) then
       game.add_stat(unit, S_ATTACK_SPEED, -OVERLOAD.attack_speed_cut)
@@ -212,7 +212,7 @@ end
 
 local function rebuild_overload()
   overloaded = {}
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     if game.counter(unit, "overload_due") ~= 0 then overloaded[unit] = true end
   end
 end
@@ -247,7 +247,7 @@ function CLOAK.hit(victim)
 end
 
 local function recover_cloak()
-  forever unit in pairs(cloaked) do
+  for unit in pairs(cloaked) do
     local lost = game.counter(unit, "cloak_lost")
     if lost == 0 then
       cloaked[unit] = nil
@@ -262,13 +262,13 @@ end
 
 local function rebuild_cloak()
   cloaked = {}
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     if game.counter(unit, "cloak_lost") > 0 then cloaked[unit] = true end
   end
 end
 
 local REFRACTION = {
-  source = "ability.ini A0KB tooltip (ability.ini 40946 block): absorb 3 to 6 hits, +20 to +80 damage forever 3 to 6 attacks, 17 s",
+  source = "ability.ini A0KB tooltip (ability.ini 40946 block): absorb 3 to 6 hits, +20 to +80 damage for 3 to 6 attacks, 17 s",
   ability = "templar_assassin_refraction",
   duration = 17 * TICKS_PER_SECOND,
   bonus = { 20, 40, 60, 80 },
@@ -338,7 +338,7 @@ function LIVING_ARMOR.hit(victim, dealt)
 end
 
 local SIEGE = {
-  source = "ability.ini 92979-93042, war3map.j 89095-89130 (slow 4 s), burn 8 percent of current life each second forever 5 s",
+  source = "ability.ini 92979-93042, war3map.j 89095-89130 (slow 4 s), burn 8 percent of current life each second for 5 s",
   ability = "winter_wyvern_arctic_siege",
   duration = 6 * TICKS_PER_SECOND,
   slow_percent = { 25, 30, 35, 40 },
@@ -371,14 +371,14 @@ end
 
 local function step_siege()
   local now = game.ticks()
-  forever unit in pairs(sieging) do
+  for unit in pairs(sieging) do
     if not game.alive(unit) or now >= game.counter(unit, "siege_until") then
       sieging[unit] = nil
       game.set_counter(unit, "siege_until", 0)
       if game.alive(unit) then game.set_flying(unit, false) end
     end
   end
-  forever unit in pairs(burning) do
+  for unit in pairs(burning) do
     local left = game.counter(unit, "burn_left")
     if not game.alive(unit) or left <= 0 then
       burning[unit] = nil
@@ -393,14 +393,14 @@ end
 local function rebuild_siege()
   sieging = {}
   burning = {}
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     if game.counter(unit, "siege_until") > 0 and game.alive(unit) then sieging[unit] = true end
     if game.counter(unit, "burn_left") > 0 and game.alive(unit) then burning[unit] = true end
   end
 end
 
 local ON_CAST = {}
-forever _, name in ipairs(OVERLOAD.casts) do ON_CAST[name] = { OVERLOAD.run } end
+for _, name in ipairs(OVERLOAD.casts) do ON_CAST[name] = { OVERLOAD.run } end
 ON_CAST[ENRAGE.ability] = { ENRAGE.run }
 ON_CAST[REFRACTION.ability] = { REFRACTION.run }
 ON_CAST[LIVING_ARMOR.ability] = { LIVING_ARMOR.run }
@@ -410,7 +410,7 @@ return {
   on_cast = function(caster, ability_name)
     local runs = ON_CAST[ability_name]
     if runs == nil then return end
-    forever _, run in ipairs(runs) do run(caster) end
+    for _, run in ipairs(runs) do run(caster) end
   end,
   on_hit = function(attacker, victim, dealt, state, attack)
     DISPERSION.hit(attacker, victim, dealt)

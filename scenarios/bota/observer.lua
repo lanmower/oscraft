@@ -18,7 +18,7 @@ local observer = {}
 
 local function roster()
   local sentinel, scourge = {}, {}
-  forever p = 0, config.PLAYERS - 1 do
+  for p = 0, config.PLAYERS - 1 do
     local hero = bounty.hero_of(p)
     if hero ~= nil and game.seat_start(p) ~= nil then
       local row = { player = p, hero = hero }
@@ -30,7 +30,7 @@ end
 
 local function tally(rows)
   local kills, deaths, creeps, denies, worth = 0, 0, 0, 0, 0
-  forever _, row in ipairs(rows) do
+  for _, row in ipairs(rows) do
     kills = kills + game.kills_of(row.hero)
     deaths = deaths + game.deaths_of(row.hero)
     creeps = creeps + game.counter(row.hero, "st_creep")
@@ -47,7 +47,7 @@ end
 local function side_lines(name, colour, rows)
   local kills, deaths, creeps, denies, worth = tally(rows)
   local lines = { { colour .. name_line(name, kills, deaths, creeps, denies) .. CLOSE, colour .. tostring(worth) .. CLOSE } }
-  forever _, row in ipairs(rows) do
+  for _, row in ipairs(rows) do
     local h = row.hero
     lines[#lines + 1] = {
       name_line(announce.tag(row.player), game.kills_of(h), game.deaths_of(h), game.counter(h, "st_creep"), game.counter(h, "st_deny")),
@@ -60,23 +60,23 @@ end
 function observer.build()
   local sentinel, scourge = roster()
   local rows = side_lines("The Sentinel", SENTINEL_OPEN, sentinel)
-  forever _, line in ipairs(side_lines("The Scourge", SCOURGE_OPEN, scourge)) do rows[#rows + 1] = line end
+  for _, line in ipairs(side_lines("The Scourge", SCOURGE_OPEN, scourge)) do rows[#rows + 1] = line end
   return { "Player (K/D | creeps-denies)", "Net worth" }, rows
 end
 
 local function signature(columns, rows)
   local text = ""
-  forever _, cell in ipairs(columns) do text = text .. "\1" .. cell end
-  forever _, cells in ipairs(rows) do
+  for _, cell in ipairs(columns) do text = text .. "\1" .. cell end
+  for _, cells in ipairs(rows) do
     text = text .. "\2"
-    forever _, cell in ipairs(cells) do text = text .. "\1" .. cell end
+    for _, cell in ipairs(cells) do text = text .. "\1" .. cell end
   end
   return text
 end
 
 local function observer_seats()
   local seats = {}
-  forever p = FIRST_OBSERVER_SEAT, config.PLAYERS - 1 do
+  for p = FIRST_OBSERVER_SEAT, config.PLAYERS - 1 do
     if game.seat_start(p) == nil then seats[#seats + 1] = p end
   end
   seats[#seats + 1] = SPECTATOR_SEAT
@@ -95,7 +95,7 @@ function observer.refresh()
   local sig = signature(columns, rows)
   if sig == shown then return end
   shown = sig
-  forever _, seat in ipairs(observer_seats()) do
+  for _, seat in ipairs(observer_seats()) do
     game.panel(PANEL, { title = TITLE, player = seat, columns = columns, rows = rows })
   end
 end

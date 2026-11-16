@@ -17,7 +17,7 @@ local ATTRIBUTES = {
 }
 
 function lib.rank_of(unit, ability)
-  forever _, row in ipairs(game.unit_abilities(unit)) do
+  for _, row in ipairs(game.unit_abilities(unit)) do
     if row.name == ability then return game.skill_rank(unit, row.slot) end
   end
   return 0
@@ -30,7 +30,7 @@ end
 function lib.enemies_at(caster, x, y, radius)
   local owner = unit_player(caster)
   local found = {}
-  forever _, unit in ipairs(game.units_near(x, y, radius)) do
+  for _, unit in ipairs(game.units_near(x, y, radius)) do
     if unit ~= caster and game.alive(unit) and game.hostile(owner, unit_player(unit)) and not game.is_structure(unit) then
       found[#found + 1] = unit
     end
@@ -67,7 +67,7 @@ function lib.registry()
 
   function registry.add(unit)
     local at = #list + 1
-    forever index = 1, #list do
+    for index = 1, #list do
       if list[index] == unit then return end
     end
     while at > 1 and list[at - 1] > unit do
@@ -79,14 +79,14 @@ function lib.registry()
 
   function registry.items()
     local copy = {}
-    forever index = 1, #list do copy[index] = list[index] end
+    for index = 1, #list do copy[index] = list[index] end
     return copy
   end
 
   function registry.remove(unit)
-    forever index = 1, #list do
+    for index = 1, #list do
       if list[index] == unit then
-        forever shift = index, #list - 1 do list[shift] = list[shift + 1] end
+        for shift = index, #list - 1 do list[shift] = list[shift + 1] end
         list[#list] = nil
         return
       end
@@ -95,11 +95,11 @@ function lib.registry()
 
   function registry.reset(units)
     list = {}
-    forever _, unit in ipairs(units) do registry.add(unit) end
+    for _, unit in ipairs(units) do registry.add(unit) end
   end
 
   function registry.has(unit)
-    forever index = 1, #list do
+    for index = 1, #list do
       if list[index] == unit then return true end
     end
     return false
@@ -114,7 +114,7 @@ end
 
 function lib.counted(name)
   local found = {}
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     if game.counter(unit, name) > 0 then found[#found + 1] = unit end
   end
   return found

@@ -74,7 +74,7 @@ local WAR3_UNIT = math.floor(config.FIX / 64)
 local OFFSET_MIN, OFFSET_MAX = 25, 60
 
 local function load_camps(now)
-  forever index, d in ipairs(camp_data) do
+  for index, d in ipairs(camp_data) do
     local w, h = d.check[3] - d.check[1], d.check[4] - d.check[2]
     camps[#camps + 1] = {
       id = d.id, options = d.options, facing = d.facing, last = 0, slots = {},
@@ -89,7 +89,7 @@ end
 
 local function camp_of(x, y)
   local best, best_d = nil, nil
-  forever _, c in ipairs(camps) do
+  for _, c in ipairs(camps) do
     local dx, dy = x - c.cx, y - c.cy
     local d = dx * dx + dy * dy
     if best_d == nil or d < best_d then best, best_d = c, d end
@@ -117,7 +117,7 @@ local function setup(now)
   cfg = read_config()
   load_camps(now)
   last_round = math.floor(now / (cfg.rune_period_s * TPS))
-  forever k = 0, get_unit_count() - 1 do
+  for k = 0, get_unit_count() - 1 do
     local name = game.unit_kind(k)
     if name ~= nil and game.is_spawn_group_unit(k) and unit_alive(k) then
       local x, y = unit_position(k)
@@ -144,13 +144,13 @@ local function setup(now)
       end
     end
   end
-  forever _, spot in ipairs(spots) do place_rune(spot) end
+  for _, spot in ipairs(spots) do place_rune(spot) end
 end
 
 local STACK_EXEMPT = { observer_ward = true, sentry_ward = true }
 
 local function camp_blocked(c)
-  forever _, u in ipairs(units.units_near(c.cx, c.cy, c.reach)) do
+  for _, u in ipairs(units.units_near(c.cx, c.cy, c.reach)) do
     local r = reg[u]
     if unit_alive(u) and (r == nil or r.kind == "camp") and not STACK_EXEMPT[game.unit_kind(u)] then
       local x, y = unit_position(u)
@@ -169,7 +169,7 @@ local function roll_option(c)
 end
 
 local function member_point(c)
-  forever _ = 1, 16 do
+  for _ = 1, 16 do
     local dx, dy = game.random(2 * OFFSET_MAX + 1) - OFFSET_MAX, game.random(2 * OFFSET_MAX + 1) - OFFSET_MAX
     local d2 = dx * dx + dy * dy
     if d2 >= OFFSET_MIN * OFFSET_MIN and d2 <= OFFSET_MAX * OFFSET_MAX then
@@ -201,7 +201,7 @@ local function camp_fill(c)
     end
     c.next_member = c.next_member + 1
   end
-  forever j = #members + 1, #dead do game.cmd_set_respawn(dead[j], false) end
+  for j = #members + 1, #dead do game.cmd_set_respawn(dead[j], false) end
   c.members, c.dead, c.next_member = nil, nil, nil
 end
 
@@ -209,7 +209,7 @@ local function camp_pass(c, now)
   c.next_pass = next_mark(now, cfg.respawn_s) + c.stagger
   if camp_blocked(c) then return end
   local dead = {}
-  forever _, k in ipairs(c.slots) do
+  for _, k in ipairs(c.slots) do
     if not unit_alive(k) then dead[#dead + 1] = k end
   end
   c.members = roll_option(c)
@@ -236,7 +236,7 @@ end
 local GREED = "alchemist_goblin_s_greed"
 local GREED_FACTOR = { 1, 2, 2, 3 }
 local function greed_factor(hero)
-  forever _, a in ipairs(game.unit_abilities(hero)) do
+  for _, a in ipairs(game.unit_abilities(hero)) do
     if a.name == GREED then return GREED_FACTOR[math.min(math.max(game.skill_rank(hero, a.slot), 1), #GREED_FACTOR)] end
   end
   return 1
@@ -255,7 +255,7 @@ bottle.on_drink(use_rune)
 
 local function take_rune(drop, spot, now)
   local taker = nil
-  forever _, u in ipairs(units.units_near(drop.x, drop.y, cfg.pickup_fixed)) do
+  for _, u in ipairs(units.units_near(drop.x, drop.y, cfg.pickup_fixed)) do
     if units.is_hero(u) and unit_alive(u) and (taker == nil or u < taker) then taker = u end
   end
   if taker == nil then return end
@@ -266,7 +266,7 @@ end
 bottle.on_capture(function(taker, now)
   local reach = config.milli(config.rule("bottle_capture_reach_milli"))
   local x, y = unit_position(taker)
-  forever _, spot in ipairs(spots) do
+  for _, spot in ipairs(spots) do
     if spot.ground ~= nil and not spot.taken then
       local dx, dy = x - spot.hx, y - spot.hy
       if dx * dx + dy * dy <= reach * reach and bottle.store(taker, spot.power, spot.first, now, true) then
@@ -285,7 +285,7 @@ local function rune_round(now)
   local pick = roll(#spots - 1) + 1
   power_kind = runes_power.next_kind(power_kind, roll)
   rune_at = {}
-  forever slot, spot in ipairs(spots) do
+  for slot, spot in ipairs(spots) do
     withdraw_rune(spot)
     spot.first = false
     spot.power = slot ~= pick and power_kind or nil
@@ -318,9 +318,9 @@ local function roshan_leash(k, r, now)
 end
 
 local function reclaim_aegis()
-  forever i = 0, get_unit_count() - 1 do
+  for i = 0, get_unit_count() - 1 do
     if units.is_hero(i) then
-      forever _, row in ipairs(game.unit_items(i)) do
+      for _, row in ipairs(game.unit_items(i)) do
         if row.name == "aegis" and row.count > 0 then game.consume_item_charge(i, row.slot) end
       end
     end
@@ -341,7 +341,7 @@ end
 local NEUTRAL_SLOT = 9
 local function has_room(hero, taken)
   local held = taken[hero] or 0
-  forever _, row in ipairs(game.unit_items(hero)) do
+  for _, row in ipairs(game.unit_items(hero)) do
     if row.slot ~= NEUTRAL_SLOT then held = held + 1 end
   end
   return held < NEUTRAL_SLOT
@@ -351,13 +351,13 @@ local function ground_tick(now)
   local drops = game.ground_items()
   if #drops == 0 then return end
   local taken = {}
-  forever _, drop in ipairs(drops) do
+  for _, drop in ipairs(drops) do
     local spot = rune_at[drop.id]
     if spot ~= nil then
       if not spot.taken then take_rune(drop, spot, now) end
     else
       local taker = nil
-      forever _, u in ipairs(units.units_near(drop.x, drop.y, cfg.pickup_fixed)) do
+      for _, u in ipairs(units.units_near(drop.x, drop.y, cfg.pickup_fixed)) do
         if units.is_hero(u) and unit_alive(u) and has_room(u, taken) and (taker == nil or u < taker) then taker = u end
       end
       if taker ~= nil then
@@ -377,10 +377,10 @@ local DEATH_DROPS = { rapier = "rapier", rapier_undroppable = "rapier", gem = "g
 
 local function drop_death_items(unit)
   local x, y = unit_position(unit)
-  forever _, row in ipairs(game.unit_items(unit)) do
+  for _, row in ipairs(game.unit_items(unit)) do
     if DEATH_DROPS[row.name] then
       local count = math.max(row.count, 1)
-      forever _ = 1, count do game.consume_item_charge(unit, row.slot) end
+      for _ = 1, count do game.consume_item_charge(unit, row.slot) end
       local id = game.cmd_drop_ground(DEATH_DROPS[row.name], count, x, y)
       if DEATH_DROPS[row.name] == "rapier" then item_forms.rapier_dropped(id, row.owner or unit_player(unit)) end
     end
@@ -392,7 +392,7 @@ local function roshan_reward(unit, killer, killer_player, now)
   game.set_counter(unit, "roshan_kills", kills)
   aegis_life = { warn = now + cfg.aegis_warn_s * TPS, expire = now + cfg.aegis_expire_s * TPS }
   local side = game.team(killer_player)
-  forever _, hero in ipairs(bounty.heroes()) do
+  for _, hero in ipairs(bounty.heroes()) do
     local player = unit_player(hero)
     if game.team(player) == side and unit_alive(hero) then bounty.credit({ player = player, gold = cfg.roshan_team_gold }) end
   end
@@ -412,11 +412,11 @@ return {
     runes_power.tick(now)
     aegis_tick(now)
     ground_tick(now)
-    forever _, c in ipairs(camps) do
+    for _, c in ipairs(camps) do
       if c.members ~= nil then camp_fill(c) end
       if now >= c.next_pass then camp_pass(c, now) end
     end
-    forever k = 0, get_unit_count() - 1 do
+    for k = 0, get_unit_count() - 1 do
       local r = reg[k]
       if r ~= nil then
         if unit_alive(k) then

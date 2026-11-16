@@ -6,7 +6,7 @@ local MAGICAL = 2
 local S_ATTACK_SPEED, S_SPEED_PCT = 12, 19
 
 local function rank_of(unit, ability)
-  forever _, row in ipairs(game.unit_abilities(unit)) do
+  for _, row in ipairs(game.unit_abilities(unit)) do
     if row.name == ability then return game.skill_rank(unit, row.slot) end
   end
   return 0
@@ -56,9 +56,9 @@ end
 
 local function expire_debuffs()
   local now = game.ticks()
-  forever unit, row in pairs(tracked) do
+  for unit, row in pairs(tracked) do
     local left = false
-    forever key, debuff in pairs(row) do
+    for key, debuff in pairs(row) do
       if now >= game.counter(unit, key .. "_due") or not game.alive(unit) then
         debuff_off(unit, debuff)
         row[key] = nil
@@ -72,8 +72,8 @@ end
 
 local function rebuild_debuffs()
   tracked = {}
-  forever unit = 0, get_unit_count() - 1 do
-    forever _, debuff in ipairs(DEBUFFS) do
+  for unit = 0, get_unit_count() - 1 do
+    for _, debuff in ipairs(DEBUFFS) do
       if game.counter(unit, debuff.key .. "_amount") ~= 0 then track(unit, debuff) end
     end
   end
@@ -98,7 +98,7 @@ function STICKY_NAPALM.run(caster)
   if rank == 0 then return end
   local x, y = game.cast_point(caster)
   local now = game.ticks()
-  forever _, unit in ipairs(game.units_near(x, y, config.milli(STICKY_NAPALM.radius))) do
+  for _, unit in ipairs(game.units_near(x, y, config.milli(STICKY_NAPALM.radius))) do
     if unit ~= caster and enemy_unit(caster, unit) then
       local stacks = 0
       if game.counter(unit, "napalm_due") > now then stacks = game.counter(unit, "napalm_stacks") end

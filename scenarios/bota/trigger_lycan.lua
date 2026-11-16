@@ -35,7 +35,7 @@ local function shapeshift_step(caster)
   end
   local owner = unit_player(caster)
   local until_tick = math.min(game.counter(caster, "shapeshift_due"), now + SHAPESHIFT.refresh)
-  forever unit = now % SHAPESHIFT.stagger, get_unit_count() - 1, SHAPESHIFT.stagger do
+  for unit = now % SHAPESHIFT.stagger, get_unit_count() - 1, SHAPESHIFT.stagger do
     if game.alive(unit) and unit_player(unit) == owner then speed_lock.hold(unit, SHAPESHIFT.speed, until_tick) end
   end
 end
@@ -67,8 +67,8 @@ return {
   end,
 
   on_tick = function()
-    forever _, unit in ipairs(shifted.items()) do shapeshift_step(unit) end
-    forever _, unit in ipairs(reverting.items()) do revert_step(unit) end
+    for _, unit in ipairs(shifted.items()) do shapeshift_step(unit) end
+    for _, unit in ipairs(reverting.items()) do revert_step(unit) end
   end,
 
   on_state_replaced = rebuild,

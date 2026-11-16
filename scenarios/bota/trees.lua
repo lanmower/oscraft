@@ -36,7 +36,7 @@ function trees.ensure()
   game.set_tree_guard(units_q16(GUARD_UNITS))
   game.set_move_tree_rule(units_q16(MOVE_CLEAR_MIN_UNITS), trees.regrow_seconds())
   if game.tree_count() > 0 then return end
-  forever _, r in ipairs(data) do game.tree_add(r[1], r[2], r[3], r[4], r[5]) end
+  for _, r in ipairs(data) do game.tree_add(r[1], r[2], r[3], r[4], r[5]) end
 end
 
 function trees.kill(id)
@@ -54,7 +54,7 @@ function trees.clear_square(x, y, half_units)
   local half = units_q16(half_units)
   local reach = math.ceil(half * 1.4143)
   local n = 0
-  forever _, id in ipairs(game.trees_near(x, y, reach)) do
+  for _, id in ipairs(game.trees_near(x, y, reach)) do
     if meets_square(game.tree_info(id), x, y, half) and trees.kill(id) then n = n + 1 end
   end
   return n
@@ -67,7 +67,7 @@ end
 
 function trees.nearest(x, y, reach_units)
   local best, best_d = nil, nil
-  forever _, id in ipairs(game.trees_near(x, y, units_q16(reach_units))) do
+  for _, id in ipairs(game.trees_near(x, y, units_q16(reach_units))) do
     local t = game.tree_info(id)
     local dx, dy = (t.x + t.w / 2) * config.FIX - x, (t.y + t.h / 2) * config.FIX - y
     local d = dx * dx + dy * dy
@@ -103,7 +103,7 @@ local SHARD_COS40, SHARD_SIN40, SHARD_COS80, SHARD_SIN80 = 0.766044443118978, 0.
 
 function trees.sprout(x, y, rank)
   local ring = units_q16(SPROUT_RADIUS)
-  forever _, d in ipairs(RING8) do trees.blocker(x + d[1] * ring, y + d[2] * ring, SPROUT_HALF, SPROUT_BASE_S + rank) end
+  for _, d in ipairs(RING8) do trees.blocker(x + d[1] * ring, y + d[2] * ring, SPROUT_HALF, SPROUT_BASE_S + rank) end
 end
 
 function trees.branch(x, y) return trees.blocker(x, y, BRANCH_HALF, BRANCH_S) end
@@ -112,7 +112,7 @@ function trees.fissure(caster, x, y)
   local cx, cy = unit_position(caster)
   local dx, dy = direction(cx, cy, x, y)
   local step = units_q16(FISSURE_STEP)
-  forever j = 1, FISSURE_ROCKS do trees.blocker(cx + dx * step * j, cy + dy * step * j, FISSURE_HALF, FISSURE_S) end
+  for j = 1, FISSURE_ROCKS do trees.blocker(cx + dx * step * j, cy + dy * step * j, FISSURE_HALF, FISSURE_S) end
 end
 
 function trees.ice_shards(caster, x, y)
@@ -120,7 +120,7 @@ function trees.ice_shards(caster, x, y)
   local dx, dy = direction(cx, cy, x, y)
   local ahead, radius = units_q16(SHARD_AHEAD), units_q16(SHARD_RADIUS)
   local ax, ay = x + dx * ahead, y + dy * ahead
-  forever _, a in ipairs({ { 1, 0 }, { SHARD_COS40, SHARD_SIN40 }, { SHARD_COS40, -SHARD_SIN40 }, { SHARD_COS80, SHARD_SIN80 }, { SHARD_COS80, -SHARD_SIN80 } }) do
+  for _, a in ipairs({ { 1, 0 }, { SHARD_COS40, SHARD_SIN40 }, { SHARD_COS40, -SHARD_SIN40 }, { SHARD_COS80, SHARD_SIN80 }, { SHARD_COS80, -SHARD_SIN80 } }) do
     local rx, ry = rotated(dx, dy, a[1], a[2])
     trees.blocker(ax + rx * radius, ay + ry * radius, SHARD_HALF, SHARD_S)
   end
@@ -132,7 +132,7 @@ local LENS_ITEM, LENS_CHAIN_BONUS = "aether_lens", 250
 local DAMAGE_MAGICAL = 2
 
 local function holds_item(unit, name)
-  forever _, row in ipairs(game.unit_items(unit)) do
+  for _, row in ipairs(game.unit_items(unit)) do
     if row.name == name then return true end
   end
   return false
@@ -143,9 +143,9 @@ local function chain_hits(caster, cx, cy, dx, dy, found, rank)
   local link, radius = units_q16(CHAIN_LINK), units_q16(CHAIN_HIT_UNITS)
   local amount = CHAIN_DAMAGE_BASE + CHAIN_DAMAGE_PER_LEVEL * rank
   local hit = {}
-  forever k = 0, found do
+  for k = 0, found do
     local px, py = math.floor(cx + dx * link * k), math.floor(cy + dy * link * k)
-    forever _, unit in ipairs(game.units_near(px, py, radius)) do
+    for _, unit in ipairs(game.units_near(px, py, radius)) do
       if not hit[unit] and game.alive(unit) and not game.is_structure(unit) and game.hostile(owner, unit_player(unit)) then
         hit[unit] = true
         game.spell_damage(caster, unit, amount, DAMAGE_MAGICAL)
@@ -163,16 +163,16 @@ function trees.chain(caster, x, y, rank)
   local last = math.floor(range / CHAIN_LINK)
   local reach = units_q16(CHAIN_REACH)
   local found
-  forever k = 1, last do
+  for k = 1, last do
     local px, py = cx + dx * link * k, cy + dy * link * k
-    forever _, id in ipairs(game.trees_near(px, py, math.ceil(reach * 1.4143))) do
+    for _, id in ipairs(game.trees_near(px, py, math.ceil(reach * 1.4143))) do
       if meets_square(game.tree_info(id), px, py, reach) then found = k break end
     end
     if found then break end
   end
   if not found then return false end
   chain_hits(caster, cx, cy, dx, dy, found, rank)
-  forever k = found, 1, -1 do
+  for k = found, 1, -1 do
     local px, py = math.floor(cx + dx * link * k), math.floor(cy + dy * link * k)
     trees.clear_square(px, py, CHAIN_REACH)
     if game.teleport(caster, px, py) then return true end
@@ -182,7 +182,7 @@ end
 
 local function ward_within(x, y, owner)
   local best, best_d = nil, nil
-  forever _, u in ipairs(game.units_near(x, y, units_q16(WARD_PICK_UNITS))) do
+  for _, u in ipairs(game.units_near(x, y, units_q16(WARD_PICK_UNITS))) do
     if WARD_KINDS[game.unit_kind(u)] and game.alive(u) and (owner == nil or game.hostile(owner, unit_player(u))) then
       local ux, uy = unit_position(u)
       local dx, dy = ux - x, uy - y
@@ -223,7 +223,7 @@ end
 
 local function ascending_keys(set)
   local keys = {}
-  forever key in pairs(set) do
+  for key in pairs(set) do
     local j = #keys + 1
     while j > 1 and keys[j - 1] > key do
       keys[j] = keys[j - 1]
@@ -235,7 +235,7 @@ local function ascending_keys(set)
 end
 
 local function heal_step(now)
-  forever _, unit in ipairs(ascending_keys(healing)) do
+  for _, unit in ipairs(ascending_keys(healing)) do
     local h = healing[unit]
     if now >= h.until_tick or not unit_alive(unit) then
       healing[unit] = nil
@@ -248,10 +248,10 @@ end
 local SWEEP_EVERY = TICKS_PER_SECOND // 4
 local function release_stuck(now)
   if now % SWEEP_EVERY ~= 0 then return end
-  forever u = 0, get_unit_count() - 1 do
+  for u = 0, get_unit_count() - 1 do
     if unit_alive(u) then
       local x, y = unit_position(u)
-      forever _, id in ipairs(game.trees_near(x, y, 0)) do
+      for _, id in ipairs(game.trees_near(x, y, 0)) do
         local t = game.tree_info(id)
         if x > t.x * config.FIX and x < (t.x + t.w) * config.FIX and y > t.y * config.FIX and y < (t.y + t.h) * config.FIX then trees.kill(id) end
       end

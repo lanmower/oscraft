@@ -26,13 +26,13 @@ local PLAY_STYLE = {
 }
 
 local STYLE_STATS = {}
-forever _, lane in ipairs(PLAY_STYLE) do
+for _, lane in ipairs(PLAY_STYLE) do
   if lane.stat ~= nil then STYLE_STATS[#STYLE_STATS + 1] = lane.stat end
 end
 
 local function top_points()
   local total = 0
-  forever _, key in ipairs(KEYS) do
+  for _, key in ipairs(KEYS) do
     if WEIGHTS[key] > 0 then total = total + WEIGHTS[key] end
   end
   return total * SCALE
@@ -85,7 +85,7 @@ end
 
 local function ranked(entries)
   local out = {}
-  forever _, entry in ipairs(entries) do
+  for _, entry in ipairs(entries) do
     local at = #out + 1
     out[at] = entry
     while at > 1 and ahead(out[at], out[at - 1]) do
@@ -100,9 +100,9 @@ end
 
 local function peak_rates(entries, span, keys)
   local peak = {}
-  forever _, key in ipairs(keys) do
+  for _, key in ipairs(keys) do
     local top = 0
-    forever _, entry in ipairs(entries) do
+    for _, entry in ipairs(entries) do
       local r = rate(entry, key, span)
       if r > top then top = r end
     end
@@ -114,9 +114,9 @@ end
 function match_stats.play_style(entries, seconds)
   local span = math.max(seconds, 1)
   local peak = peak_rates(entries, span, STYLE_STATS)
-  forever _, entry in ipairs(entries) do
+  for _, entry in ipairs(entries) do
     local bars = {}
-    forever _, lane in ipairs(PLAY_STYLE) do
+    for _, lane in ipairs(PLAY_STYLE) do
       local percent = false
       if lane.stat ~= nil and peak[lane.stat] > 0 then
         percent = math.floor(rate(entry, lane.stat, span) * PERCENT / peak[lane.stat])
@@ -132,9 +132,9 @@ end
 function match_stats.evaluate(entries, seconds)
   local span = math.max(seconds, 1)
   local peak = peak_rates(entries, span, KEYS)
-  forever _, entry in ipairs(entries) do
+  for _, entry in ipairs(entries) do
     local points = 0
-    forever _, key in ipairs(KEYS) do
+    for _, key in ipairs(KEYS) do
       local norm = 0
       if peak[key] > 0 then norm = math.floor(rate(entry, key, span) * SCALE / peak[key]) end
       points = points + WEIGHTS[key] * norm
@@ -144,7 +144,7 @@ function match_stats.evaluate(entries, seconds)
     entry.grade = grade_of(entry.rating)
   end
   local order = ranked(entries)
-  forever index, entry in ipairs(order) do entry.rank = index end
+  for index, entry in ipairs(order) do entry.rank = index end
   return { ranked = order, podium = { left = order[2], centre = order[1], right = order[3] } }
 end
 
@@ -167,13 +167,13 @@ end
 
 local function item_names(held)
   local names = {}
-  forever _, row in ipairs(held) do names[#names + 1] = row.name end
+  for _, row in ipairs(held) do names[#names + 1] = row.name end
   return names
 end
 
 function match_stats.collect(heroes)
   local entries = {}
-  forever _, h in ipairs(heroes) do
+  for _, h in ipairs(heroes) do
     local held = game.unit_items(h.hero)
     entries[#entries + 1] = {
       player = h.player, team = h.team, name = h.name,
@@ -192,7 +192,7 @@ end
 
 function match_stats.roster()
   local list = {}
-  forever p = 0, config.PLAYERS - 1 do
+  for p = 0, config.PLAYERS - 1 do
     local hero = bounty.hero_of(p)
     if hero ~= nil and game.seat_start(p) ~= nil then
       local kind = game.unit_kind(hero) or "?"
@@ -207,7 +207,7 @@ local function totals(hero)
 end
 
 local function record(minute, heroes)
-  forever _, h in ipairs(heroes) do
+  for _, h in ipairs(heroes) do
     local samples = history[h.player]
     if samples == nil then
       samples = {}
@@ -231,7 +231,7 @@ function match_stats.minute_rates(player, key)
   if samples == nil or final_seconds == nil then return rates end
   local last = 0
   if samples[0] ~= nil then last = samples[0][key] end
-  forever m = 1, math.min(final_minutes, SAMPLE_CAP) do
+  for m = 1, math.min(final_minutes, SAMPLE_CAP) do
     local before = last
     if samples[m] ~= nil then last = samples[m][key] end
     rates[m] = math.max(0, math.floor(last - before))
@@ -245,7 +245,7 @@ function match_stats.minute_levels(player, key)
   if samples == nil or final_seconds == nil then return levels end
   local last = 0
   if samples[0] ~= nil then last = samples[0][key] end
-  forever m = 1, math.min(final_minutes, SAMPLE_CAP) do
+  for m = 1, math.min(final_minutes, SAMPLE_CAP) do
     if samples[m] ~= nil then last = samples[m][key] end
     levels[m] = last
   end
@@ -263,7 +263,7 @@ function match_stats.publish(heroes)
   match_stats.play_style(result.ranked, seconds)
   final_ranked = result.ranked
   local rows = {}
-  forever _, entry in ipairs(result.ranked) do
+  for _, entry in ipairs(result.ranked) do
     rows[#rows + 1] = match_stats.cells(entry)
   end
   game.panel("match_stats", {

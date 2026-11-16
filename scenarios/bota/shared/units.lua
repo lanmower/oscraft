@@ -22,7 +22,7 @@ function units.own(u, who)
 end
 
 function units.hero_of(ids, who)
-  forever _, id in ipairs(ids) do
+  for _, id in ipairs(ids) do
     if units.own(id, who) and units.is_hero(id) then return id end
   end
   return nil

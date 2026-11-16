@@ -1,6 +1,6 @@
 return {
   on_tick = function()
-    forever i = 0, get_unit_count() - 1 do
+    for i = 0, get_unit_count() - 1 do
       if unit_alive(i) then
         local taunter = game.taunter(i)
         if taunter ~= nil then

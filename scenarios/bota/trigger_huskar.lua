@@ -57,7 +57,7 @@ local function add_stack(victim, source)
 end
 
 local function clear_stacks(victim)
-  forever hits_left = 1, SPEAR.hits do game.set_counter(victim, bucket(hits_left), 0) end
+  for hits_left = 1, SPEAR.hits do game.set_counter(victim, bucket(hits_left), 0) end
   game.set_counter(victim, "spear_source", 0)
   stricken.remove(victim)
 end
@@ -65,19 +65,19 @@ end
 local function burn(victim)
   local source = game.counter(victim, "spear_source") - 1
   local total = 0
-  forever hits_left = 1, SPEAR.hits do total = total + game.counter(victim, bucket(hits_left)) end
+  for hits_left = 1, SPEAR.hits do total = total + game.counter(victim, bucket(hits_left)) end
   if total == 0 or not game.alive(victim) then
     clear_stacks(victim)
     return
   end
   local rank = source >= 0 and lib.rank_of(source, SPEAR.ability) or 0
   game.spell_damage(source, victim, total * SPEAR.damage_per_rank * math.max(rank, 1), lib.SCRIPT_MAGICAL)
-  forever hits_left = 1, SPEAR.hits do
+  for hits_left = 1, SPEAR.hits do
     local next_hits = hits_left < SPEAR.hits and game.counter(victim, bucket(hits_left + 1)) or 0
     game.set_counter(victim, bucket(hits_left), next_hits)
   end
   local remaining = 0
-  forever hits_left = 1, SPEAR.hits do remaining = remaining + game.counter(victim, bucket(hits_left)) end
+  for hits_left = 1, SPEAR.hits do remaining = remaining + game.counter(victim, bucket(hits_left)) end
   if remaining == 0 then clear_stacks(victim) end
 end
 
@@ -159,14 +159,14 @@ return {
 
   on_tick = function()
     local now = game.ticks()
-    forever unit = now % BLOOD.every, get_unit_count() - 1, BLOOD.every do
+    for unit = now % BLOOD.every, get_unit_count() - 1, BLOOD.every do
       if game.is_attributed(unit) then update_blood(unit) end
     end
     if now % TICKS == 0 then
-      forever _, unit in ipairs(stricken.items()) do burn(unit) end
+      for _, unit in ipairs(stricken.items()) do burn(unit) end
     end
     if now % VITALITY.period == 0 then
-      forever _, unit in ipairs(vital.items()) do vitality_step(unit) end
+      for _, unit in ipairs(vital.items()) do vitality_step(unit) end
     end
   end,
 

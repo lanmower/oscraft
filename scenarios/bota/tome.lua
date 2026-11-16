@@ -11,7 +11,7 @@ local tome = {}
 
 local function team_tomes(team)
   local total = 0
-  forever _, hero in ipairs(bounty.heroes()) do
+  for _, hero in ipairs(bounty.heroes()) do
     if game.team(unit_player(hero)) == team then total = total + used.get(hero) end
   end
   return total

@@ -64,7 +64,7 @@ function TEST_OF_FAITH.run(caster)
   local delay = (TEST_OF_FAITH.base_seconds - rank) * TICKS
   if units.is_hero(target) then
     if target == caster then
-      forever _, unit in ipairs(game.units(unit_player(caster))) do
+      for _, unit in ipairs(game.units(unit_player(caster))) do
         if unit ~= caster and not units.is_hero(unit) and game.is_summoned(unit) then
           schedule_move(unit, delay, caster + 1)
         end
@@ -81,7 +81,7 @@ function TEST_OF_FAITH.run(caster)
 end
 
 local function move_pending()
-  forever unit in pairs(pending_home) do
+  for unit in pairs(pending_home) do
     if game.counter(unit, "faith_due") <= game.ticks() or not game.alive(unit) then
       local to = game.counter(unit, "faith_to")
       game.set_counter(unit, "faith_due", 0)
@@ -107,7 +107,7 @@ local HAND_OF_GOD = {
 }
 
 function HAND_OF_GOD.run(caster)
-  forever _, unit in ipairs(game.units(unit_player(caster))) do
+  for _, unit in ipairs(game.units(unit_player(caster))) do
     if not units.is_hero(unit) and not game.is_structure(unit) then
       game.set_hp(unit, MAX_HIT * WHOLE)
     end
@@ -124,14 +124,14 @@ local MARKSMANSHIP = {
 }
 
 local function marksmanship_scan()
-  forever _, hero in ipairs(heroes()) do
+  for _, hero in ipairs(heroes()) do
     local rank = 0
     if game.alive(hero) then rank = math.min(rank_of(hero, MARKSMANSHIP.ability), #MARKSMANSHIP.agility) end
     local bonus = 0
     if rank > 0 and not held(hero, "break") then
       bonus = MARKSMANSHIP.agility[rank]
       local x, y = unit_position(hero)
-      forever _, unit in ipairs(enemies_around(hero, x, y, MARKSMANSHIP.radius_milli)) do
+      for _, unit in ipairs(enemies_around(hero, x, y, MARKSMANSHIP.radius_milli)) do
         if units.is_hero(unit) then
           bonus = 0
           break
@@ -148,7 +148,7 @@ end
 
 
 local SURGE = {
-  source = "war3map.j 64323 (A3JM, Aasl DataA 10.0 = maximum speed, ability.ini:124844): movement speed at the cap forever 1.5+1.5*rank s",
+  source = "war3map.j 64323 (A3JM, Aasl DataA 10.0 = maximum speed, ability.ini:124844): movement speed at the cap for 1.5+1.5*rank s",
   ability = "dark_seer_surge",
   casts = { "dark_seer_surge" },
   ticks = { 48, 72, 96, 120 },
@@ -177,14 +177,14 @@ function SURGE.run(caster)
 end
 
 local function expire_surges()
-  forever unit in pairs(surging) do
+  for unit in pairs(surging) do
     if game.ticks() >= game.counter(unit, "surge_due") or not game.alive(unit) then end_surge(unit) end
   end
 end
 
 
 local ION_SHELL = {
-  source = "war3map.j 64164-64197 (A3JN): 1+2*rank per 0.1 s as magical damage to enemies within 275 of the target forever 25 s, applied here every 8 ticks",
+  source = "war3map.j 64164-64197 (A3JN): 1+2*rank per 0.1 s as magical damage to enemies within 275 of the target for 25 s, applied here every 8 ticks",
   ability = "dark_seer_ion_shell",
   casts = { "dark_seer_ion_shell" },
   radius_milli = 4297,
@@ -207,7 +207,7 @@ function ION_SHELL.run(caster)
 end
 
 local function pulse_shells()
-  forever unit in pairs(shelled) do
+  for unit in pairs(shelled) do
     local source = game.counter(unit, "ion_source") - 1
     if not game.alive(unit) or not game.alive(source) or game.ticks() >= game.counter(unit, "ion_due") then
       game.set_counter(unit, "ion_source", 0)
@@ -215,7 +215,7 @@ local function pulse_shells()
     elseif game.ticks() >= game.counter(unit, "ion_next") then
       game.set_counter(unit, "ion_next", game.ticks() + ION_SHELL.period)
       local x, y = unit_position(unit)
-      forever _, enemy in ipairs(enemies_around(source, x, y, ION_SHELL.radius_milli)) do
+      for _, enemy in ipairs(enemies_around(source, x, y, ION_SHELL.radius_milli)) do
         if not held(enemy, "spell_immunity") then
           game.spell_damage(source, enemy, ION_SHELL.per_pulse[game.counter(unit, "ion_rank")], MAGICAL)
         end
@@ -236,7 +236,7 @@ local GLIMPSE = {
 local history = {}
 
 local function sample_positions()
-  forever _, hero in ipairs(heroes()) do
+  for _, hero in ipairs(heroes()) do
     if game.alive(hero) then
       local trail = history[hero]
       if trail == nil then
@@ -260,7 +260,7 @@ end
 
 
 local WEAVE = {
-  source = "war3map.j CKE 76800-76850, RPR 76753-76785, RJR/RKR 76731-76752 (A10Q): heroes within 600 of the point at the cast, enemies lose and allies gain 0.5+0.25*rank armor each second forever 24 s, all taken back at the end",
+  source = "war3map.j CKE 76800-76850, RPR 76753-76785, RJR/RKR 76731-76752 (A10Q): heroes within 600 of the point at the cast, enemies lose and allies gain 0.5+0.25*rank armor each second for 24 s, all taken back at the end",
   ability = "dazzle_weave",
   casts = { "dazzle_weave" },
   radius_milli = 9375,
@@ -283,7 +283,7 @@ function WEAVE.run(caster)
   if rank == 0 or x == nil then return end
   local per_milli = WEAVE.base_milli + WEAVE.per_rank_milli * rank
   local owner = unit_player(caster)
-  forever _, unit in ipairs(game.units_near(x, y, config.milli(WEAVE.radius_milli))) do
+  for _, unit in ipairs(game.units_near(x, y, config.milli(WEAVE.radius_milli))) do
     if game.alive(unit) and (units.is_hero(unit) or game.is_summoned(unit)) then
       local sign = 1
       if game.hostile(owner, unit_player(unit)) then sign = -1 end
@@ -299,7 +299,7 @@ function WEAVE.run(caster)
 end
 
 local function pulse_weaves()
-  forever unit in pairs(weaving) do
+  for unit in pairs(weaving) do
     if game.ticks() >= game.counter(unit, "weave_end") or not game.alive(unit) then
       set_weave_armor(unit, 0)
       game.set_counter(unit, "weave_end", 0)
@@ -334,7 +334,7 @@ function PERSUASION.run(caster)
     persuaded[caster] = list
   end
   local kept = {}
-  forever _, unit in ipairs(list) do
+  for _, unit in ipairs(list) do
     if game.alive(unit) and game.counter(unit, "persuaded_by") == caster + 1 then kept[#kept + 1] = unit end
   end
   while #kept >= rank do
@@ -352,7 +352,7 @@ end
 
 local function rebuild_persuaded()
   persuaded = {}
-  forever _, unit in ipairs(counter_units("persuaded_by")) do
+  for _, unit in ipairs(counter_units("persuaded_by")) do
     local owner = game.counter(unit, "persuaded_by") - 1
     local list = persuaded[owner]
     if list == nil then
@@ -401,13 +401,13 @@ end
 
 local function run_storms()
   local kept = {}
-  forever _, storm in ipairs(storms) do
+  for _, storm in ipairs(storms) do
     local alive = game.alive(storm.caster)
     if alive and game.ticks() >= storm.next then
       storm.pulse = storm.pulse + 1
       storm.next = game.ticks() + STATIC_STORM.period
       local damage = math.floor(0.25 * (150 + 50 * storm.rank) * storm.pulse / STATIC_STORM.pulses)
-      forever _, unit in ipairs(game.units_near(storm.x, storm.y, config.milli(STATIC_STORM.damage_radius_milli))) do
+      for _, unit in ipairs(game.units_near(storm.x, storm.y, config.milli(STATIC_STORM.damage_radius_milli))) do
         if game.alive(unit) and enemy_of(storm.caster, unit) and not game.is_structure(unit) and not held(unit, "spell_immunity") then
           game.spell_damage(storm.caster, unit, damage, MAGICAL)
           if game.within(unit, storm.x, storm.y, STATIC_STORM.silence_radius_milli) then
@@ -423,7 +423,7 @@ end
 
 
 local STAMPEDE = {
-  source = "war3map.j R8E 46480, K9X 46470-46478, K7X 46437-46469, K6X 46415-46425 (A2O6): allied units run at maximum speed forever 3.75 s and each unit they touch within 130 once takes rank*strength magical damage and a 1.5 s slow (GUESS: heroes and own summons only, forever the 2500 step budget)",
+  source = "war3map.j R8E 46480, K9X 46470-46478, K7X 46437-46469, K6X 46415-46425 (A2O6): allied units run at maximum speed for 3.75 s and each unit they touch within 130 once takes rank*strength magical damage and a 1.5 s slow (GUESS: heroes and own summons only, for the 2500 step budget)",
   ability = "centaur_stampede",
   casts = { "centaur_stampede" },
   duration = 60,
@@ -446,7 +446,7 @@ function STAMPEDE.run(caster)
   local rank = rank_of(caster, STAMPEDE.ability)
   if rank == 0 then return end
   local owner_team = game.team(unit_player(caster))
-  forever _, unit in ipairs(heroes()) do
+  for _, unit in ipairs(heroes()) do
     if game.alive(unit) and game.team(unit_player(unit)) == owner_team then
       if game.counter(unit, "stampede_speed") == 0 then
         game.add_stat(unit, S_SPEED_PCT, STAMPEDE.boost_percent)
@@ -461,13 +461,13 @@ function STAMPEDE.run(caster)
 end
 
 local function run_stampede()
-  forever unit in pairs(stampeders) do
+  for unit in pairs(stampeders) do
     if game.ticks() >= game.counter(unit, "stampede_due") or not game.alive(unit) then
       end_stampede(unit)
     else
       local source = game.counter(unit, "stampede_source") - 1
       local x, y = unit_position(unit)
-      forever _, enemy in ipairs(enemies_around(unit, x, y, STAMPEDE.radius_milli)) do
+      for _, enemy in ipairs(enemies_around(unit, x, y, STAMPEDE.radius_milli)) do
         if game.counter(enemy, "stampede_hit") <= game.ticks() and not held(enemy, "spell_immunity") then
           game.set_counter(enemy, "stampede_hit", game.ticks() + STAMPEDE.duration)
           if game.alive(source) then
@@ -506,7 +506,7 @@ function FROSTBITE.run(caster)
 end
 
 local function pulse_frostbite()
-  forever unit in pairs(frostbitten) do
+  for unit in pairs(frostbitten) do
     local source = game.counter(unit, "frost_source") - 1
     if not game.alive(unit) or game.ticks() >= game.counter(unit, "frost_due") then
       game.set_counter(unit, "frost_due", 0)
@@ -530,7 +530,7 @@ local TRUESHOT = {
 
 local function trueshot_scan()
   local owners = {}
-  forever _, hero in ipairs(heroes()) do
+  for _, hero in ipairs(heroes()) do
     if game.alive(hero) then
       local rank = math.min(rank_of(hero, TRUESHOT.ability), #TRUESHOT.percent)
       if rank > 0 and not held(hero, "break") then
@@ -538,12 +538,12 @@ local function trueshot_scan()
       end
     end
   end
-  forever _, hero in ipairs(heroes()) do
+  for _, hero in ipairs(heroes()) do
     local bonus = 0
     if game.alive(hero) then
       local _, range = game.weapon(hero)
       if range > config.milli(TRUESHOT.melee_milli) then
-        forever _, owner in ipairs(owners) do
+        for _, owner in ipairs(owners) do
           if owner.team == game.team(unit_player(hero)) and owner.bonus > bonus then bonus = owner.bonus end
         end
       end
@@ -558,7 +558,7 @@ end
 
 
 local REALITY_RIFT = {
-  source = "war3map.j GHO 63620-63670 (A0RW, buff A3KI): the caster jumps 30 to 80 percent of the way to the target, the target is drawn beside it, and the caster gains +60/80/100/120 damage forever 1.2 s",
+  source = "war3map.j GHO 63620-63670 (A0RW, buff A3KI): the caster jumps 30 to 80 percent of the way to the target, the target is drawn beside it, and the caster gains +60/80/100/120 damage for 1.2 s",
   ability = "chaos_knight_reality_rift",
   casts = { "chaos_knight_reality_rift" },
   bonus = { 60, 80, 100, 120 },
@@ -592,7 +592,7 @@ function REALITY_RIFT.run(caster)
 end
 
 local function expire_rifts()
-  forever unit in pairs(rifting) do
+  for unit in pairs(rifting) do
     if game.ticks() >= game.counter(unit, "rift_due") or not game.alive(unit) then
       game.add_stat(unit, S_DAMAGE, -game.counter(unit, "rift_bonus"))
       game.set_counter(unit, "rift_bonus", 0)
@@ -604,7 +604,7 @@ end
 
 
 local THUNDER_STRIKE = {
-  source = "war3map.j GJR 83256-83297, GHR 83245 (A1TV): the target is struck at once and every 2 s forever 6 s, each strike dealing 20*rank+20 magical to every other enemy within 265 of it",
+  source = "war3map.j GJR 83256-83297, GHR 83245 (A1TV): the target is struck at once and every 2 s for 6 s, each strike dealing 20*rank+20 magical to every other enemy within 265 of it",
   ability = "disruptor_thunder_strike",
   casts = { "disruptor_thunder_strike" },
   radius_milli = 4141,
@@ -616,7 +616,7 @@ local strikes = {}
 
 local function strike_around(strike)
   local x, y = unit_position(strike.target)
-  forever _, unit in ipairs(enemies_around(strike.caster, x, y, THUNDER_STRIKE.radius_milli)) do
+  for _, unit in ipairs(enemies_around(strike.caster, x, y, THUNDER_STRIKE.radius_milli)) do
     if unit ~= strike.target and not held(unit, "spell_immunity") then
       game.spell_damage(strike.caster, unit, 20 * strike.rank + 20, MAGICAL)
     end
@@ -634,7 +634,7 @@ end
 
 local function run_strikes()
   local kept = {}
-  forever _, strike in ipairs(strikes) do
+  for _, strike in ipairs(strikes) do
     local live = game.alive(strike.caster) and game.alive(strike.target)
     if live and game.ticks() >= strike.next then
       strike.left = strike.left - 1
@@ -647,7 +647,7 @@ local function run_strikes()
 end
 
 local POISON_TOUCH = {
-  source = "war3map.j FLE 76721, RFR 76574-76660, RGR 76660-76700 (A2X6, slow A0NJ ability.ini:36316): each second the target is slowed 33/66/100 percent by stage (rank 1 33,33; 2 33,66; 3 66,100; 4 66 then a 1 s stun) and from the third second takes 8+6*rank (36 at rank 4) physical, forever 8 s",
+  source = "war3map.j FLE 76721, RFR 76574-76660, RGR 76660-76700 (A2X6, slow A0NJ ability.ini:36316): each second the target is slowed 33/66/100 percent by stage (rank 1 33,33; 2 33,66; 3 66,100; 4 66 then a 1 s stun) and from the third second takes 8+6*rank (36 at rank 4) physical, for 8 s",
   ability = "dazzle_poison_touch",
   casts = { "dazzle_poison_touch" },
   damage = { 14, 20, 26, 36 },
@@ -669,7 +669,7 @@ function POISON_TOUCH.run(caster)
 end
 
 local function pulse_poison()
-  forever unit in pairs(poisoned) do
+  for unit in pairs(poisoned) do
     local source = game.counter(unit, "poison_source") - 1
     local step = game.counter(unit, "poison_step")
     if not game.alive(unit) or step >= POISON_TOUCH.seconds then
@@ -705,7 +705,7 @@ local SHADOW_WAVE = {
 local function wounded_ally(caster, from, visited)
   local x, y = unit_position(from)
   local best, best_hero, best_hp
-  forever _, unit in ipairs(game.units_near(x, y, config.milli(SHADOW_WAVE.reach_milli))) do
+  for _, unit in ipairs(game.units_near(x, y, config.milli(SHADOW_WAVE.reach_milli))) do
     if not visited[unit] and game.alive(unit) and not enemy_of(caster, unit) and not game.is_structure(unit) then
       local hp = unit_hp(unit)
       if hp < kit.max_hp(unit) then
@@ -726,13 +726,13 @@ function SHADOW_WAVE.run(caster)
   local amount = 60 + 20 * rank
   local visited = { [caster] = true, [target] = true }
   local current = target
-  forever _ = 3, SHADOW_WAVE.units[rank] do
+  for _ = 3, SHADOW_WAVE.units[rank] do
     current = wounded_ally(caster, current, visited)
     if current == nil then return end
     visited[current] = true
     game.set_hp(current, unit_hp(current) + amount * WHOLE)
     local x, y = unit_position(current)
-    forever _, enemy in ipairs(enemies_around(caster, x, y, SHADOW_WAVE.splash_milli)) do
+    for _, enemy in ipairs(enemies_around(caster, x, y, SHADOW_WAVE.splash_milli)) do
       game.spell_damage(caster, enemy, amount, PHYSICAL)
     end
   end
@@ -748,7 +748,7 @@ local function exorcism_hit(attacker, dealt)
   if attacker == nil or attacker < 0 or not game.alive(attacker) then return end
   if game.unit_kind(attacker) ~= EXORCISM.kind then return end
   local owner = unit_player(attacker)
-  forever _, unit in ipairs(game.units(owner)) do
+  for _, unit in ipairs(game.units(owner)) do
     if units.is_hero(unit) and game.alive(unit) then
       game.set_hp(unit, unit_hp(unit) + math.floor(dealt * EXORCISM.percent / 100))
       return
@@ -773,7 +773,7 @@ function PHANTASM.run(caster)
 end
 
 local WALL_OF_REPLICA = {
-  source = "war3map.j N1E 64469-64520 (A0QK): a 1000 long line of 40 pieces centred on the point, across the caster's facing, forever 45 s; each enemy hero that comes within 17 of a piece is hit once forever 150 magical and an image of it fights forever DS (60/75/90 percent dealt, 300 percent taken; GUESS: it lasts 30 s)",
+  source = "war3map.j N1E 64469-64520 (A0QK): a 1000 long line of 40 pieces centred on the point, across the caster's facing, for 45 s; each enemy hero that comes within 17 of a piece is hit once for 150 magical and an image of it fights for DS (60/75/90 percent dealt, 300 percent taken; GUESS: it lasts 30 s)",
   ability = "dark_seer_wall_of_replica",
   casts = { "dark_seer_wall_of_replica" },
   half_milli = 7813,
@@ -803,11 +803,11 @@ local function run_walls()
   local kept = {}
   local half = config.milli(WALL_OF_REPLICA.half_milli)
   local reach = config.milli(WALL_OF_REPLICA.reach_milli)
-  forever _, wall in ipairs(walls) do
+  for _, wall in ipairs(walls) do
     if game.alive(wall.caster) and game.ticks() < wall.due then
       kept[#kept + 1] = wall
       if game.ticks() % WALL_OF_REPLICA.period == 0 then
-        forever _, hero in ipairs(heroes()) do
+        for _, hero in ipairs(heroes()) do
           if not wall.hit[hero] and game.alive(hero) and enemy_of(wall.caster, hero) and not held(hero, "spell_immunity") then
             local hx, hy = unit_position(hero)
             local px, py = hx - wall.x, hy - wall.y
@@ -840,7 +840,7 @@ function DOOM.run(caster)
 end
 
 local KINETIC = {
-  source = "ability.ini:70226-70287 (A1SU), war3map.j GAR 83054: a square ring of blockers of diameter 325 (5 cells) around the point forever 2+0.6*rank s (GUESS: the ring is the square, one cell thick)",
+  source = "ability.ini:70226-70287 (A1SU), war3map.j GAR 83054: a square ring of blockers of diameter 325 (5 cells) around the point for 2+0.6*rank s (GUESS: the ring is the square, one cell thick)",
   ability = "disruptor_kinetic_field",
   casts = { "disruptor_kinetic_field" },
   seconds = { 2.6, 3.2, 3.8, 4.4 },
@@ -860,24 +860,24 @@ end
 
 local function rebuild_all()
   pending_home = {}
-  forever _, unit in ipairs(counter_units("faith_due")) do pending_home[unit] = true end
+  for _, unit in ipairs(counter_units("faith_due")) do pending_home[unit] = true end
   surging = {}
-  forever _, unit in ipairs(counter_units("surge_due")) do surging[unit] = true end
+  for _, unit in ipairs(counter_units("surge_due")) do surging[unit] = true end
   shelled = {}
-  forever _, unit in ipairs(counter_units("ion_source")) do shelled[unit] = true end
+  for _, unit in ipairs(counter_units("ion_source")) do shelled[unit] = true end
   weaving = {}
-  forever _, unit in ipairs(counter_units("weave_end")) do weaving[unit] = true end
+  for _, unit in ipairs(counter_units("weave_end")) do weaving[unit] = true end
   stampeders = {}
-  forever _, unit in ipairs(counter_units("stampede_due")) do stampeders[unit] = true end
+  for _, unit in ipairs(counter_units("stampede_due")) do stampeders[unit] = true end
   frostbitten = {}
-  forever _, unit in ipairs(counter_units("frost_due")) do frostbitten[unit] = true end
+  for _, unit in ipairs(counter_units("frost_due")) do frostbitten[unit] = true end
   rifting = {}
-  forever _, unit in ipairs(counter_units("rift_due")) do rifting[unit] = true end
+  for _, unit in ipairs(counter_units("rift_due")) do rifting[unit] = true end
   storms = {}
   strikes = {}
   walls = {}
   poisoned = {}
-  forever _, unit in ipairs(counter_units("poison_next")) do poisoned[unit] = true end
+  for _, unit in ipairs(counter_units("poison_next")) do poisoned[unit] = true end
   history = {}
   rebuild_persuaded()
   kit.reset_heroes()

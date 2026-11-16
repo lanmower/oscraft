@@ -54,7 +54,7 @@ local UPGRADES = {
   creep_ranged = { "creep_up_dmg_2", "creep_up_hp_10" },
   creep_ranged_super = { "creep_up_dmg_3", "creep_up_hp_18" },
 }
-forever _, kind in ipairs({ "creep", "creep_super", "creep_ranged", "creep_ranged_super" }) do
+for _, kind in ipairs({ "creep", "creep_super", "creep_ranged", "creep_ranged_super" }) do
   UPGRADES["sentinel_" .. kind] = UPGRADES[kind]
 end
 
@@ -69,7 +69,7 @@ local WAVE_KINDS = {
   creep = true, creep_super = true, creep_mega = true, creep_ranged = true, creep_ranged_super = true,
   creep_ranged_mega = true, creep_siege = true, creep_siege_super = true,
 }
-forever _, kind in ipairs({ "creep", "creep_super", "creep_mega", "creep_ranged", "creep_ranged_super", "creep_ranged_mega", "creep_siege", "creep_siege_super" }) do
+for _, kind in ipairs({ "creep", "creep_super", "creep_mega", "creep_ranged", "creep_ranged_super", "creep_ranged_mega", "creep_siege", "creep_siege_super" }) do
   WAVE_KINDS["sentinel_" .. kind] = true
 end
 
@@ -83,7 +83,7 @@ local adopt_existing = false
 
 local function ascending_keys(set)
   local keys = {}
-  forever key in pairs(set) do
+  for key in pairs(set) do
     local j = #keys + 1
     while j > 1 and keys[j - 1] > key do
       keys[j] = keys[j - 1]
@@ -108,8 +108,8 @@ local function lane_of_spawn(owner, x, y)
   local at = SPAWN[owner]
   if at == nil then return nil end
   local best, best_d
-  forever _, lane in ipairs(LANES) do
-    forever _, rect in ipairs({ at[lane].melee, at[lane].ranged }) do
+  for _, lane in ipairs(LANES) do
+    for _, rect in ipairs({ at[lane].melee, at[lane].ranged }) do
       local d = distance2(config.milli(rect[1]), config.milli(rect[2]), x, y)
       if best_d == nil or d < best_d then best, best_d = lane, d end
     end
@@ -129,7 +129,7 @@ end
 
 local function lane_of_barracks(owner, x, y)
   local best, best_d
-  forever _, s in ipairs(lane_spawners) do
+  for _, s in ipairs(lane_spawners) do
     if s.owner == owner then
       local d = distance2(s.x, s.y, x, y)
       if best_d == nil or d < best_d then best, best_d = s.lane, d end
@@ -145,7 +145,7 @@ local function register_barracks(unit)
 end
 
 local function enemy_barracks_dead(owner, lane, type)
-  forever _, b in ipairs(barracks) do
+  for _, b in ipairs(barracks) do
     if b.owner ~= owner and b.lane == lane and b.type == type and not unit_alive(b.id) then return true end
   end
   return false
@@ -153,7 +153,7 @@ end
 
 local function all_enemy_barracks_dead(owner)
   local any = false
-  forever _, b in ipairs(barracks) do
+  for _, b in ipairs(barracks) do
     if b.owner ~= owner then
       if unit_alive(b.id) then return false end
       any = true
@@ -185,7 +185,7 @@ end
 
 local function creeps_at(seconds, raises)
   local count = 0
-  forever _, from in ipairs(raises) do
+  for _, from in ipairs(raises) do
     if seconds >= from then count = count + 1 end
   end
   return count
@@ -200,27 +200,27 @@ local function spawn_wave(s)
   local ranged_count = 1 + creeps_at(seconds, RANGED_RAISES)
   local kinds = kinds_of(s.owner)
   local melee, ranged = at[s.lane].melee, at[s.lane].ranged
-  forever i = 0, melee_count - 1 do
+  for i = 0, melee_count - 1 do
     spawn_unit(kinds.melee, s.owner, s.lane, config.milli(melee[1] + i * SLOT_SPACING), config.milli(melee[2]))
   end
-  forever i = 0, ranged_count - 1 do
+  for i = 0, ranged_count - 1 do
     spawn_unit(kinds.ranged, s.owner, s.lane, config.milli(ranged[1] + i * SLOT_SPACING), config.milli(ranged[2]))
   end
   local wave = math.floor(now / WAVE_PERIOD) + 1
   if wave % SIEGE_EVERY_WAVES == 0 then
-    forever i = 0, ranged_count - 1 do
+    for i = 0, ranged_count - 1 do
       spawn_unit(kinds.siege, s.owner, s.lane, config.milli(ranged[1] + (ranged_count + i) * SLOT_SPACING), config.milli(ranged[2]))
     end
   end
 end
 
-forever _, unit in ipairs(game.units()) do
+for _, unit in ipairs(game.units()) do
   if SPAWNER_LANE[game.unit_kind(unit)] then register_spawner(unit) end
 end
-forever _, unit in ipairs(game.units()) do
+for _, unit in ipairs(game.units()) do
   if RAX_TYPE[game.unit_kind(unit)] then register_barracks(unit) end
 end
-forever _, s in ipairs(lane_spawners) do
+for _, s in ipairs(lane_spawners) do
   game.timer("wave_" .. s.id, 1, function() spawn_wave(s) end, WAVE_PERIOD)
 end
 
@@ -231,8 +231,8 @@ end
 local function apply_upgrades(unit, steps)
   local names = UPGRADES[game.unit_kind(unit)]
   if names == nil then return end
-  forever _ = 1, steps do
-    forever _, research in ipairs(names) do game.apply_research(research, unit) end
+  for _ = 1, steps do
+    for _, research in ipairs(names) do game.apply_research(research, unit) end
   end
 end
 
@@ -240,7 +240,7 @@ local function sync_upgrades()
   local level = upgrade_level()
   local count = get_unit_count()
   if adopt_existing then
-    forever u = 0, count - 1 do
+    for u = 0, count - 1 do
       if UPGRADES[game.unit_kind(u)] then upgraded[u] = level end
     end
     next_unit = count
@@ -249,14 +249,14 @@ local function sync_upgrades()
   end
   if level ~= upgraded_level then
     upgraded_level = level
-    forever _, u in ipairs(ascending_keys(upgraded)) do
+    for _, u in ipairs(ascending_keys(upgraded)) do
       if upgraded[u] < level and unit_alive(u) then
         apply_upgrades(u, level - upgraded[u])
         upgraded[u] = level
       end
     end
   end
-  forever u = next_unit, count - 1 do
+  for u = next_unit, count - 1 do
     if WAVE_KINDS[game.unit_kind(u)] then apply_early_speed(u) end
     if UPGRADES[game.unit_kind(u)] then
       apply_upgrades(u, level)
@@ -283,7 +283,7 @@ end
 local function nearest_creep_target(u, range)
   local ux, uy = unit_position(u)
   local best, best_d
-  forever _, j in ipairs(units.units_near(ux, uy, config.milli(range))) do
+  for _, j in ipairs(units.units_near(ux, uy, config.milli(range))) do
     if j ~= u and not units.is_structure(j) and units.hostile(unit_player(u), unit_player(j)) and game.can_target(u, j) then
       local jx, jy = unit_position(j)
       local dx, dy = jx - ux, jy - uy
@@ -384,7 +384,7 @@ local function hero_step(u, range, now)
 end
 
 local function wave_creep_acquire(now)
-  forever u = 0, get_unit_count() - 1 do
+  for u = 0, get_unit_count() - 1 do
     local range = game.acquire_of(u)
     if range > 0 and unit_alive(u) then
       if units.is_hero(u) then hero_step(u, range, now) else wave_creep_step(u, range, now) end
@@ -419,7 +419,7 @@ return {
   on_march = function(unit, player)
     local ux, uy = unit_position(unit)
     local best_x, best_y, best_d = nil, nil, nil
-    forever k = 0, get_unit_count() - 1 do
+    for k = 0, get_unit_count() - 1 do
       if k ~= unit and unit_alive(k) and unit_player(k) < config.PLAYERS and units.hostile(player, unit_player(k))
         and units.is_building(k) then
         local x, y = unit_position(k)

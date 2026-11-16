@@ -33,7 +33,7 @@ function commend.view(viewer)
   local hero = bounty.hero_of(viewer)
   if hero ~= nil and game.counter(hero, GIVEN) > 0 then given = game.counter(hero, GIVEN) - 1 end
   local received = {}
-  forever player = 0, config.PLAYERS - 1 do
+  for player = 0, config.PLAYERS - 1 do
     local recipient = bounty.hero_of(player)
     received[player] = recipient ~= nil and game.counter(recipient, RECEIVED) or 0
   end

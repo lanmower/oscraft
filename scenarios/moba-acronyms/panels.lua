@@ -1320,14 +1320,6 @@ local function networth_tree()
   return panel(TEXT.netWorth.title, kids)
 end
 
-local function roster_names()
-  local out = {}
-  for _, k in ipairs(game.unit_kinds()) do
-    if k.player_controlled and k.model ~= "" then out[#out + 1] = k.name end
-  end
-  return out
-end
-
 local function owner_text(s)
   if s.owner == nil then return TEXT.lobby.owners.open end
   if s.owner == OWNER then return TEXT.lobby.owners.you end
@@ -1806,6 +1798,14 @@ local function acronym(kind)
   return UI.heroAcronyms[kind] or HERO_ACRONYM[kind] or UI.heroAcronyms[name] or HERO_ACRONYM[name] or "?"
 end
 LATE.acronym = acronym
+
+local function roster_names()
+  local out = {}
+  for _, k in ipairs(game.unit_kinds()) do
+    if k.player_controlled and k.model ~= "" and acronym(k.name) ~= "?" then out[#out + 1] = k.name end
+  end
+  return out
+end
 
 local function base_max()
   local best = { 0, 0, 0 }

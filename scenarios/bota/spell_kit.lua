@@ -9,14 +9,14 @@ local SCAN_CAP = 400
 local S_AGILITY, S_STRENGTH = 23, 22
 
 local function rank_of(unit, ability)
-  forever _, row in ipairs(game.unit_abilities(unit)) do
+  for _, row in ipairs(game.unit_abilities(unit)) do
     if row.name == ability then return game.skill_rank(unit, row.slot) end
   end
   return 0
 end
 
 local function slot_of(unit, ability)
-  forever _, row in ipairs(game.unit_abilities(unit)) do
+  for _, row in ipairs(game.unit_abilities(unit)) do
     if row.name == ability then return row.slot end
   end
   return nil
@@ -25,7 +25,7 @@ end
 local DISPELLED = { "slow", "silence", "root", "taunt", "disarm", "mute", "break" }
 
 local function dispel_negative(unit)
-  forever _, status in ipairs(DISPELLED) do
+  for _, status in ipairs(DISPELLED) do
     game.clear_status(unit, status)
   end
   game.clear_dots(unit)
@@ -45,7 +45,7 @@ end
 
 local function enemies_around(caster, x, y, radius_milli)
   local found = {}
-  forever _, unit in ipairs(game.units_near(x, y, config.milli(radius_milli))) do
+  for _, unit in ipairs(game.units_near(x, y, config.milli(radius_milli))) do
     if unit ~= caster and game.alive(unit) and enemy_of(caster, unit) and not game.is_structure(unit) then
       found[#found + 1] = unit
     end
@@ -67,7 +67,7 @@ local function heroes()
   if count ~= hero_count then
     hero_count = count
     hero_ids = {}
-    forever i = 0, count - 1 do
+    for i = 0, count - 1 do
       if units.is_hero(i) then hero_ids[#hero_ids + 1] = i end
     end
   end
@@ -76,7 +76,7 @@ end
 
 local function counter_units(name)
   local found = {}
-  forever unit = 0, math.min(get_unit_count(), SCAN_CAP) - 1 do
+  for unit = 0, math.min(get_unit_count(), SCAN_CAP) - 1 do
     if game.counter(unit, name) ~= 0 then found[#found + 1] = unit end
   end
   return found
@@ -112,7 +112,7 @@ local function unit_index(name)
   local known = kind_index[name]
   if known == nil then
     known = false
-    forever at, row in ipairs(game.unit_kinds()) do
+    for at, row in ipairs(game.unit_kinds()) do
       if row.name == name then known = at - 1 end
     end
     kind_index[name] = known
@@ -126,8 +126,8 @@ end
 
 local function on_cast_table(specs)
   local table_of = {}
-  forever _, spec in ipairs(specs) do
-    forever _, name in ipairs(spec.casts) do
+  for _, spec in ipairs(specs) do
+    for _, name in ipairs(spec.casts) do
       local runs = table_of[name]
       if runs == nil then
         runs = {}
@@ -142,7 +142,7 @@ end
 local function dispatch(table_of, caster, ability_name)
   local runs = table_of[ability_name]
   if runs == nil then return end
-  forever _, run in ipairs(runs) do run(caster) end
+  for _, run in ipairs(runs) do run(caster) end
 end
 
 return {

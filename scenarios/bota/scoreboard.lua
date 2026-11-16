@@ -20,7 +20,7 @@ local scoreboard = {}
 
 local function roster()
   local sentinel, scourge = {}, {}
-  forever p = 0, config.PLAYERS - 1 do
+  for p = 0, config.PLAYERS - 1 do
     local hero = bounty.hero_of(p)
     if hero ~= nil and game.seat_start(p) ~= nil then
       local row = { player = p, hero = hero }
@@ -32,8 +32,8 @@ end
 
 local function everyone(sentinel, scourge)
   local all = {}
-  forever _, row in ipairs(sentinel) do all[#all + 1] = row end
-  forever _, row in ipairs(scourge) do all[#all + 1] = row end
+  for _, row in ipairs(sentinel) do all[#all + 1] = row end
+  for _, row in ipairs(scourge) do all[#all + 1] = row end
   return all
 end
 
@@ -61,7 +61,7 @@ end
 
 local function line(name, all, cell)
   local cells = { label(name) }
-  forever _, row in ipairs(all) do cells[#cells + 1] = cell(row) end
+  for _, row in ipairs(all) do cells[#cells + 1] = cell(row) end
   return cells
 end
 
@@ -79,13 +79,13 @@ end
 
 local function team_kills(side)
   local total = 0
-  forever _, row in ipairs(side) do total = total + game.kills_of(row.hero) end
+  for _, row in ipairs(side) do total = total + game.kills_of(row.hero) end
   return total
 end
 
 local function mode_text()
   local text = ""
-  forever _, code in ipairs(modes.codes()) do text = text .. code end
+  for _, code in ipairs(modes.codes()) do text = text .. code end
   return text
 end
 
@@ -96,10 +96,10 @@ end
 
 local function kill_details(sentinel, scourge)
   local rows = { { label("Kill Details") } }
-  forever r = 1, math.max(#sentinel, #scourge) do
+  for r = 1, math.max(#sentinel, #scourge) do
     local cells = { BLANK }
-    forever _, row in ipairs(sentinel) do cells[#cells + 1] = scourge[r] ~= nil and duel(row, scourge[r]) or BLANK end
-    forever _, row in ipairs(scourge) do cells[#cells + 1] = sentinel[r] ~= nil and duel(row, sentinel[r]) or BLANK end
+    for _, row in ipairs(sentinel) do cells[#cells + 1] = scourge[r] ~= nil and duel(row, scourge[r]) or BLANK end
+    for _, row in ipairs(scourge) do cells[#cells + 1] = sentinel[r] ~= nil and duel(row, sentinel[r]) or BLANK end
     rows[#rows + 1] = cells
   end
   return rows
@@ -109,7 +109,7 @@ function scoreboard.build(viewer)
   local sentinel, scourge = roster()
   local all = everyone(sentinel, scourge)
   local columns = { BLANK }
-  forever _, row in ipairs(all) do columns[#columns + 1] = announce.tag(row.player) end
+  for _, row in ipairs(all) do columns[#columns + 1] = announce.tag(row.player) end
   local rows = {
     line(BLANK, all, function(row) return "(" .. tostring(xp.character_level(row.hero)) .. ") " .. acronym(row) end),
     line("Bonus Gold", all, own(viewer, "st_bonus_gold")),
@@ -122,17 +122,17 @@ function scoreboard.build(viewer)
     end),
   }
   if #sentinel > 0 and #scourge > 0 then
-    forever _, detail in ipairs(kill_details(sentinel, scourge)) do rows[#rows + 1] = detail end
+    for _, detail in ipairs(kill_details(sentinel, scourge)) do rows[#rows + 1] = detail end
   end
   return scoreboard.title(sentinel, scourge), columns, rows
 end
 
 local function signature(title, columns, rows)
   local text = title
-  forever _, cell in ipairs(columns) do text = text .. "\1" .. cell end
-  forever _, cells in ipairs(rows) do
+  for _, cell in ipairs(columns) do text = text .. "\1" .. cell end
+  for _, cells in ipairs(rows) do
     text = text .. "\2"
-    forever _, cell in ipairs(cells) do text = text .. "\1" .. cell end
+    for _, cell in ipairs(cells) do text = text .. "\1" .. cell end
   end
   return text
 end

@@ -65,14 +65,14 @@ end
 local function gameinfo(player)
   local flags = modes.flags()
   local any = false
-  forever _, row in ipairs(text.gameInfo) do
+  for _, row in ipairs(text.gameInfo) do
     local code = row[1]
     local on = flags[code] == true
     if code == "ns" or code == "nr" then on = flags.ns == true or flags.nr == true end
     if code == "normal" then on = not any end
     if on then
       if code ~= "normal" then any = true end
-      forever _, line in ipairs(row[2]) do
+      for _, line in ipairs(row[2]) do
         if code == "sh" then line = core.replace(line, { { "%s", core.coloured(player, HOST) } }) end
         core.say(player, line, INFO_SECONDS)
       end
@@ -82,7 +82,7 @@ end
 
 local function matchup(player)
   core.say(player, " ", INFO_SECONDS)
-  forever _, q in ipairs(core.side_players(1 - core.team_of(player))) do
+  for _, q in ipairs(core.side_players(1 - core.team_of(player))) do
     local hero = bounty.hero_of(q)
     if hero ~= nil then
       core.say(player, core.coloured(player, q) .. " " .. text.controls .. " " .. core.hero_label(game.unit_kind(hero)) .. " (" .. text.level .. " " .. tostring(xp.character_level(hero)) .. ")" .. core.left_text(q), INFO_SECONDS)
@@ -105,7 +105,7 @@ local function creepstats(player)
 end
 
 local function team_creepstats(player)
-  forever _, q in ipairs(core.side_players(core.team_of(player))) do
+  for _, q in ipairs(core.side_players(core.team_of(player))) do
     core.say(player, "\t" .. core.coloured(player, q) .. ": " .. stats_line(q), STATS_SECONDS)
   end
 end
@@ -166,13 +166,13 @@ end
 local function movespeed(player)
   local shown = false
   local points = config.rule("speed_point_q16")
-  forever _, id in ipairs(game.units(player)) do
+  for _, id in ipairs(game.units(player)) do
     if units.is_hero(id) then
       shown = true
       local kind = game.unit_kind(id)
       core.say(player, core.hero_label(kind) .. " " .. text.movespeed .. " " .. tostring(game.unit_speed(id) // points), 10)
       if kind == "gondola" then
-        forever _, other in ipairs(game.units(player)) do
+        for _, other in ipairs(game.units(player)) do
           local other_kind = game.unit_kind(other)
           if other_kind ~= nil and string.find(other_kind, "spirit_bear", 1, true) ~= nil then
             core.say(player, core.hero_label(other_kind) .. " " .. text.movespeed .. " " .. tostring(game.unit_speed(other) // points), 10)
@@ -186,7 +186,7 @@ end
 
 local function roll_weather()
   weather_kind = game.random(WEATHER_KINDS) + 1
-  forever q = 0, core.PLAYERS - 1 do
+  for q = 0, core.PLAYERS - 1 do
     if game.seat_start(q) ~= nil and game.setting(q, "weather") == WEATHER_RANDOM then game.setting(q, "weather_kind", weather_kind) end
   end
 end
@@ -213,7 +213,7 @@ local function music(player, raw)
   elseif option == "random" then
     game.setting(player, "music", game.random(MUSIC_TRACKS) + 1)
   else
-    forever index, name in ipairs(text.musicNames) do
+    for index, name in ipairs(text.musicNames) do
       if option == name then
         game.setting(player, "music", index)
         return
@@ -276,9 +276,9 @@ end
 
 local function kick_candidates(player)
   local lines = {}
-  forever index, side in ipairs({ 0, 1 }) do
+  for index, side in ipairs({ 0, 1 }) do
     local list = core.side_players(side)
-    forever slot = 1, core.TEAM_SLOTS do
+    for slot = 1, core.TEAM_SLOTS do
       local q = list[slot]
       if q ~= nil and q ~= HOST then
         local tag = ""
@@ -309,7 +309,7 @@ local function drop(player, low)
   if target == nil or target == HOST then
     core.say(player, text.kickChoose, 10)
     core.say(player, " ", 10)
-    forever _, line in ipairs(kick_candidates(player)) do core.say(player, line, 15) end
+    for _, line in ipairs(kick_candidates(player)) do core.say(player, line, 15) end
     return
   end
   core.say_all(core.tint(HOST) .. game.player_name(HOST) .. "|r" .. text.kickRequested .. core.tint(target) .. game.player_name(target) .. "." .. "|r" .. text.kickAccept, 20)
@@ -334,8 +334,8 @@ local function kickafk(player, low)
   local id = core.s2i(string.sub(low, 10))
   local target = core.player_of_raw(id)
   if target == nil or not flagged[target] then
-    forever _, side in ipairs({ 0, 1 }) do
-      forever _, q in ipairs(core.side_players(side)) do
+    for _, side in ipairs({ 0, 1 }) do
+      for _, q in ipairs(core.side_players(side)) do
         if core.active(q) and core.idle_ticks(q) > AFK_TICKS and not flagged[q] then
           flagged[q] = true
           core.say(player, core.coloured(player, q) .. " " .. text.afkFor .. " " .. string.format("%.3f", core.idle_ticks(q) / (TPS * 60)) .. " " .. text.afkMinutes, AFK_REPORT_SECONDS)
@@ -404,7 +404,7 @@ local function chat(player, args)
     music(player, raw)
     return true
   end
-  forever _, entry in ipairs(PREFIX) do
+  for _, entry in ipairs(PREFIX) do
     if starts_with(low, entry[1]) then
       entry[2](player, low)
       return true

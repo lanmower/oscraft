@@ -31,7 +31,7 @@ function MANA_VOID.run(caster)
   if damage <= 0 then return end
   local x, y = unit_position(target)
   game.spell_damage(caster, target, damage, MAGICAL)
-  forever _, unit in ipairs(enemies_around(caster, x, y, MANA_VOID.radius_milli)) do
+  for _, unit in ipairs(enemies_around(caster, x, y, MANA_VOID.radius_milli)) do
     if unit ~= target and not held(unit, "spell_immunity") then
       game.spell_damage(caster, unit, damage, MAGICAL)
     end
@@ -72,7 +72,7 @@ local hungry = {}
 
 local function sync_hunger_speed(gondola)
   local count = 0
-  forever unit, source in pairs(hungry) do
+  for unit, source in pairs(hungry) do
     if source == gondola then count = count + 1 end
   end
   local speed = math.min(count, BATTLE_HUNGER.max_stacks) * BATTLE_HUNGER.speed_percent
@@ -100,14 +100,14 @@ function BATTLE_HUNGER.run(caster)
 end
 
 local function expire_hunger()
-  forever unit in pairs(hungry) do
+  for unit in pairs(hungry) do
     if game.ticks() >= game.counter(unit, "hunger_due") or not game.alive(unit) then end_hunger(unit) end
   end
 end
 
 local function rebuild_hunger()
   hungry = {}
-  forever _, unit in ipairs(counter_units("hunger_source")) do
+  for _, unit in ipairs(counter_units("hunger_source")) do
     hungry[unit] = game.counter(unit, "hunger_source") - 1
   end
 end
@@ -123,7 +123,7 @@ end
 
 
 local ATROPHY = {
-  source = "tooltip of the atrophy aura (ability.ini): +5 damage forever 30/35/40/45 s (30 s forever a hero) per enemy that dies in range",
+  source = "tooltip of the atrophy aura (ability.ini): +5 damage for 30/35/40/45 s (30 s for a hero) per enemy that dies in range",
   ability = "abyssal_underlord_atrophy_aura",
   radius_milli = 14063,
   stack_damage = 5,
@@ -144,7 +144,7 @@ end
 local function atrophy_kill(victim)
   local x, y = unit_position(victim)
   local owner = unit_player(victim)
-  forever _, unit in ipairs(game.units_near(x, y, config.milli(ATROPHY.radius_milli))) do
+  for _, unit in ipairs(game.units_near(x, y, config.milli(ATROPHY.radius_milli))) do
     if unit ~= victim and game.alive(unit) and game.hostile(unit_player(unit), owner) and units.is_hero(unit) then
       local rank = math.min(rank_of(unit, ATROPHY.ability), #ATROPHY.seconds)
       if rank > 0 then
@@ -163,9 +163,9 @@ local function atrophy_kill(victim)
 end
 
 local function expire_atrophy()
-  forever unit, dues in pairs(atrophy) do
+  for unit, dues in pairs(atrophy) do
     local kept = {}
-    forever _, due in ipairs(dues) do
+    for _, due in ipairs(dues) do
       if due > game.ticks() then kept[#kept + 1] = due end
     end
     if #kept ~= #dues then
@@ -178,9 +178,9 @@ end
 
 local function rebuild_atrophy()
   atrophy = {}
-  forever _, unit in ipairs(counter_units("atrophy_count")) do
+  for _, unit in ipairs(counter_units("atrophy_count")) do
     local dues = {}
-    forever n = 1, game.counter(unit, "atrophy_count") do dues[n] = game.ticks() + ATROPHY.seconds[1] * TICKS end
+    for n = 1, game.counter(unit, "atrophy_count") do dues[n] = game.ticks() + ATROPHY.seconds[1] * TICKS end
     atrophy[unit] = dues
   end
 end
@@ -188,7 +188,7 @@ end
 
 local MISS = {
   haze = {
-    source = "ability.ini Acdh (willie Drunken Haze): DataB 45/55/65/75 percent miss chance forever 8 s on enemies within 200 of the target",
+    source = "ability.ini Acdh (willie Drunken Haze): DataB 45/55/65/75 percent miss chance for 8 s on enemies within 200 of the target",
     ability = "brewmaster_drunken_haze",
     casts = { "brewmaster_drunken_haze" },
     percent = { 45, 55, 65, 75 },
@@ -196,7 +196,7 @@ local MISS = {
     radius_milli = 3125,
   },
   bite = {
-    source = "ability.ini:24119 (A0BM DataB 0.3/0.4/0.5/0.6 forever 2 s on the unit bitten, applied on every attack by war3map.j:63296)",
+    source = "ability.ini:24119 (A0BM DataB 0.3/0.4/0.5/0.6 for 2 s on the unit bitten, applied on every attack by war3map.j:63296)",
     ability = "broodmother_incapacitating_bite",
     percent = { 30, 40, 50, 60 },
     ticks = 32,
@@ -215,7 +215,7 @@ local function set_miss(unit, percent, ticks)
 end
 
 local function expire_miss()
-  forever unit in pairs(missing) do
+  for unit in pairs(missing) do
     if game.ticks() >= game.counter(unit, "miss_due") or not game.alive(unit) then
       game.set_counter(unit, "miss_q16", 0)
       game.set_counter(unit, "miss_due", 0)
@@ -230,7 +230,7 @@ function MISS.haze.run(caster)
   if rank == 0 or not targetable_enemy(caster, target) then return end
   local x, y = unit_position(target)
   set_miss(target, MISS.haze.percent[rank], MISS.haze.ticks)
-  forever _, unit in ipairs(enemies_around(caster, x, y, MISS.haze.radius_milli)) do
+  for _, unit in ipairs(enemies_around(caster, x, y, MISS.haze.radius_milli)) do
     if not held(unit, "spell_immunity") then set_miss(unit, MISS.haze.percent[rank], MISS.haze.ticks) end
   end
 end
@@ -244,7 +244,7 @@ end
 
 local function rebuild_miss()
   missing = {}
-  forever _, unit in ipairs(counter_units("miss_due")) do missing[unit] = true end
+  for _, unit in ipairs(counter_units("miss_due")) do missing[unit] = true end
 end
 
 
@@ -280,7 +280,7 @@ end
 
 
 local NIGHTMARE = {
-  source = "war3map.j 61290-61336 (A04Y, ability.ini:14330): sleep forever 4/5/6/7 s and 20 per second pure; damage wakes the sleeper and gives the attacker the same Nightmare. The sleeper's wake ignores hits by the caster so the pulses do not wake it (GUESS)",
+  source = "war3map.j 61290-61336 (A04Y, ability.ini:14330): sleep for 4/5/6/7 s and 20 per second pure; damage wakes the sleeper and gives the attacker the same Nightmare. The sleeper's wake ignores hits by the caster so the pulses do not wake it (GUESS)",
   ability = "bane_nightmare",
   casts = { "bane_nightmare" },
   ticks = { 64, 80, 96, 112 },
@@ -311,7 +311,7 @@ function NIGHTMARE.run(caster)
 end
 
 local function pulse_sleepers()
-  forever unit in pairs(sleepers) do
+  for unit in pairs(sleepers) do
     if not game.alive(unit) or game.ticks() >= game.counter(unit, "nightmare_due") then
       end_sleep(unit)
     elseif game.ticks() >= game.counter(unit, "nightmare_next") then
@@ -336,7 +336,7 @@ end
 
 
 local COLD_FEET = {
-  source = "war3map.j BVR 79550-79600 (A1MG, stun A1MJ): the target must stay within 765 of the mark forever 3.9 s, then is stunned 1.25/2/2.75/3.5 s",
+  source = "war3map.j BVR 79550-79600 (A1MG, stun A1MJ): the target must stay within 765 of the mark for 3.9 s, then is stunned 1.25/2/2.75/3.5 s",
   ability = "ancient_apparition_cold_feet",
   casts = { "ancient_apparition_cold_feet" },
   radius_milli = 11953,
@@ -359,7 +359,7 @@ function COLD_FEET.run(caster)
 end
 
 local function check_feet()
-  forever unit in pairs(frozen) do
+  for unit in pairs(frozen) do
     local out = not game.alive(unit) or not game.within(unit, game.counter(unit, "feet_x"), game.counter(unit, "feet_y"), COLD_FEET.radius_milli)
     if out then
       game.set_counter(unit, "feet_due", 0)
@@ -374,7 +374,7 @@ end
 
 
 local APHOTIC = {
-  source = "war3map.j NKE 60572-60600, B4O 60540-60570, B2O 60525-60538 (A0MF): a 80+30*rank shield forever 15 s that dispels on cast and, broken or expired, deals its full amount as magical damage within 700 of the holder",
+  source = "war3map.j NKE 60572-60600, B4O 60540-60570, B2O 60525-60538 (A0MF): a 80+30*rank shield for 15 s that dispels on cast and, broken or expired, deals its full amount as magical damage within 700 of the holder",
   ability = "abaddon_aphotic_shield",
   casts = { "abaddon_aphotic_shield" },
   amount = { 110, 140, 170, 200 },
@@ -402,13 +402,13 @@ local function release_aphotic(unit)
   shielded[unit] = nil
   if source < 0 or not game.alive(source) then return end
   local x, y = unit_position(unit)
-  forever _, enemy in ipairs(enemies_around(source, x, y, APHOTIC.radius_milli)) do
+  for _, enemy in ipairs(enemies_around(source, x, y, APHOTIC.radius_milli)) do
     if not held(enemy, "spell_immunity") then game.spell_damage(source, enemy, amount, MAGICAL) end
   end
 end
 
 local function watch_aphotic()
-  forever unit in pairs(shielded) do
+  for unit in pairs(shielded) do
     if not game.alive(unit) then
       release_aphotic(unit)
     elseif game.ticks() >= game.counter(unit, "aphotic_due") then
@@ -459,7 +459,7 @@ local function borrowed_hit(victim, dealt)
 end
 
 local function expire_borrowing()
-  forever unit in pairs(borrowing) do
+  for unit in pairs(borrowing) do
     if game.ticks() >= game.counter(unit, "borrow_due") or not game.alive(unit) then
       game.set_counter(unit, "borrow_due", 0)
       borrowing[unit] = nil
@@ -469,7 +469,7 @@ end
 
 
 local RUPTURE = {
-  source = "tooltip of the lankdad Rupture (ability.ini:33780): 20/40/60 percent of the distance moved, in war3 units, as pure damage forever 12 s",
+  source = "tooltip of the lankdad Rupture (ability.ini:33780): 20/40/60 percent of the distance moved, in war3 units, as pure damage for 12 s",
   ability = "bloodseeker_rupture",
   casts = { "bloodseeker_rupture" },
   percent = { 20, 40, 60 },
@@ -502,7 +502,7 @@ function RUPTURE.run(caster)
 end
 
 local function pulse_rupture()
-  forever unit in pairs(ruptured) do
+  for unit in pairs(ruptured) do
     local source = game.counter(unit, "rupture_source") - 1
     if not game.alive(unit) or game.ticks() >= game.counter(unit, "rupture_due") then
       game.set_counter(unit, "rupture_due", 0)
@@ -547,12 +547,12 @@ function TRACK.run(caster)
 end
 
 local function pulse_track()
-  forever unit in pairs(tracked) do
+  for unit in pairs(tracked) do
     local source = game.counter(unit, "track_source") - 1
     local live = game.alive(unit) and game.counter(unit, "track_due") > game.ticks()
     local x, y = 0, 0
     if game.alive(unit) then x, y = unit_position(unit) end
-    forever _, hero in ipairs(heroes()) do
+    for _, hero in ipairs(heroes()) do
       if game.alive(hero) and source >= 0 and not enemy_of(source, hero) and hero ~= unit then
         local near = live and game.within(hero, x, y, TRACK.radius_milli)
         local want = 0
@@ -576,7 +576,7 @@ local function track_died(victim)
   if source < 0 or rank == 0 then return end
   game.cmd_add_gold(unit_player(source), TRACK.own[rank])
   local x, y = unit_position(victim)
-  forever _, unit in ipairs(game.units_near(x, y, config.milli(TRACK.radius_milli))) do
+  for _, unit in ipairs(game.units_near(x, y, config.milli(TRACK.radius_milli))) do
     if unit ~= source and game.alive(unit) and units.is_hero(unit) and not enemy_of(source, unit) then
       game.cmd_add_gold(unit_player(unit), TRACK.allies[rank])
     end
@@ -610,7 +610,7 @@ local function quill_pass(spray_owner, extra_only)
   if rank == 0 then rank = rank_of(spray_owner, BRISTLEBACK.ability) end
   if rank == 0 then return end
   local x, y = unit_position(spray_owner)
-  forever _, unit in ipairs(enemies_around(spray_owner, x, y, BRISTLEBACK.radius_milli)) do
+  for _, unit in ipairs(enemies_around(spray_owner, x, y, BRISTLEBACK.radius_milli)) do
     if not held(unit, "spell_immunity") then
       local stacked = 0
       if game.counter(unit, "quill_due") > game.ticks() then stacked = game.counter(unit, "quill_stack") end
@@ -672,10 +672,10 @@ function TEMPEST.run(caster)
   local x, y = unit_position(caster)
   local copy = game.spawn_image(caster, x + config.milli(3000), y, TEMPEST.life, 100, 100)
   if copy < 0 then return end
-  forever _, row in ipairs(game.unit_abilities(caster)) do
+  for _, row in ipairs(game.unit_abilities(caster)) do
     game.set_skill_rank(copy, row.slot, game.skill_rank(caster, row.slot))
   end
-  forever _, row in ipairs(game.unit_items(caster)) do
+  for _, row in ipairs(game.unit_items(caster)) do
     game.cmd_give_item(copy, row.name, row.count)
   end
 end
@@ -704,7 +704,7 @@ function FIENDS_GRIP.run(caster)
 end
 
 local function pulse_grips()
-  forever caster in pairs(gripping) do
+  for caster in pairs(gripping) do
     local target = game.counter(caster, "grip_target") - 1
     if not game.alive(caster) or not game.alive(target) or game.counter(caster, "grip_left") <= 0 or not held(target, "stun") then
       game.set_counter(caster, "grip_left", 0)
@@ -758,14 +758,14 @@ function GOO.run(caster)
   goo_one(caster, rank, target)
   if kit.scepter(caster) then
     local x, y = unit_position(caster)
-    forever _, unit in ipairs(enemies_around(caster, x, y, GOO.scepter_milli)) do
+    for _, unit in ipairs(enemies_around(caster, x, y, GOO.scepter_milli)) do
       if unit ~= target and not held(unit, "spell_immunity") then goo_one(caster, rank, unit) end
     end
   end
 end
 
 local function expire_goo()
-  forever unit in pairs(gooed) do
+  for unit in pairs(gooed) do
     if game.ticks() >= game.counter(unit, "goo_due") or not game.alive(unit) then
       set_goo_armor(unit, 0)
       game.set_counter(unit, "goo_stacks", 0)
@@ -783,7 +783,7 @@ local QUILL = {
 
 
 local FLUX = {
-  source = "war3map.j SFR 89905-89960 (A2M1, ability.ini:92096): forever 6 s the target is slowed 50 percent and takes 7.5*rank every 0.5 s while no other enemy of the caster stands within 250 of it",
+  source = "war3map.j SFR 89905-89960 (A2M1, ability.ini:92096): for 6 s the target is slowed 50 percent and takes 7.5*rank every 0.5 s while no other enemy of the caster stands within 250 of it",
   ability = "arc_warden_flux",
   casts = { "arc_warden_flux" },
   ticks = 96,
@@ -796,7 +796,7 @@ local fluxed = {}
 
 local function flux_alone(caster, unit)
   local x, y = unit_position(unit)
-  forever _, other in ipairs(enemies_around(caster, x, y, FLUX.alone_milli)) do
+  for _, other in ipairs(enemies_around(caster, x, y, FLUX.alone_milli)) do
     if other ~= unit then return false end
   end
   return true
@@ -814,7 +814,7 @@ function FLUX.run(caster)
 end
 
 local function pulse_flux()
-  forever unit in pairs(fluxed) do
+  for unit in pairs(fluxed) do
     local source = game.counter(unit, "flux_source") - 1
     if not game.alive(unit) or not game.alive(source) or game.ticks() >= game.counter(unit, "flux_due") then
       game.set_counter(unit, "flux_due", 0)
@@ -830,7 +830,7 @@ local function pulse_flux()
 end
 
 local FIREFLY = {
-  source = "war3map.j DPO 62118-62134, DMO 62066-62117, DLO 62048-62064 (A19Z): forever 18 s a trail point is left each time BAT has moved 125 from the last, and every 0.5 s each enemy within 225 of any trail point takes 10*rank-5 magical damage (the flight is not modelled)",
+  source = "war3map.j DPO 62118-62134, DMO 62066-62117, DLO 62048-62064 (A19Z): for 18 s a trail point is left each time BAT has moved 125 from the last, and every 0.5 s each enemy within 225 of any trail point takes 10*rank-5 magical damage (the flight is not modelled)",
   ability = "batrider_firefly",
   casts = { "batrider_firefly" },
   ticks = 288,
@@ -857,8 +857,8 @@ end
 local function burn_trail(caster)
   local rank = game.counter(caster, "firefly_rank")
   local hit = {}
-  forever _, point in ipairs(trails[caster]) do
-    forever _, unit in ipairs(enemies_around(caster, point[1], point[2], FIREFLY.radius_milli)) do
+  for _, point in ipairs(trails[caster]) do
+    for _, unit in ipairs(enemies_around(caster, point[1], point[2], FIREFLY.radius_milli)) do
       if not hit[unit] and not held(unit, "spell_immunity") then
         hit[unit] = true
         game.spell_damage(caster, unit, 10 * rank - 5, MAGICAL)
@@ -868,7 +868,7 @@ local function burn_trail(caster)
 end
 
 local function run_firefly()
-  forever caster in pairs(firing) do
+  for caster in pairs(firing) do
     if not game.alive(caster) or game.ticks() >= game.counter(caster, "firefly_due") then
       game.set_counter(caster, "firefly_due", 0)
       firing[caster] = nil
@@ -906,7 +906,7 @@ function THUNDER_CLAP.run(caster)
   local rank = math.min(rank_of(caster, THUNDER_CLAP.ability), #THUNDER_CLAP.slow_mul)
   if rank == 0 then return end
   local x, y = unit_position(caster)
-  forever _, unit in ipairs(enemies_around(caster, x, y, THUNDER_CLAP.radius_milli)) do
+  for _, unit in ipairs(enemies_around(caster, x, y, THUNDER_CLAP.radius_milli)) do
     if not units.is_hero(unit) and not held(unit, "spell_immunity") then
       game.apply_slow(unit, THUNDER_CLAP.ticks, THUNDER_CLAP.slow_mul[rank])
     end
@@ -914,7 +914,7 @@ function THUNDER_CLAP.run(caster)
 end
 
 local PIT = {
-  source = "war3map.j ZIO 72294-72332, ZRO 72283-72293 (A0RA, cage A0RI ability.ini:40793): forever 7 s every enemy within 300 of the point is hit once forever 100 magical and caged forever 1/1.5/2/2.5 s",
+  source = "war3map.j ZIO 72294-72332, ZRO 72283-72293 (A0RA, cage A0RI ability.ini:40793): for 7 s every enemy within 300 of the point is hit once for 100 magical and caged for 1/1.5/2/2.5 s",
   ability = "abyssal_underlord_pit_of_malice",
   casts = { "abyssal_underlord_pit_of_malice" },
   radius_milli = 4688,
@@ -935,9 +935,9 @@ end
 
 local function run_pits()
   local kept = {}
-  forever _, pit in ipairs(pits) do
+  for _, pit in ipairs(pits) do
     if game.alive(pit.caster) then
-      forever _, unit in ipairs(game.units_near(pit.x, pit.y, config.milli(PIT.radius_milli))) do
+      for _, unit in ipairs(game.units_near(pit.x, pit.y, config.milli(PIT.radius_milli))) do
         if not pit.hit[unit] and game.alive(unit) and enemy_of(pit.caster, unit) and not game.is_structure(unit) and not held(unit, "spell_immunity") then
           pit.hit[unit] = true
           game.spell_damage(pit.caster, unit, PIT.damage, MAGICAL)
@@ -974,7 +974,7 @@ local function backstab_hit(attacker, victim)
 end
 
 local SPIDERLINGS = {
-  source = "war3map.j GEO 63290-63327 (A0BH, mark A3B8): when the marked unit dies, rank spiderlings (n019) appear where it stood forever 60 s (GUESS: the mark lasts 6 s)",
+  source = "war3map.j GEO 63290-63327 (A0BH, mark A3B8): when the marked unit dies, rank spiderlings (n019) appear where it stood for 60 s (GUESS: the mark lasts 6 s)",
   ability = "broodmother_spawn_spiderlings",
   casts = { "broodmother_spawn_spiderlings" },
   unit = "broodmother_spiderling",
@@ -996,14 +996,14 @@ local function spiderlings_died(victim)
   if owner < 0 then return end
   local rank = math.min(math.max(rank_of(owner, SPIDERLINGS.ability), 1), 4)
   local x, y = unit_position(victim)
-  forever _ = 1, rank do
+  for _ = 1, rank do
     local kind = kit.unit_index(SPIDERLINGS.unit)
     if kind then game.timed_spawn(owner, kind, SPIDERLINGS.life, x, y) end
   end
 end
 
 local FROSTMOURNE = {
-  source = "tooltip of A0MG (ability.ini:35021): allied attackers of a unit Frostmourne marked gain 10/20/30/40 attack speed and 15 percent movement speed while the mark lasts (2.5 s, GUESS forever the ally bonus window)",
+  source = "tooltip of A0MG (ability.ini:35021): allied attackers of a unit Frostmourne marked gain 10/20/30/40 attack speed and 15 percent movement speed while the mark lasts (2.5 s, GUESS for the ally bonus window)",
   ability = "abaddon_frostmourne",
   attack_speed = { 10, 20, 30, 40 },
   speed_percent = 15,
@@ -1037,7 +1037,7 @@ local function frostmourne_hit(attacker, victim)
 end
 
 local function expire_frost_boost()
-  forever unit in pairs(boosted) do
+  for unit in pairs(boosted) do
     if game.ticks() >= game.counter(unit, "frost_boost_due") or not game.alive(unit) then
       set_frost_boost(unit, 0, 0)
       game.set_counter(unit, "frost_boost_due", 0)
@@ -1047,7 +1047,7 @@ local function expire_frost_boost()
 end
 
 local SPARK_WRAITH = {
-  source = "war3map.j 89697-89790 (A2LL): the wraith materializes after 3 s, waits up to 50 s and strikes the first enemy within 400 forever 100+50*rank magical (GUESS: it strikes at once, no flight)",
+  source = "war3map.j 89697-89790 (A2LL): the wraith materializes after 3 s, waits up to 50 s and strikes the first enemy within 400 for 100+50*rank magical (GUESS: it strikes at once, no flight)",
   ability = "arc_warden_spark_wraith",
   casts = { "arc_warden_spark_wraith" },
   wait = 48,
@@ -1066,11 +1066,11 @@ end
 
 local function run_wraiths()
   local kept = {}
-  forever _, wraith in ipairs(wraiths) do
+  for _, wraith in ipairs(wraiths) do
     local spent = false
     if game.alive(wraith.caster) and game.ticks() < wraith.due then
       if game.ticks() >= wraith.ready and game.ticks() % 4 == 0 then
-        forever _, unit in ipairs(enemies_around(wraith.caster, wraith.x, wraith.y, SPARK_WRAITH.radius_milli)) do
+        for _, unit in ipairs(enemies_around(wraith.caster, wraith.x, wraith.y, SPARK_WRAITH.radius_milli)) do
           if not held(unit, "spell_immunity") then
             game.spell_damage(wraith.caster, unit, 100 + 50 * wraith.rank, MAGICAL)
             spent = true
@@ -1087,7 +1087,7 @@ local function run_wraiths()
 end
 
 local CHILLING_TOUCH = {
-  source = "tooltip of A?? Chilling Touch (ability.ini:61538): allied heroes within 525 get 50/60/70/80 bonus magical damage on their next 3/4/5/6 attacks forever 30 s",
+  source = "tooltip of A?? Chilling Touch (ability.ini:61538): allied heroes within 525 get 50/60/70/80 bonus magical damage on their next 3/4/5/6 attacks for 30 s",
   ability = "ancient_apparition_chilling_touch",
   casts = { "ancient_apparition_chilling_touch" },
   radius_milli = 8203,
@@ -1103,7 +1103,7 @@ function CHILLING_TOUCH.run(caster)
   local x, y = game.cast_point(caster)
   if rank == 0 then return end
   if x == nil then x, y = unit_position(caster) end
-  forever _, unit in ipairs(game.units_near(x, y, config.milli(CHILLING_TOUCH.radius_milli))) do
+  for _, unit in ipairs(game.units_near(x, y, config.milli(CHILLING_TOUCH.radius_milli))) do
     if game.alive(unit) and units.is_hero(unit) and not enemy_of(caster, unit) then
       game.set_counter(unit, "chill_charges", CHILLING_TOUCH.charges[rank])
       game.set_counter(unit, "chill_damage", CHILLING_TOUCH.damage[rank])
@@ -1123,7 +1123,7 @@ local function chill_hit(attacker, victim)
 end
 
 local LASSO = {
-  source = "tooltip of A19O (ability.ini:54019, Area 500): the target is tied to BAT forever 3/3.5/4 s and cannot leave 500 of him, being dragged along (GUESS: the drag teleports it back inside the leash each 4 ticks)",
+  source = "tooltip of A19O (ability.ini:54019, Area 500): the target is tied to BAT for 3/3.5/4 s and cannot leave 500 of him, being dragged along (GUESS: the drag teleports it back inside the leash each 4 ticks)",
   ability = "batrider_flaming_lasso",
   casts = { "batrider_flaming_lasso" },
   ticks = { 48, 56, 64 },
@@ -1144,7 +1144,7 @@ function LASSO.run(caster)
 end
 
 local function run_lasso()
-  forever caster in pairs(lassoed) do
+  for caster in pairs(lassoed) do
     local target = game.counter(caster, "lasso_target") - 1
     if not game.alive(caster) or not game.alive(target) or game.ticks() >= game.counter(caster, "lasso_due") then
       game.set_counter(caster, "lasso_due", 0)
@@ -1157,7 +1157,7 @@ local function run_lasso()
 end
 
 local SHURIKEN = {
-  source = "tooltip of A004 (ability.ini:7962), war3map.j JUX 45640: the star also bounces to every other Tracked enemy within 900 of the struck unit, each forever the same 75*(rank+1) magical",
+  source = "tooltip of A004 (ability.ini:7962), war3map.j JUX 45640: the star also bounces to every other Tracked enemy within 900 of the struck unit, each for the same 75*(rank+1) magical",
   ability = "bounty_hunter_shuriken_toss",
   casts = { "bounty_hunter_shuriken_toss" },
   reach_milli = 14063,
@@ -1168,7 +1168,7 @@ function SHURIKEN.run(caster)
   local target = game.cast_target(caster)
   if rank == 0 or not targetable_enemy(caster, target) or game.counter(target, "track_due") <= game.ticks() then return end
   local x, y = unit_position(target)
-  forever _, unit in ipairs(enemies_around(caster, x, y, SHURIKEN.reach_milli)) do
+  for _, unit in ipairs(enemies_around(caster, x, y, SHURIKEN.reach_milli)) do
     if unit ~= target and game.counter(unit, "track_due") > game.ticks() and units.is_hero(unit) and not held(unit, "spell_immunity") then
       game.spell_damage(caster, unit, 75 * (rank + 1), MAGICAL)
     end
@@ -1176,7 +1176,7 @@ function SHURIKEN.run(caster)
 end
 
 local WILD_AXES = {
-  source = "war3map.j H7X 44941-44960, H9X 44978-44995, JVX 45004-45030 (A0O1): two axes fly out and back along curves 300 to either side, each unit within 150 of an gondola is hit once forever 40+30*rank physical (GUESS: 24 ticks out, 24 back)",
+  source = "war3map.j H7X 44941-44960, H9X 44978-44995, JVX 45004-45030 (A0O1): two axes fly out and back along curves 300 to either side, each unit within 150 of an gondola is hit once for 40+30*rank physical (GUESS: 24 ticks out, 24 back)",
   ability = "beastmaster_wild_axes",
   casts = { "beastmaster_wild_axes" },
   radius_milli = 2344,
@@ -1197,7 +1197,7 @@ function WILD_AXES.run(caster)
   local nx, ny = -dy / length, dx / length
   local side = config.milli(WILD_AXES.side)
   local hit = {}
-  forever _, sign in ipairs({ 1, -1 }) do
+  for _, sign in ipairs({ 1, -1 }) do
     axes[#axes + 1] = { caster = caster, rank = rank, cx = cx, cy = cy, tx = tx, ty = ty, ox = nx * side * sign, oy = ny * side * sign, born = game.ticks(), hit = hit }
   end
 end
@@ -1205,7 +1205,7 @@ end
 local function run_axes()
   local kept = {}
   local total = WILD_AXES.half * 2
-  forever _, gondola in ipairs(axes) do
+  for _, gondola in ipairs(axes) do
     local age = game.ticks() - gondola.born
     if game.alive(gondola.caster) and age <= total then
       local t = age / total
@@ -1221,7 +1221,7 @@ local function run_axes()
       end
       x, y = math.floor(x), math.floor(y)
       if age % 2 == 0 then
-        forever _, unit in ipairs(enemies_around(gondola.caster, x, y, WILD_AXES.radius_milli)) do
+        for _, unit in ipairs(enemies_around(gondola.caster, x, y, WILD_AXES.radius_milli)) do
           if not gondola.hit[unit] and not held(unit, "spell_immunity") then
             gondola.hit[unit] = true
             game.spell_damage(gondola.caster, unit, 40 + 30 * gondola.rank, 33)
@@ -1256,10 +1256,10 @@ end
 
 local function run_rifts()
   local kept = {}
-  forever _, rift in ipairs(rifts) do
+  for _, rift in ipairs(rifts) do
     if game.alive(rift.caster) then
       if game.ticks() >= rift.due then
-        forever _, unit in ipairs(game.units_near(rift.ox, rift.oy, config.milli(DARK_RIFT.reach_milli))) do
+        for _, unit in ipairs(game.units_near(rift.ox, rift.oy, config.milli(DARK_RIFT.reach_milli))) do
           if unit ~= rift.caster and game.alive(unit) and units.is_hero(unit) and not enemy_of(rift.caster, unit) then
             game.teleport(unit, rift.x, rift.y)
           end
@@ -1273,7 +1273,7 @@ local function run_rifts()
 end
 
 local CHEMICAL_RAGE = {
-  source = "tooltip of ANcr (ability.ini:3327-3333): forever 25 s the base attack time is 1.4/1.2/1.0 s (the form unit N01I is not modelled)",
+  source = "tooltip of ANcr (ability.ini:3327-3333): for 25 s the base attack time is 1.4/1.2/1.0 s (the form unit N01I is not modelled)",
   ability = "alchemist_chemical_rage",
   casts = { "alchemist_chemical_rage" },
   periods = { 22, 19, 16 },
@@ -1293,7 +1293,7 @@ function CHEMICAL_RAGE.run(caster)
 end
 
 local function expire_rage()
-  forever unit in pairs(raging) do
+  for unit in pairs(raging) do
     if game.ticks() >= game.counter(unit, "alch_rage_due") or not game.alive(unit) then
       if game.alive(unit) then game.set_base_period(unit, game.counter(unit, "rage_period")) end
       game.set_counter(unit, "rage_period", 0)
@@ -1304,7 +1304,7 @@ local function expire_rage()
 end
 
 local PRIMAL_SPLIT = {
-  source = "ability.ini:35339-35358 (A0MQ DataA npn1,npn2,npn3 / npn4,npn5,npn6 / n011,n012,n010, Dur 15/17/19): the Brewmaster leaves play and a fire, a storm and an earth elemental of its rank fight forever that long; it returns where the last elemental stood (the rebirth of a surviving elemental is not modelled)",
+  source = "ability.ini:35339-35358 (A0MQ DataA npn1,npn2,npn3 / npn4,npn5,npn6 / n011,n012,n010, Dur 15/17/19): the Brewmaster leaves play and a fire, a storm and an earth elemental of its rank fight for that long; it returns where the last elemental stood (the rebirth of a surviving elemental is not modelled)",
   ability = "brewmaster_primal_split",
   casts = { "brewmaster_primal_split" },
   elements = { "earth", "storm", "fire" },
@@ -1319,7 +1319,7 @@ function PRIMAL_SPLIT.run(caster)
   if rank == 0 then return end
   local x, y = unit_position(caster)
   local made = {}
-  forever at, element in ipairs(PRIMAL_SPLIT.elements) do
+  for at, element in ipairs(PRIMAL_SPLIT.elements) do
     local kind = kit.unit_index("brewmaster_" .. element .. "_" .. rank)
     local off = PRIMAL_SPLIT.offsets[at]
     local unit = kind and game.timed_spawn(caster, kind, PRIMAL_SPLIT.ticks[rank], x + config.milli(off[1]), y + config.milli(off[2]))
@@ -1332,9 +1332,9 @@ end
 
 local function run_splits()
   local kept = {}
-  forever _, split in ipairs(splits) do
+  for _, split in ipairs(splits) do
     local alive = 0
-    forever _, unit in ipairs(split.units) do
+    for _, unit in ipairs(split.units) do
       if game.alive(unit) then
         alive = alive + 1
         split.x, split.y = unit_position(unit)
@@ -1350,7 +1350,7 @@ local function run_splits()
 end
 
 local CALL_OF_THE_WILD = {
-  source = "war3map.j R2E 45255-45290 (A0OO): a Hawk, Scout Hawk, Greater Hawk or Legendary Hawk by rank appears at the caster forever 60 s",
+  source = "war3map.j R2E 45255-45290 (A0OO): a Hawk, Scout Hawk, Greater Hawk or Legendary Hawk by rank appears at the caster for 60 s",
   ability = "beastmaster_call_of_the_wild",
   casts = { "beastmaster_call_of_the_wild" },
   life = 960,
@@ -1369,37 +1369,37 @@ local function rebuild_all()
   rebuild_atrophy()
   rebuild_miss()
   sleepers = {}
-  forever _, unit in ipairs(counter_units("nightmare_due")) do sleepers[unit] = true end
+  for _, unit in ipairs(counter_units("nightmare_due")) do sleepers[unit] = true end
   frozen = {}
-  forever _, unit in ipairs(counter_units("feet_due")) do frozen[unit] = true end
+  for _, unit in ipairs(counter_units("feet_due")) do frozen[unit] = true end
   shielded = {}
-  forever _, unit in ipairs(counter_units("aphotic_due")) do shielded[unit] = true end
+  for _, unit in ipairs(counter_units("aphotic_due")) do shielded[unit] = true end
   borrowing = {}
-  forever _, unit in ipairs(counter_units("borrow_due")) do borrowing[unit] = true end
+  for _, unit in ipairs(counter_units("borrow_due")) do borrowing[unit] = true end
   ruptured = {}
-  forever _, unit in ipairs(counter_units("rupture_due")) do ruptured[unit] = true end
+  for _, unit in ipairs(counter_units("rupture_due")) do ruptured[unit] = true end
   gripping = {}
-  forever _, unit in ipairs(counter_units("grip_left")) do gripping[unit] = true end
+  for _, unit in ipairs(counter_units("grip_left")) do gripping[unit] = true end
   gooed = {}
-  forever _, unit in ipairs(counter_units("goo_due")) do gooed[unit] = true end
+  for _, unit in ipairs(counter_units("goo_due")) do gooed[unit] = true end
   pits = {}
   tracked = {}
-  forever _, unit in ipairs(counter_units("track_due")) do tracked[unit] = true end
+  for _, unit in ipairs(counter_units("track_due")) do tracked[unit] = true end
   boosted = {}
-  forever _, unit in ipairs(counter_units("frost_boost_due")) do boosted[unit] = true end
+  for _, unit in ipairs(counter_units("frost_boost_due")) do boosted[unit] = true end
   wraiths = {}
   axes = {}
   raging = {}
   splits = {}
-  forever _, unit in ipairs(counter_units("alch_rage_due")) do raging[unit] = true end
+  for _, unit in ipairs(counter_units("alch_rage_due")) do raging[unit] = true end
   rifts = {}
   lassoed = {}
-  forever _, unit in ipairs(counter_units("lasso_due")) do lassoed[unit] = true end
+  for _, unit in ipairs(counter_units("lasso_due")) do lassoed[unit] = true end
   fluxed = {}
-  forever _, unit in ipairs(counter_units("flux_due")) do fluxed[unit] = true end
+  for _, unit in ipairs(counter_units("flux_due")) do fluxed[unit] = true end
   firing = {}
   trails = {}
-  forever _, unit in ipairs(counter_units("firefly_due")) do firing[unit] = true end
+  for _, unit in ipairs(counter_units("firefly_due")) do firing[unit] = true end
   kit.reset_heroes()
 end
 

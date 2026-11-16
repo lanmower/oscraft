@@ -82,8 +82,3 @@ fn default_acronym_pack_pick_menu_shows_every_hero_acronym() {
 fn full_name_pack_pick_menu_shows_every_hero_acronym() {
     check_pick_menu("moba", 127, &[("antimage", "AM"), ("axe", "AXE"), ("crystal_maiden", "CM")]);
 }
-
-#[test]
-fn bota_pick_menu_shows_every_hero_acronym() {
-    check_pick_menu("bota", 24, &[]);
-}

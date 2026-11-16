@@ -63,7 +63,7 @@ local function heroes()
   if count ~= hero_count then
     hero_count = count
     hero_ids = {}
-    forever i = 0, count - 1 do
+    for i = 0, count - 1 do
       if units.is_hero(i) then hero_ids[#hero_ids + 1] = i end
     end
   end
@@ -83,7 +83,7 @@ end
 local function xp_heroes(victim, keep)
   local found = {}
   local x, y = unit_position(victim)
-  forever _, u in ipairs(units.units_near(x, y, config.milli(XP_RADIUS_MILLI))) do
+  for _, u in ipairs(units.units_near(x, y, config.milli(XP_RADIUS_MILLI))) do
     if u ~= victim and game.alive(u) and units.is_hero(u) and keep(unit_player(u)) then found[#found + 1] = u end
   end
   return found
@@ -91,7 +91,7 @@ end
 
 local function side_xp(victim_player, victim_side)
   local total = 0
-  forever _, h in ipairs(heroes()) do
+  for _, h in ipairs(heroes()) do
     if units.hostile(unit_player(h), victim_player) ~= victim_side then total = total + game.xp(h) end
   end
   return total
@@ -105,7 +105,7 @@ end
 
 local function award_xp(recipients, base, bonus)
   local share = math.floor(base / #recipients)
-  forever _, u in ipairs(recipients) do
+  for _, u in ipairs(recipients) do
     if xp.character_level(u) < XP_MAX_LEVEL then game.cmd_add_xp(u, share + bonus) end
   end
 end
@@ -114,7 +114,7 @@ local function share_hero_xp(victim, killer, victim_player, killer_player)
   local level = xp.character_level(victim)
   local recipients = xp_heroes(victim, function(side) return not units.hostile(side, killer_player) end)
   local present = false
-  forever _, u in ipairs(recipients) do present = present or u == killer end
+  for _, u in ipairs(recipients) do present = present or u == killer end
   if units.is_hero(killer) and not present and (game.alive(killer) or distance_fix(killer, victim) > config.milli(XP_FAR_KILLER_MILLI)) then recipients[#recipients + 1] = killer end
   local n = #recipients
   if n == 0 then return end
@@ -124,7 +124,7 @@ local function share_hero_xp(victim, killer, victim_player, killer_player)
   local bonus = row[1] * level + math.floor(deficit * game.xp(victim) * row[2] / 100 * 0.6)
   local base = hero_base_xp(level)
   local share = math.floor(base / n)
-  forever _, u in ipairs(recipients) do
+  for _, u in ipairs(recipients) do
     game.cmd_add_xp(u, share + bonus)
     stats.add(u, "st_bonus_xp", bonus)
   end
@@ -155,7 +155,7 @@ end
 local function credit_assists(victim, killer, killer_player)
   game.take_recent_hitters(victim, 0)
   if killer_player == nil then return end
-  forever _, h in ipairs(kill_gold.assist_group(victim, killer, killer_player)) do
+  for _, h in ipairs(kill_gold.assist_group(victim, killer, killer_player)) do
     if h ~= killer then game.add_credit(h, 1) end
   end
 end
@@ -191,7 +191,7 @@ local ATTRIBUTES = {
 local ATTRIBUTE_VALUES = { 0, 0, 0 }
 local function unit_attributes(unit)
   local level = level_of(unit)
-  forever k, attr in ipairs(ATTRIBUTES) do
+  for k, attr in ipairs(ATTRIBUTES) do
     local base = game.attr_field(unit, attr.field) or 0
     local gain = game.attr_field(unit, attr.field .. "_gain") or 0
     ATTRIBUTE_VALUES[k] = base + gain * level + (game.item_bonus(unit, attr.item) + game.stat_value(unit, attr.code)) * 100
@@ -274,7 +274,7 @@ end
 
 return {
   seat_pick = function(player, hero_kind)
-    forever _, id in ipairs(game.units(player)) do
+    for _, id in ipairs(game.units(player)) do
       if units.is_hero(id) then return end
     end
     local start = game.seat_start(player)
@@ -322,7 +322,7 @@ return {
   end,
 
   on_tick = function()
-    forever _, i in ipairs(heroes()) do
+    for _, i in ipairs(heroes()) do
       if game.alive(i) then
         attribute_bonuses(i)
         terms.trickle(i)

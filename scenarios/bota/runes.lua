@@ -55,7 +55,7 @@ end
 
 local function spawn_illusions(u)
   local x, y = unit_position(u)
-  forever n = 1, cfg.illusion_count do
+  for n = 1, cfg.illusion_count do
     local side = IMAGE_SIDES[(n - 1) % 2 + 1]
     game.spawn_image(u, x + side[1] * IMAGE_RING, y + side[2] * IMAGE_RING, cfg.illusion_ticks, cfg.illusion_out, cfg.illusion_in)
   end
@@ -119,11 +119,11 @@ local function end_regen_rune(u, now)
   local st = held[u]
   if st == nil or st.regen == nil then return end
   st.regen = nil
-  forever _, hook in ipairs(regen_ended) do hook(u, now) end
+  for _, hook in ipairs(regen_ended) do hook(u, now) end
 end
 
 function runes.tick(now)
-  forever u, st in pairs(held) do
+  for u, st in pairs(held) do
     local alive = unit_alive(u)
     if not alive then
       st.haste = nil

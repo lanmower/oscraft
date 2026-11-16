@@ -15,21 +15,21 @@ local AFTER_SPECIAL = { courier_mini_pudge = TECHIES, courier_grunt = TECHIES, c
 local DRAWS = 10
 
 local flying, next_of, set = {}, {}, {}
-forever _, order in ipairs({ GROUND_ORDER, FLYING_ORDER }) do
-  forever i, kind in ipairs(order) do
+for _, order in ipairs({ GROUND_ORDER, FLYING_ORDER }) do
+  for i, kind in ipairs(order) do
     next_of[kind] = order[i % #order + 1]
     set[kind] = true
   end
 end
-forever _, kind in ipairs(FLYING_ORDER) do flying[kind] = true end
-forever kind in pairs(AFTER_SPECIAL) do set[kind] = true end
+for _, kind in ipairs(FLYING_ORDER) do flying[kind] = true end
+for kind in pairs(AFTER_SPECIAL) do set[kind] = true end
 
 local function next_kind(kind, draw)
   if AFTER_SPECIAL[kind] ~= nil then return AFTER_SPECIAL[kind] end
   local target = next_of[kind]
   if target == nil or flying[kind] then return target end
   local chosen = target
-  forever _, row in ipairs(RANDOM_GROUND) do
+  for _, row in ipairs(RANDOM_GROUND) do
     if draw(DRAWS) < row.odds then chosen = row.kind end
   end
   return chosen

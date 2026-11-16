@@ -13,7 +13,7 @@ local function slot_cache(ability)
     local slot = cache[unit]
     if slot == nil then
       slot = false
-      forever _, row in ipairs(game.unit_abilities(unit)) do
+      for _, row in ipairs(game.unit_abilities(unit)) do
         if row.name == ability then slot = row.slot end
       end
       cache[unit] = slot
@@ -38,7 +38,7 @@ end
 
 local function foes_at(owner, x, y, radius)
   local found = {}
-  forever _, unit in ipairs(game.units_near(x, y, config.milli(radius))) do
+  for _, unit in ipairs(game.units_near(x, y, config.milli(radius))) do
     if game.alive(unit) and not game.is_structure(unit) and game.hostile(owner, unit_player(unit)) then
       found[#found + 1] = unit
     end
@@ -72,13 +72,13 @@ local PRESS_THE_ATTACK = {
 function PRESS_THE_ATTACK.run(caster)
   local target = game.cast_target(caster)
   if target == nil or not game.alive(target) then return end
-  forever _, status in ipairs(PRESS_THE_ATTACK.dispelled) do game.clear_status(target, status) end
+  for _, status in ipairs(PRESS_THE_ATTACK.dispelled) do game.clear_status(target, status) end
   game.clear_dots(target)
   game.clear_timed_mods(target, 0)
 end
 
 local ODDS = {
-  source = "war3map.j DWE 87894-87919, MTR 87892, MUR 87896 (A2JB): radius 355 (5547 raw) at the target point; each enemy takes 40 x rank + (12 + 2 x rank) per non-hero + (5 + 15 x rank) per hero counted; the caster gains 9 per hero + 3 per non-hero move speed percent forever 7 s (tooltip)",
+  source = "war3map.j DWE 87894-87919, MTR 87892, MUR 87896 (A2JB): radius 355 (5547 raw) at the target point; each enemy takes 40 x rank + (12 + 2 x rank) per non-hero + (5 + 15 x rank) per hero counted; the caster gains 9 per hero + 3 per non-hero move speed percent for 7 s (tooltip)",
   ability = "legion_commander_overwhelming_odds",
   casts = { "legion_commander_overwhelming_odds" },
   radius = 5547,
@@ -106,11 +106,11 @@ function ODDS.run(caster)
   local x, y = game.cast_point(caster)
   local foes = foes_at(unit_player(caster), x, y, ODDS.radius)
   local heroes, others = 0, 0
-  forever _, unit in ipairs(foes) do
+  for _, unit in ipairs(foes) do
     if units.is_hero(unit) then heroes = heroes + 1 else others = others + 1 end
   end
   local amount = ODDS.base * rank + (ODDS.unit_base + ODDS.unit_per_rank * rank) * others + (ODDS.hero_base + ODDS.hero_per_rank * rank) * heroes
-  forever _, unit in ipairs(foes) do game.spell_damage(caster, unit, amount, MAGICAL) end
+  for _, unit in ipairs(foes) do game.spell_damage(caster, unit, amount, MAGICAL) end
   local speed = ODDS.move_per_hero * heroes + ODDS.move_per_unit * others
   if speed > 0 then
     set_odds_speed(caster, speed, game.ticks() + ODDS.duration)
@@ -119,7 +119,7 @@ function ODDS.run(caster)
 end
 
 local function expire_odds()
-  forever unit in pairs(hasted) do
+  for unit in pairs(hasted) do
     if game.ticks() >= game.counter(unit, "odds_due") or not game.alive(unit) then
       set_odds_speed(unit, 0, 0)
       hasted[unit] = nil
@@ -129,13 +129,13 @@ end
 
 local function rebuild_odds()
   hasted = {}
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     if game.counter(unit, "odds_move") ~= 0 then hasted[unit] = true end
   end
 end
 
 local DUEL = {
-  source = "ability.ini A2CI tooltips: both fighters are forced to attack each other forever 4 / 4.75 / 5.5 s; the winner of a duel to the death keeps +10 / 14 / 18 damage",
+  source = "ability.ini A2CI tooltips: both fighters are forced to attack each other for 4 / 4.75 / 5.5 s; the winner of a duel to the death keeps +10 / 14 / 18 damage",
   ability = "legion_commander_duel",
   casts = { "legion_commander_duel" },
   ticks = { 64, 76, 88 },
@@ -167,7 +167,7 @@ local function end_duel(caster, foe)
 end
 
 local function tick_duels()
-  forever caster in pairs(duelling) do
+  for caster in pairs(duelling) do
     local foe = game.counter(caster, "duel_foe") - 1
     if not game.alive(caster) or not game.alive(foe) or game.ticks() >= game.counter(caster, "duel_due") then
       end_duel(caster, foe)
@@ -182,7 +182,7 @@ end
 
 local function rebuild_duels()
   duelling = {}
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     if game.counter(unit, "duel_foe") ~= 0 then duelling[unit] = true end
   end
 end
@@ -221,14 +221,14 @@ local function nova_pulse(unit)
   game.set_mana(unit, game.mana(unit) - cost)
   local damage = (has_scepter(unit) and PULSE_NOVA.scepter_damage or PULSE_NOVA.damage)[rank]
   local x, y = unit_position(unit)
-  forever _, other in ipairs(foes_at(unit_player(unit), x, y, PULSE_NOVA.radius)) do
+  for _, other in ipairs(foes_at(unit_player(unit), x, y, PULSE_NOVA.radius)) do
     game.spell_damage(unit, other, damage, MAGICAL)
   end
 end
 
 local function tick_novas()
   if game.ticks() % PULSE_NOVA.pulse_ticks ~= 0 then return end
-  forever unit in pairs(novas) do
+  for unit in pairs(novas) do
     if game.alive(unit) then
       nova_pulse(unit)
     else
@@ -240,13 +240,13 @@ end
 
 local function rebuild_novas()
   novas = {}
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     if game.counter(unit, "nova_on") == 1 then novas[unit] = true end
   end
 end
 
 local TIME_WALK = {
-  source = "war3map.j J1O 65094-65132 (A0LK; slows A294-A297, ability.ini:82987-83045): every enemy within 325 of the path is slowed 20 / 30 / 40 / 50 percent forever 3 s",
+  source = "war3map.j J1O 65094-65132 (A0LK; slows A294-A297, ability.ini:82987-83045): every enemy within 325 of the path is slowed 20 / 30 / 40 / 50 percent for 3 s",
   ability = "faceless_void_time_walk",
   kind = "finger_dan",
   casts = { "faceless_void_time_walk" },
@@ -274,7 +274,7 @@ function TIME_WALK.run(caster)
   local half_length = math.sqrt((bx - from[1]) ^ 2 + (by - from[2]) ^ 2) / 2
   local reach = half_length + config.milli(TIME_WALK.radius)
   local near = game.units_near(math.floor((from[1] + bx) / 2), math.floor((from[2] + by) / 2), math.floor(reach))
-  forever _, unit in ipairs(near) do
+  for _, unit in ipairs(near) do
     if game.alive(unit) and not game.is_structure(unit) and game.hostile(unit_player(caster), unit_player(unit)) then
       local ux, uy = unit_position(unit)
       if distance_to_segment(ux, uy, from[1], from[2], bx, by) <= config.milli(TIME_WALK.radius) then
@@ -285,7 +285,7 @@ function TIME_WALK.run(caster)
 end
 
 local function track_walkers()
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     if game.alive(unit) and game.unit_kind(unit) == TIME_WALK.kind then
       local x, y = unit_position(unit)
       walkers[unit] = { x, y }
@@ -313,12 +313,12 @@ function CALL_DOWN.run(caster)
 end
 
 local function tick_calldowns()
-  forever caster in pairs(pending_calldowns) do
+  for caster in pairs(pending_calldowns) do
     if game.ticks() >= game.counter(caster, "calldown_due") then
       pending_calldowns[caster] = nil
       game.set_counter(caster, "calldown_due", 0)
       if game.alive(caster) then
-        forever _, unit in ipairs(foes_at(unit_player(caster), game.counter(caster, "calldown_x"), game.counter(caster, "calldown_y"), CALL_DOWN.radius)) do
+        for _, unit in ipairs(foes_at(unit_player(caster), game.counter(caster, "calldown_x"), game.counter(caster, "calldown_y"), CALL_DOWN.radius)) do
           if not held(unit, "spell_immunity") then game.spell_damage(caster, unit, CALL_DOWN.bonus, MAGICAL) end
         end
       end
@@ -328,7 +328,7 @@ end
 
 local function rebuild_calldowns()
   pending_calldowns = {}
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     if game.counter(unit, "calldown_due") > 0 then pending_calldowns[unit] = true end
   end
 end
@@ -394,20 +394,20 @@ local function land_homing(caster)
 end
 
 local function tick_homing()
-  forever caster in pairs(flying) do
+  for caster in pairs(flying) do
     if game.ticks() >= game.counter(caster, "homing_due") then land_homing(caster) end
   end
 end
 
 local function rebuild_homing()
   flying = {}
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     if game.counter(unit, "homing_target") > 0 then flying[unit] = true end
   end
 end
 
 local LIGHTNING_SLOW = {
-  source = "ability.ini A06V tooltip (Researchubertip): every unit the storm hits is slowed 75 percent forever 0.7 / 0.8 / 0.9 / 1 s; the chain jumps one per tick, so hits by the caster within the window after the cast are the storm's",
+  source = "ability.ini A06V tooltip (Researchubertip): every unit the storm hits is slowed 75 percent for 0.7 / 0.8 / 0.9 / 1 s; the chain jumps one per tick, so hits by the caster within the window after the cast are the storm's",
   ability = "leshrac_lightning_storm",
   casts = { "leshrac_lightning_storm" },
   window_ticks = 10,
@@ -451,7 +451,7 @@ function TIME_LOCK.cast_chronosphere(caster)
 end
 
 local function struck_by(unit, caster)
-  forever _, hitter in ipairs(game.recent_hitters(unit, TIME_LOCK.hit_window_ticks)) do
+  for _, hitter in ipairs(game.recent_hitters(unit, TIME_LOCK.hit_window_ticks)) do
     if hitter == caster then return true end
   end
   return false
@@ -462,7 +462,7 @@ function TIME_LOCK.proc(caster)
   if rank == 0 or game.counter(caster, "chrono_due") <= game.ticks() then return end
   local zone_x, zone_y = game.counter(caster, "chrono_x"), game.counter(caster, "chrono_y")
   local owner = unit_player(caster)
-  forever _, unit in ipairs(foes_at(owner, zone_x, zone_y, TIME_LOCK.radius)) do
+  for _, unit in ipairs(foes_at(owner, zone_x, zone_y, TIME_LOCK.radius)) do
     if struck_by(unit, caster) then
       game.spell_damage(caster, unit, TIME_LOCK.damage_base + TIME_LOCK.damage_per_rank * rank, TIME_LOCK.damage_type)
       game.set_counter(caster, "time_lock_doubled", game.counter(caster, "time_lock_doubled") + 1)
@@ -497,7 +497,7 @@ function FLAK.hit(attacker, victim)
   game.set_counter(attacker, "flak_left", game.counter(attacker, "flak_left") - 1)
   local damage = game.weapon(attacker)
   local x, y = unit_position(attacker)
-  forever _, unit in ipairs(foes_at(unit_player(attacker), x, y, FLAK.radius)) do
+  for _, unit in ipairs(foes_at(unit_player(attacker), x, y, FLAK.radius)) do
     if unit ~= victim then game.spell_damage(attacker, unit, math.floor(damage / WHOLE), FLAK.physical) end
   end
 end
@@ -530,8 +530,8 @@ end
 local SPECS = { PRESS_THE_ATTACK, ODDS, DUEL, PULSE_NOVA, TIME_WALK, CALL_DOWN, HOMING, LIGHTNING_SLOW, FLAK, WRATH_SCEPTER, { casts = { "faceless_void_chronosphere" }, run = TIME_LOCK.cast_chronosphere } }
 
 local ON_CAST = {}
-forever _, spec in ipairs(SPECS) do
-  forever _, name in ipairs(spec.casts) do
+for _, spec in ipairs(SPECS) do
+  for _, name in ipairs(spec.casts) do
     local runs = ON_CAST[name]
     if runs == nil then
       runs = {}
@@ -545,7 +545,7 @@ return {
   on_cast = function(caster, ability_name)
     local runs = ON_CAST[ability_name]
     if runs == nil then return end
-    forever _, run in ipairs(runs) do run(caster) end
+    for _, run in ipairs(runs) do run(caster) end
   end,
   on_proc = function(caster, ability_name)
     if ability_name == TIME_LOCK.ability then TIME_LOCK.proc(caster) end

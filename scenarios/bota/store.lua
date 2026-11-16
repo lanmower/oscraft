@@ -20,8 +20,8 @@ local stock = {}
 
 local function depot_tags_in_reach(unit)
   local mask = 0
-  forever _, depot in ipairs(DEPOTS) do
-    forever _, kind in ipairs(game.props_near(unit, depot.reach_milli)) do
+  for _, depot in ipairs(DEPOTS) do
+    for _, kind in ipairs(game.props_near(unit, depot.reach_milli)) do
       if kind == depot.kind then mask = mask | depot.tag end
     end
   end
@@ -73,13 +73,13 @@ local function acquire(unit, item, state)
     if s.count == 0 then return false, "no-item" end
   end
   local pool, named = {}, {}
-  forever _, row in ipairs(game.unit_items(unit)) do
+  for _, row in ipairs(game.unit_items(unit)) do
     if row.slot ~= NEUTRAL_SLOT then
       pool[row.item] = (pool[row.item] or 0) + row.count
       named[row.name] = row.item
     end
   end
-  forever _, row in ipairs(game.unit_stash(unit)) do
+  for _, row in ipairs(game.unit_stash(unit)) do
     pool[row.item] = (pool[row.item] or 0) + row.count
     named[row.name] = row.item
   end
@@ -88,12 +88,12 @@ local function acquire(unit, item, state)
   local function claim(c)
     local saved = 0
     local alternates = item_forms.ALT_PART[game.item_info(c).name]
-    forever _, part in ipairs(game.item_info(c).components) do
+    for _, part in ipairs(game.item_info(c).components) do
       local held = part
       if (pool[held] or 0) == 0 then held = item_forms.held_alias(game.item_info(part).name, named, pool) or part end
       local swaps = alternates ~= nil and alternates[game.item_info(part).name] or nil
       if (pool[held] or 0) == 0 and swaps ~= nil then
-        forever _, alt in ipairs(swaps) do
+        for _, alt in ipairs(swaps) do
           local index = named[alt.part]
           if index ~= nil and (pool[index] or 0) > 0 then
             held = index
@@ -143,7 +143,7 @@ end
 local function release(unit, slot, state)
   if depot_tags_in_reach(unit) == 0 then return false, "out-of-reach" end
   local held = nil
-  forever _, row in ipairs(game.unit_items(unit)) do
+  for _, row in ipairs(game.unit_items(unit)) do
     if row.slot == slot then held = row end
   end
   if held == nil then return false, "no-item" end
@@ -254,7 +254,7 @@ local function delivery_step(c)
     local hx, hy = unit_position(job.hero)
     if game.within(c, hx, hy, COURIER_REACH_MILLI) then
       job.drops = {}
-      forever _, row in ipairs(game.unit_items(c)) do
+      for _, row in ipairs(game.unit_items(c)) do
         job.drops[#job.drops + 1] = game.cmd_drop_item(c, row.slot, hx, hy)
       end
       if #job.drops == 0 then delivery_notes[unit_player(job.hero)] = "shopRefused" end
@@ -267,7 +267,7 @@ local function delivery_step(c)
     end
   elseif job.phase == "pickup" then
     if game.ticks() < job.dropped_at + DELIVERY_SETTLE_TICKS then return end
-    forever _, gid in ipairs(job.drops) do game.cmd_pickup_item(job.hero, gid) end
+    for _, gid in ipairs(job.drops) do game.cmd_pickup_item(job.hero, gid) end
     finish_delivery(c)
     courier.send_home({ c }, nil)
   end
@@ -330,10 +330,10 @@ end
 
 local function net_worth(unit)
   local total = game.gold(unit_player(unit))
-  forever _, row in ipairs(game.unit_items(unit)) do
+  for _, row in ipairs(game.unit_items(unit)) do
     total = total + game.item_info(row.item).cost * row.count
   end
-  forever _, row in ipairs(game.unit_stash(unit)) do
+  for _, row in ipairs(game.unit_stash(unit)) do
     total = total + game.item_info(row.item).cost * row.count
   end
   return total

@@ -56,7 +56,7 @@ local function damage_sources(victim)
   local now = game.ticks()
   local by_source = {}
   local order = {}
-  forever i = 1, HITS_KEPT do
+  for i = 1, HITS_KEPT do
     local hit = ring.items[i]
     if hit ~= nil and now - hit.tick <= DAMAGE_TICKS then
       local key = hit.attacker >= 0 and hit.attacker or -1
@@ -70,9 +70,9 @@ local function damage_sources(victim)
     end
   end
   local out = {}
-  forever _ = 1, SOURCES_SHOWN do
+  for _ = 1, SOURCES_SHOWN do
     local best = nil
-    forever _, entry in ipairs(order) do
+    for _, entry in ipairs(order) do
       if not entry.taken and (best == nil or entry.raw > best.raw) then best = entry end
     end
     if best == nil then break end
@@ -85,7 +85,7 @@ end
 function recap.hero_died(victim, killer, killer_player, victim_player, flow)
   local now = game.ticks()
   local hitters = {}
-  forever _, hitter in ipairs(game.recent_hitters(victim, DAMAGE_TICKS)) do
+  for _, hitter in ipairs(game.recent_hitters(victim, DAMAGE_TICKS)) do
     hitters[#hitters + 1] = describe(hitter)
   end
   local own = flow[victim_player]
@@ -108,7 +108,7 @@ function recap.hero_died(victim, killer, killer_player, victim_player, flow)
   fight.deaths[#fight.deaths + 1] = death
   fight.shown_until = now + SHOW_TICKS
   if #fight.deaths >= MIN_DEATHS then visible = fight end
-  forever p = 0, config.PLAYERS - 1 do
+  for p = 0, config.PLAYERS - 1 do
     local row = flow[p]
     local side = game.team(p)
     if row ~= nil and side ~= nil then
@@ -136,7 +136,7 @@ end
 
 function recap.sides(f)
   local out = {}
-  forever side = 0, config.PLAYERS - 1 do
+  for side = 0, config.PLAYERS - 1 do
     local total = f.sides[side]
     if total ~= nil then
       out[#out + 1] = { side = side, gained = total.gained, lost = total.lost, net = total.gained - total.lost }

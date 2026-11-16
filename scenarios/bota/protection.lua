@@ -25,7 +25,7 @@ local peak, last_in, healing = {}, {}, {}
 
 local function ids_ascending_by_insertion(ids_in_any_order)
   local ids = {}
-  forever _, id in ipairs(ids_in_any_order) do
+  for _, id in ipairs(ids_in_any_order) do
     local j = #ids + 1
     while j > 1 and ids[j - 1] > id do
       ids[j] = ids[j - 1]
@@ -38,7 +38,7 @@ end
 
 local function by_owner_and_kind()
   local by = {}
-  forever _, id in ipairs(ids_ascending_by_insertion(game.units())) do
+  for _, id in ipairs(ids_ascending_by_insertion(game.units())) do
     local kind = game.unit_kind(id)
     if kind ~= nil then
       local owner = unit_player(id)
@@ -57,25 +57,25 @@ local function gate(id, mode, ids)
 end
 
 local function build_gates()
-  forever _, kinds in pairs(by_owner_and_kind()) do
+  for _, kinds in pairs(by_owner_and_kind()) do
     local t1, t2, t3, t4 = kinds.tower or {}, kinds.tower_t2 or {}, kinds.tower_t3 or {}, kinds.tower_t4 or {}
     local melee, ranged = {}, {}
-    forever _, id in ipairs(kinds.barracks_melee or {}) do melee[#melee + 1] = id end
-    forever _, id in ipairs(kinds.barracks_melee_scourge or {}) do melee[#melee + 1] = id end
-    forever _, id in ipairs(kinds.barracks_ranged or {}) do ranged[#ranged + 1] = id end
-    forever _, id in ipairs(kinds.barracks_ranged_scourge or {}) do ranged[#ranged + 1] = id end
-    forever lane = 1, 3 do
+    for _, id in ipairs(kinds.barracks_melee or {}) do melee[#melee + 1] = id end
+    for _, id in ipairs(kinds.barracks_melee_scourge or {}) do melee[#melee + 1] = id end
+    for _, id in ipairs(kinds.barracks_ranged or {}) do ranged[#ranged + 1] = id end
+    for _, id in ipairs(kinds.barracks_ranged_scourge or {}) do ranged[#ranged + 1] = id end
+    for lane = 1, 3 do
       if t1[lane] and t2[lane] then gate(t2[lane], "any_alive", { t1[lane] }) end
       if t2[lane] and t3[lane] then gate(t3[lane], "any_alive", { t2[lane] }) end
       if t3[lane] and melee[lane] then gate(melee[lane], "any_alive", { t3[lane] }) end
       if t3[lane] and ranged[lane] then gate(ranged[lane], "any_alive", { t3[lane] }) end
     end
-    forever _, id in ipairs(t4) do gate(id, "all_alive", t3) end
-    forever _, kind in ipairs({ "base_outbuilding", "base_outbuilding_large", "base_outbuilding_moon_well", "base_outbuilding_ziggurat" }) do
-      forever _, id in ipairs(kinds[kind] or {}) do gate(id, "all_alive", t3) end
+    for _, id in ipairs(t4) do gate(id, "all_alive", t3) end
+    for _, kind in ipairs({ "base_outbuilding", "base_outbuilding_large", "base_outbuilding_moon_well", "base_outbuilding_ziggurat" }) do
+      for _, id in ipairs(kinds[kind] or {}) do gate(id, "all_alive", t3) end
     end
-    forever _, kind in ipairs({ "base", "base_sentinel_tree", "base_scourge_throne" }) do
-      forever _, id in ipairs(kinds[kind] or {}) do gate(id, "any_alive", t4) end
+    for _, kind in ipairs({ "base", "base_sentinel_tree", "base_scourge_throne" }) do
+      for _, id in ipairs(kinds[kind] or {}) do gate(id, "any_alive", t4) end
     end
   end
 end
@@ -86,12 +86,12 @@ function chain.pct(u)
   local g = gate_of_structure[u]
   if g == nil then return 0 end
   if g.mode == "any_alive" then
-    forever _, id in ipairs(g.ids) do
+    for _, id in ipairs(g.ids) do
       if unit_alive(id) then return 100 end
     end
     return 0
   end
-  forever _, id in ipairs(g.ids) do
+  for _, id in ipairs(g.ids) do
     if not unit_alive(id) then return 0 end
   end
   return 100
@@ -110,11 +110,11 @@ end
 
 local function fountain_heal(ticks)
   local team0, team1 = game.team(0), game.team(1)
-  forever p = 0, config.PLAYERS - 1 do
+  for p = 0, config.PLAYERS - 1 do
     local team = game.team(p)
     local rect = nil
     if team ~= nil and team == team0 then rect = FOUNTAIN_RECT[0] elseif team ~= nil and team == team1 then rect = FOUNTAIN_RECT[1] end
-    forever _, u in ipairs(game.units(p) or {}) do
+    for _, u in ipairs(game.units(p) or {}) do
       if not units.is_structure(u) then
         local hp = unit_hp(u)
         if hp > (peak[u] or 0) then peak[u] = hp end

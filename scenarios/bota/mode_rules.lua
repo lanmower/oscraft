@@ -12,7 +12,7 @@ local EXEMPT_FROM_ITEM_DROP = "meepo_clone"
 local seated_rates_set = false
 
 local function set_easy_xp()
-  forever player = 0, config.PLAYERS - 1 do
+  for player = 0, config.PLAYERS - 1 do
     if game.seat_start(player) ~= nil then game.set_xp_rate(player, EASY_XP_PERCENT) end
   end
 end
@@ -22,7 +22,7 @@ local function mini_scale_percent(hero)
 end
 
 local function shrink_heroes()
-  forever _, hero in ipairs(bounty.heroes()) do
+  for _, hero in ipairs(bounty.heroes()) do
     local percent = mini_scale_percent(hero)
     if game.unit_scale(hero) ~= percent then game.set_unit_scale(hero, percent) end
   end
@@ -31,10 +31,10 @@ end
 local function drop_random_item(hero)
   local slot = game.random(ITEM_DROP_SLOTS)
   local x, y = unit_position(hero)
-  forever _, row in ipairs(game.unit_items(hero)) do
+  for _, row in ipairs(game.unit_items(hero)) do
     if row.slot == slot then
       local count = math.max(row.count, 1)
-      forever _ = 1, count do game.consume_item_charge(hero, slot) end
+      for _ = 1, count do game.consume_item_charge(hero, slot) end
       game.cmd_drop_ground(row.name, count, x, y)
     end
   end

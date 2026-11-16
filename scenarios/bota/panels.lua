@@ -58,14 +58,14 @@ local LAST = {}
 
 local function new_lobby()
   local slots = {}
-  forever i = 1, SLOT_COUNT do slots[i] = { owner = nil, hero = nil, ready = false, bot_bernard = false } end
+  for i = 1, SLOT_COUNT do slots[i] = { owner = nil, hero = nil, ready = false, bot_bernard = false } end
   return { host = nil, pinned = false, filled = false, started = false, worldReady = false, slots = slots, error = "" }
 end
 local LOBBY = new_lobby()
 
 local function join(items, sep)
   local out = ""
-  forever i, v in ipairs(items) do
+  for i, v in ipairs(items) do
     if i > 1 then out = out .. sep end
     out = out .. v
   end
@@ -84,7 +84,7 @@ end
 
 local function node(t, fields)
   local f = { S("t", t) }
-  forever _, v in ipairs(fields) do f[#f + 1] = v end
+  for _, v in ipairs(fields) do f[#f + 1] = v end
   return obj(f)
 end
 local function box(kids, dir) return node("box", { S("dir", dir or "cole"), R("kids", arr(kids)) }) end
@@ -96,7 +96,7 @@ local function bar(value, max, tone)
 end
 local function line(series, max)
   local items = {}
-  forever _, s in ipairs(series) do
+  for _, s in ipairs(series) do
     items[#items + 1] = obj({ S("label", s.label), S("tone", s.tone), R("values", arr(s.values)) })
   end
   return node("line", { I("max", max), R("series", arr(items)) })
@@ -116,7 +116,7 @@ local HERO_MODEL = nil
 local function hero_model(name)
   if HERO_MODEL == nil then
     HERO_MODEL = {}
-    forever _, k in ipairs(game.unit_kinds()) do
+    for _, k in ipairs(game.unit_kinds()) do
       if k.player_controlled and k.model ~= "" then HERO_MODEL[k.name] = k.model end
     end
   end
@@ -170,7 +170,7 @@ local function team_of(p) return UI.teams[p + 1] or 0 end
 
 local function sides()
   local seen, out = {}, {}
-  forever _, t in ipairs(UI.teams) do
+  for _, t in ipairs(UI.teams) do
     if not seen[t] then
       seen[t] = true
       out[#out + 1] = t
@@ -185,7 +185,7 @@ end
 
 local function alive_selection()
   local out = {}
-  forever _, id in ipairs(SEL) do
+  for _, id in ipairs(SEL) do
     if unit_alive(id) then out[#out + 1] = id end
   end
   return out
@@ -196,7 +196,7 @@ local function hero_of(who)
 end
 
 local function hero_unit(p)
-  forever _, id in ipairs(game.units(p)) do
+  for _, id in ipairs(game.units(p)) do
     if units.is_hero(id) then return id end
   end
   return nil
@@ -208,13 +208,13 @@ end
 
 local function update_heroes()
   local living = {}
-  forever _, id in ipairs(game.units()) do
+  for _, id in ipairs(game.units()) do
     if units.is_hero(id) then
       local p = unit_player(id)
       if living[p] == nil then living[p] = id end
     end
   end
-  forever p = 0, #UI.teams - 1 do
+  for p = 0, #UI.teams - 1 do
     local id = living[p]
     if id ~= nil then
       HEROES[p] = { id = id, state = "alive", hp = unit_hp(id) }
@@ -225,13 +225,13 @@ local function update_heroes()
 end
 
 local function shr(v, n)
-  forever _ = 1, n do v = math.floor(v / 2) end
+  for _ = 1, n do v = math.floor(v / 2) end
   return v
 end
 
 local function pips(rank, max)
   local out = ""
-  forever i = 1, max do
+  for i = 1, max do
     if i <= rank then out = out .. "●" else out = out .. "○" end
   end
   return out
@@ -250,7 +250,7 @@ end
 local function mode_summary()
   local names = TEXT.lobby.modes or {}
   local shown = {}
-  forever _, code in ipairs(modes.codes()) do shown[#shown + 1] = names[code] or code end
+  for _, code in ipairs(modes.codes()) do shown[#shown + 1] = names[code] or code end
   if #shown == 0 then return TEXT.hud.mode .. " " .. TEXT.hud.defaultMode end
   return TEXT.hud.mode .. " " .. join(shown, ", ")
 end
@@ -272,7 +272,7 @@ local function mode_rules_box()
   local rules = TEXT.modeRules or {}
   local names = TEXT.lobby.modes or {}
   local badges = {}
-  forever _, code in ipairs(modes.codes()) do
+  for _, code in ipairs(modes.codes()) do
     if rules[code] ~= nil then
       local look = MODE_BADGE.look[MODE_BADGE.kind[code] or "rules"]
       local words = (names[code] or code) .. ": " .. rules[code]
@@ -303,14 +303,14 @@ end
 
 local function post_game_rows()
   local rows, by_player = {}, {}
-  forever p = 0, config.PLAYERS - 1 do
+  for p = 0, config.PLAYERS - 1 do
     if game.seat_start(p) ~= nil then
       local row = { player = p, kills = 0, deaths = 0, assists = 0, gold = game.gold(p) }
       rows[#rows + 1] = row
       by_player[p] = row
     end
   end
-  forever u = 0, get_unit_count() - 1 do
+  for u = 0, get_unit_count() - 1 do
     local row = by_player[unit_player(u)]
     if row ~= nil then
       row.kills = row.kills + game.kills_of(u)
@@ -323,18 +323,18 @@ end
 
 local function mode_text()
   local out = ""
-  forever _, code in ipairs(modes.codes()) do out = out .. code .. " " end
+  for _, code in ipairs(modes.codes()) do out = out .. code .. " " end
   return out
 end
 
 local function win_table()
   local ranked = match_stats.final_ranked() or {}
   local cells = {}
-  forever _, title in ipairs(TEXT.winColumns) do cells[#cells + 1] = label(title, "muted") end
-  forever _, e in ipairs(ranked) do
+  for _, title in ipairs(TEXT.winColumns) do cells[#cells + 1] = label(title, "muted") end
+  for _, e in ipairs(ranked) do
     local tone = e.player == LOCAL and "me" or nil
     local values = { e.name, e.kills, e.deaths, e.assists, e.last_hits, e.gold, e.experience, e.damage_dealt, e.healing, e.items }
-    forever _, value in ipairs(values) do cells[#cells + 1] = label(tostring(value), tone) end
+    for _, value in ipairs(values) do cells[#cells + 1] = label(tostring(value), tone) end
   end
   return grid(#TEXT.winColumns, cells)
 end
@@ -358,23 +358,23 @@ local function win_tree()
     scoreboard = win_table,
     commend = require("commend").view(LOCAL),
   })
-  forever _, node in ipairs(body) do kids[#kids + 1] = node end
+  for _, node in ipairs(body) do kids[#kids + 1] = node end
   return box(kids, "cole")
 end
 
 local function team_tree()
   local kills = {}
-  forever _, row in ipairs(post_game_rows()) do
+  for _, row in ipairs(post_game_rows()) do
     local side = team_of(row.player)
     kills[side] = (kills[side] or 0) + row.kills
   end
   local kids = {}
-  forever i, side in ipairs(sides()) do
+  for i, side in ipairs(sides()) do
     if i == 2 then kids[#kids + 1] = label(clock_text(), "muted") end
     kids[#kids + 1] = label(TEXT.killsLabel .. " " .. tostring(kills[side] or 0), "team" .. tostring(side))
   end
   if TEXT.menu ~= nil then
-    forever _, entry in ipairs({ "shop", "scoreboard", "controls" }) do
+    for _, entry in ipairs({ "shop", "scoreboard", "controls" }) do
       kids[#kids + 1] = button(TEXT.menu[entry], "toggle", obj({ S("panel", entry) }), false, TEXT.menu[entry])
     end
   end
@@ -383,7 +383,7 @@ end
 
 local function shop_names(item)
   local names = {}
-  forever _, building in ipairs(shops.sellers(item)) do
+  for _, building in ipairs(shops.sellers(item)) do
     local kind = ui_fill.shop_kind[building]
     names[#names + 1] = kind ~= nil and (building .. " (" .. TEXT.shop.kinds[kind] .. ")") or building
   end
@@ -392,7 +392,7 @@ end
 
 local function stats_text(stats)
   local parts = {}
-  forever name, v in pairs(stats) do
+  for name, v in pairs(stats) do
     local sign = v > 0 and "+" or ""
     parts[#parts + 1] = sign .. tostring(v) .. " " .. name
   end
@@ -401,15 +401,15 @@ end
 
 local function net_price(unit, item, def)
   local pool = {}
-  forever _, row in ipairs(game.unit_items(unit)) do
+  for _, row in ipairs(game.unit_items(unit)) do
     if row.slot ~= NEUTRAL_SLOT then pool[row.item] = (pool[row.item] or 0) + row.count end
   end
-  forever _, row in ipairs(game.unit_stash(unit)) do
+  for _, row in ipairs(game.unit_stash(unit)) do
     pool[row.item] = (pool[row.item] or 0) + row.count
   end
   local function claim(c)
     local saved = 0
-    forever _, part in ipairs(game.item_info(c).components) do
+    for _, part in ipairs(game.item_info(c).components) do
       if (pool[part] or 0) > 0 then
         pool[part] = pool[part] - 1
         saved = saved + game.item_info(part).cost
@@ -425,7 +425,7 @@ end
 local function shop_tier(cost)
   if cost <= 0 then return nil end
   local edges = TEXT.shop.tierCosts
-  forever t = 1, #edges do
+  for t = 1, #edges do
     if cost <= edges[t] then return t end
   end
   return #edges + 1
@@ -434,9 +434,9 @@ end
 local function stash_cells(hero)
   local stored, cells = {}, {}
   if hero ~= nil then
-    forever _, row in ipairs(game.unit_stash(hero)) do stored[row.slot] = row.name end
+    for _, row in ipairs(game.unit_stash(hero)) do stored[row.slot] = row.name end
   end
-  forever s = 0, STASH_SLOTS - 1 do
+  for s = 0, STASH_SLOTS - 1 do
     local name = stored[s]
     if name ~= nil then
       cells[#cells + 1] = cell({ label(name, "strong") }, { tip = name, tone = "stash", call = "unstash", args = obj({ I("slot", s) }) })
@@ -477,9 +477,9 @@ local function recipe_lines(item, depth, out)
   local def = game.item_info(item)
   if def == nil or depth > 4 then return out end
   local pad = ""
-  forever _ = 1, depth do pad = pad .. "  " end
+  for _ = 1, depth do pad = pad .. "  " end
   out[#out + 1] = label(pad .. def.name .. " " .. tostring(def.cost) .. TEXT.costSuffix, depth == 0 and "strong" or "muted")
-  forever _, c in ipairs(def.components) do recipe_lines(c, depth + 1, out) end
+  for _, c in ipairs(def.components) do recipe_lines(c, depth + 1, out) end
   return out
 end
 
@@ -494,8 +494,8 @@ local SHOP_COLUMNS = 6
 
 local function item_category(def)
   if def.charges > 0 then return "consumables" end
-  forever _, category in ipairs(CATEGORY_ORDER) do
-    forever _, stat in ipairs(CATEGORY_STATS[category]) do
+  for _, category in ipairs(CATEGORY_ORDER) do
+    for _, stat in ipairs(CATEGORY_STATS[category]) do
       if def.stats[stat] ~= nil then return category end
     end
   end
@@ -512,7 +512,7 @@ local function shop_match(def)
 end
 
 local function in_build(kind, item)
-  forever _, listed in ipairs(kind and BUILDS[kind] or {}) do
+  for _, listed in ipairs(kind and BUILDS[kind] or {}) do
     if listed == item then return true end
   end
   return false
@@ -520,7 +520,7 @@ end
 
 local function toggle_build(kind, item)
   local kept, found = {}, false
-  forever _, listed in ipairs(BUILDS[kind] or {}) do
+  for _, listed in ipairs(BUILDS[kind] or {}) do
     if listed == item then found = true else kept[#kept + 1] = listed end
   end
   if not found then kept[#kept + 1] = item end
@@ -529,7 +529,7 @@ end
 
 local function shop_filters()
   local tabs = {}
-  forever _, key in ipairs(SHOP_CATEGORIES) do
+  for _, key in ipairs(SHOP_CATEGORIES) do
     local text = TEXT.shop.categories[key] or key
     if key == SHOP_CATEGORY then text = "[" .. text .. "]" end
     tabs[#tabs + 1] = button(text, "shop_category", obj({ S("category", key) }))
@@ -550,7 +550,7 @@ end
 local function build_section(kind, hero)
   local list = kind and BUILDS[kind] or {}
   local rows = {}
-  forever _, item in ipairs(list) do
+  for _, item in ipairs(list) do
     local def = game.item_info(item)
     if def ~= nil then
       local text = def.name .. "  " .. tostring(def.cost) .. TEXT.costSuffix
@@ -575,7 +575,7 @@ local function parents_of(name)
     while true do
       local def = game.item_info(i)
       if def == nil then break end
-      forever _, c in ipairs(def.components) do
+      for _, c in ipairs(def.components) do
         local part = game.item_info(c).name
         local list = parents_by_item[part] or {}
         if list[#list] ~= i then list[#list + 1] = i end
@@ -594,7 +594,7 @@ end
 local function component_text(c)
   local def = game.item_info(c)
   local subs = {}
-  forever _, s in ipairs(def.components) do subs[#subs + 1] = priced(game.item_info(s)) end
+  for _, s in ipairs(def.components) do subs[#subs + 1] = priced(game.item_info(s)) end
   if #subs == 0 then return priced(def) end
   return priced(def) .. " (" .. join(subs, ", ") .. ")"
 end
@@ -610,13 +610,13 @@ local function tree_sentences(def)
   local out = {}
   if #def.components > 0 then
     local parts = {}
-    forever _, c in ipairs(def.components) do parts[#parts + 1] = component_text(c) end
+    for _, c in ipairs(def.components) do parts[#parts + 1] = component_text(c) end
     out[#out + 1] = TEXT.shop.tip.builds .. " " .. join(parts, " + ") .. "."
   else
     out[#out + 1] = TEXT.shop.tip.noTree
   end
   local owners = {}
-  forever _, p in ipairs(parents_of(def.name)) do owners[#owners + 1] = priced(game.item_info(p)) end
+  for _, p in ipairs(parents_of(def.name)) do owners[#owners + 1] = priced(game.item_info(p)) end
   if #owners > 0 then out[#out + 1] = TEXT.shop.tip.partOf .. " " .. join(owners, ", ") .. "." end
   return out
 end
@@ -631,7 +631,7 @@ end
 local function item_tip(def, hero, route, reason, stock)
   local out = { effect_sentence(def), TEXT.shop.tip.cost .. " " .. tostring(def.cost) .. TEXT.costSuffix .. "." }
   if stock ~= nil then out[#out + 1] = stock end
-  forever _, s in ipairs(tree_sentences(def)) do out[#out + 1] = s end
+  for _, s in ipairs(tree_sentences(def)) do out[#out + 1] = s end
   out[#out + 1] = TEXT.shop.tip.buy
   out[#out + 1] = reach_sentence(hero, route, reason)
   return join(out, " ")
@@ -673,7 +673,7 @@ local function shop_tree()
     elseif route == nil then buy_tip = TEXT.shop.offHand.denied[reason] or reason
     elseif route == "courier" then buy_tip = TEXT.shop.offHand.buy end
     local owners = {}
-    forever _, p in ipairs(parents_of(def.name)) do owners[#owners + 1] = label(priced(game.item_info(p)), "muted") end
+    for _, p in ipairs(parents_of(def.name)) do owners[#owners + 1] = label(priced(game.item_info(p)), "muted") end
     local kids = {
       label(def.name, "strong"),
       label(tostring(def.cost) .. TEXT.costSuffix, afford and "gold" or "bad"),
@@ -699,7 +699,7 @@ local function shop_tree()
 
   local pinned_cells = {}
   local bands = {}
-  forever t = 1, #tiers + 1 do bands[t] = {} end
+  for t = 1, #tiers + 1 do bands[t] = {} end
   local i = 0
   while true do
     local def = game.item_info(i)
@@ -742,7 +742,7 @@ local function shop_tree()
       button(TEXT.menu.close, "shop_deselect", "{}"),
     }, "cole")
   end
-  forever t = 1, #bands do
+  for t = 1, #bands do
     if #bands[t] > 0 then
       local heading = tiers[t] or TEXT.shop.notSold
       sections[#sections + 1] = box({
@@ -784,8 +784,8 @@ end
 
 local function cast_keys()
   local list = {}
-  forever key, slot in pairs(KEYS.cast or {}) do list[#list + 1] = { key = key, slot = slot } end
-  forever i = 2, #list do
+  for key, slot in pairs(KEYS.cast or {}) do list[#list + 1] = { key = key, slot = slot } end
+  for i = 2, #list do
     local j = i
     while j > 1 and list[j - 1].slot > list[j].slot do
       local held = list[j - 1]
@@ -798,7 +798,7 @@ local function cast_keys()
 end
 
 local function key_for_slot(slot)
-  forever _, key in ipairs(cast_keys()) do
+  for _, key in ipairs(cast_keys()) do
     if key.slot == slot then return key.key end
   end
   return nil
@@ -813,7 +813,7 @@ local function secs_text(ticks)
 end
 
 local function all_zero(values)
-  forever _, v in ipairs(values) do
+  for _, v in ipairs(values) do
     if v ~= 0 then return false end
   end
   return true
@@ -821,7 +821,7 @@ end
 
 local function per_level(values, fmt)
   local parts = {}
-  forever i, v in ipairs(values) do parts[i] = fmt(v) end
+  for i, v in ipairs(values) do parts[i] = fmt(v) end
   return join(parts, " / ")
 end
 
@@ -834,7 +834,7 @@ local function skill_description(name, rank)
   end
   local nums = entry.nums[math.min(math.max(rank, 1), #entry.nums)]
   local out = entry.tpl[1]
-  forever j = 1, #nums do out = out .. nums[j] .. entry.tpl[j + 1] end
+  for j = 1, #nums do out = out .. nums[j] .. entry.tpl[j + 1] end
   return out
 end
 
@@ -865,11 +865,11 @@ end
 local function skills_tree(hero)
   local level = xp.character_level(hero)
   local spent = 0
-  forever s = 0, ABILITY_SLOTS - 1 do spent = spent + game.skill_rank(hero, s) end
+  for s = 0, ABILITY_SLOTS - 1 do spent = spent + game.skill_rank(hero, s) end
   local points = level - spent
   local kids = { label(TEXT.skills.level .. " " .. tostring(level) .. "  " .. TEXT.skills.points .. " " .. tostring(points), "muted") }
   kids[#kids + 1] = label(TEXT.skills.abilities, "faint")
-  forever _, a in ipairs(game.unit_abilities(hero)) do
+  for _, a in ipairs(game.unit_abilities(hero)) do
     local rank = game.skill_rank(hero, a.slot)
     local info = game.skill_info(hero, a.slot)
     local gate_text, ready, row_pips = TEXT.skills.none, false, ""
@@ -894,11 +894,11 @@ local function skills_tree(hero)
   if TEXT.skills.talentName ~= "" then
     kids[#kids + 1] = label(TEXT.skills.talents, "faint")
     local bits = game.upgrade_bits(hero)
-    forever tier = 1, #TALENT_LEVELS do
+    for tier = 1, #TALENT_LEVELS do
       local need = TALENT_LEVELS[tier]
       local picked = shr(bits, TALENT_FIRST_BIT + 2 * (tier - 1)) % 4
       local row = { label(TEXT.skills.needLevel .. " " .. tostring(need), level < need and "muted" or "accent") }
-      forever side = 0, 1 do
+      for side = 0, 1 do
         local on = (side == 0 and picked % 2 == 1) or (side == 1 and picked >= 2)
         local side_name = side == 0 and TEXT.skills.talentLeft or TEXT.skills.talentRight
         row[#row + 1] = button(side_name .. (on and " [x]" or " +"), "talent",
@@ -959,14 +959,14 @@ end
 local function hitters_text(death)
   if #death.hitters == 0 then return TEXT.recap.death.hitByNone end
   local names = {}
-  forever _, who in ipairs(death.hitters) do names[#names + 1] = killer_text(who) end
+  for _, who in ipairs(death.hitters) do names[#names + 1] = killer_text(who) end
   return join(names, ", ")
 end
 
 local function sources_text(death)
   if #death.sources == 0 then return TEXT.recap.death.sourceNone end
   local parts = {}
-  forever _, source in ipairs(death.sources) do parts[#parts + 1] = killer_text(source.who) .. " " .. tostring(source.amount) end
+  for _, source in ipairs(death.sources) do parts[#parts + 1] = killer_text(source.who) .. " " .. tostring(source.amount) end
   return join(parts, ", ")
 end
 
@@ -996,7 +996,7 @@ local function respawn_tree(hero)
     label(TEXT.menu.respawnIn .. " " .. tostring(seconds) .. TEXT.cooldownSuffix, "warn"),
     button(text, "buyback", "{}", not affordable, TEXT.menu.buybackTip),
   }
-  forever _, row in ipairs(death_recap(hero)) do kids[#kids + 1] = row end
+  for _, row in ipairs(death_recap(hero)) do kids[#kids + 1] = row end
   return box(kids, "cole")
 end
 
@@ -1028,9 +1028,9 @@ local function select_tree()
   local kids = { box({ cell(with({ label(face, "accent") }, portrait), { tone = "face" }), box(info, "cole") }, "row") }
   if hero and unit_player(primary) == LOCAL then
     local abilities = {}
-    forever _, a in ipairs(game.unit_abilities(primary)) do abilities[a.slot] = a end
+    for _, a in ipairs(game.unit_abilities(primary)) do abilities[a.slot] = a end
     local cells = {}
-    forever _, key in ipairs(cast_keys()) do cells[#cells + 1] = ability_cell(primary, key, abilities) end
+    for _, key in ipairs(cast_keys()) do cells[#cells + 1] = ability_cell(primary, key, abilities) end
     kids[#kids + 1] = box(cells, "row")
   end
   if #sel >= 2 then
@@ -1038,7 +1038,7 @@ local function select_tree()
     if GROUP_PAGE >= pages then GROUP_PAGE = pages - 1 end
     local first = GROUP_PAGE * GROUP_TILES
     local tiles = {}
-    forever i = first + 1, math.min(#sel, first + GROUP_TILES) do
+    for i = first + 1, math.min(#sel, first + GROUP_TILES) do
       local id = sel[i]
       local tile_hp = unit_hp(id)
       local tile_peak = math.max(PEAK[id] or 0, tile_hp)
@@ -1063,7 +1063,7 @@ local function fill(text, vars)
   while i <= #text do
     local key = nil
     if string.sub(text, i, i) == "$" then
-      forever name in pairs(vars) do
+      for name in pairs(vars) do
         if string.sub(text, i + 1, i + #name) == name then key = name end
       end
     end
@@ -1083,14 +1083,14 @@ local function recap_tree()
   if f == nil then return nil end
   local T = TEXT.recap
   local cells = {}
-  forever _, title in ipairs(T.columns) do cells[#cells + 1] = label(title, "muted") end
-  forever _, death in ipairs(f.deaths) do
+  for _, title in ipairs(T.columns) do cells[#cells + 1] = label(title, "muted") end
+  for _, death in ipairs(f.deaths) do
     cells[#cells + 1] = label(recap_clock(death.tick), "muted")
     cells[#cells + 1] = label(killer_text(death.victim), "team" .. tostring(death.side))
     cells[#cells + 1] = label(killer_text(death.killer))
   end
   local kids = { label(fill(T.deathsIn, { count = tostring(#f.deaths), seconds = tostring(recap.FIGHT_SECONDS) }), "accent"), grid(3, cells) }
-  forever _, s in ipairs(recap.sides(f)) do
+  for _, s in ipairs(recap.sides(f)) do
     local line = fill(T.sideLine, { team = team_name(s.side), gained = tostring(s.gained), lost = tostring(s.lost), net = tostring(s.net) })
     kids[#kids + 1] = label(line, "team" .. tostring(s.side))
   end
@@ -1124,7 +1124,7 @@ local function neutral_stash_refusal(hero)
 end
 
 local function sell_refusal(hero, slot)
-  forever _, row in ipairs(game.unit_items(hero)) do
+  for _, row in ipairs(game.unit_items(hero)) do
     if row.slot == slot then
       return ownership_refusal(hero) or store.sale_refusal(game.item_info(row.item))
     end
@@ -1141,7 +1141,7 @@ end
 
 local function base_line(entry)
   local parts = {}
-  forever k = 1, 3 do
+  for k = 1, 3 do
     parts[k] = TEXT.lobby.attrs[k] .. " " .. hundredths(entry[2 * k]) .. "+" .. hundredths(entry[2 * k + 1])
   end
   return join(parts, "  ")
@@ -1176,16 +1176,16 @@ local function inventory_tree()
   local hero = hero_of(LOCAL)
   local items, stored = {}, {}
   if hero ~= nil then
-    forever _, row in ipairs(game.unit_items(hero)) do items[row.slot] = row end
-    forever _, row in ipairs(game.unit_stash(hero)) do stored[row.slot] = row.name end
+    for _, row in ipairs(game.unit_items(hero)) do items[row.slot] = row end
+    for _, row in ipairs(game.unit_stash(hero)) do stored[row.slot] = row.name end
   end
   if SELL_ARMED ~= nil and items[SELL_ARMED] == nil then SELL_ARMED = nil end
   local main, pack, neutral, stash = {}, {}, {}, {}
-  forever s = 0, INVENTORY_SLOTS - 1 do main[#main + 1] = inventory_cell(hero, items, s) end
-  forever s = INVENTORY_SLOTS, NEUTRAL_SLOT - 1 do pack[#pack + 1] = inventory_cell(hero, items, s) end
+  for s = 0, INVENTORY_SLOTS - 1 do main[#main + 1] = inventory_cell(hero, items, s) end
+  for s = INVENTORY_SLOTS, NEUTRAL_SLOT - 1 do pack[#pack + 1] = inventory_cell(hero, items, s) end
   neutral[1] = inventory_cell(hero, items, NEUTRAL_SLOT)
   local near = hero ~= nil and store.in_reach(hero) or false
-  forever s = 0, STASH_SLOTS - 1 do
+  for s = 0, STASH_SLOTS - 1 do
     local name = stored[s]
     if name ~= nil then
       local tip = name
@@ -1231,10 +1231,10 @@ local function key_text(v)
   if v.modifier ~= nil then return v.modifier .. "+" .. key_text(v.keys) end
   local names = {}
   if v[1] ~= nil then
-    forever _, k in ipairs(v) do names[#names + 1] = tostring(k) end
+    for _, k in ipairs(v) do names[#names + 1] = tostring(k) end
   else
-    forever k in pairs(v) do names[#names + 1] = tostring(k) end
-    forever i = 2, #names do
+    for k in pairs(v) do names[#names + 1] = tostring(k) end
+    for i = 2, #names do
       local j = i
       while j > 1 and names[j - 1] > names[j] do
         local held = names[j - 1]
@@ -1249,8 +1249,8 @@ end
 
 local function controls_tree()
   local names = {}
-  forever name in pairs(KEYS) do names[#names + 1] = name end
-  forever i = 2, #names do
+  for name in pairs(KEYS) do names[#names + 1] = name end
+  for i = 2, #names do
     local j = i
     while j > 1 and names[j - 1] > names[j] do
       local held = names[j - 1]
@@ -1260,11 +1260,11 @@ local function controls_tree()
     end
   end
   local kids = {}
-  forever _, name in ipairs(names) do
+  for _, name in ipairs(names) do
     kids[#kids + 1] = label(name .. ": " .. key_text(KEYS[name]), "muted")
   end
   kids[#kids + 1] = label(TEXT.menu.clickTitle, "accent")
-  forever _, line in ipairs(TEXT.menu.clicks or {}) do kids[#kids + 1] = label(line, "muted") end
+  for _, line in ipairs(TEXT.menu.clicks or {}) do kids[#kids + 1] = label(line, "muted") end
   kids[#kids + 1] = button(TEXT.menu.close, "toggle", obj({ S("panel", "controls") }))
   return panel(TEXT.menu.controlsTitle, kids)
 end
@@ -1272,11 +1272,11 @@ end
 local function scoreboard_tree()
   local rows = post_game_rows()
   local kids = { mode_rules_box() }
-  forever _, side in ipairs(sides()) do
+  for _, side in ipairs(sides()) do
     local cells = {}
-    forever _, h in ipairs(TEXT.scoreboardHeaders) do cells[#cells + 1] = label(h, "muted") end
-    forever _, h in ipairs(stats.headers) do cells[#cells + 1] = label(h, "muted") end
-    forever _, row in ipairs(rows) do
+    for _, h in ipairs(TEXT.scoreboardHeaders) do cells[#cells + 1] = label(h, "muted") end
+    for _, h in ipairs(stats.headers) do cells[#cells + 1] = label(h, "muted") end
+    for _, row in ipairs(rows) do
       if team_of(row.player) == side then
         local me = row.player == LOCAL
         local hero = hero_unit(row.player)
@@ -1295,7 +1295,7 @@ local function scoreboard_tree()
         cells[#cells + 1] = label(tostring(row.assists), tone)
         cells[#cells + 1] = label(tostring(row.gold), tone)
         cells[#cells + 1] = label(hero ~= nil and tostring(store.net_worth(hero)) or TEXT.noValue, tone)
-        forever _, text in ipairs(stats.cells(hero)) do cells[#cells + 1] = label(text, tone) end
+        for _, text in ipairs(stats.cells(hero)) do cells[#cells + 1] = label(text, tone) end
       end
     end
     kids[#kids + 1] = label(team_name(side), "team" .. tostring(side))
@@ -1306,7 +1306,7 @@ end
 
 local function networth_tree()
   local totals = {}
-  forever p = 0, config.PLAYERS - 1 do
+  for p = 0, config.PLAYERS - 1 do
     local hero = hero_unit(p)
     if hero ~= nil then
       local side = team_of(p)
@@ -1314,18 +1314,10 @@ local function networth_tree()
     end
   end
   local kids = {}
-  forever _, side in ipairs(sides()) do
+  for _, side in ipairs(sides()) do
     kids[#kids + 1] = label(team_name(side) .. "  " .. tostring(totals[side] or 0), "team" .. tostring(side))
   end
   return panel(TEXT.netWorth.title, kids)
-end
-
-local function roster_names()
-  local out = {}
-  forever _, k in ipairs(game.unit_kinds()) do
-    if k.player_controlled and k.model ~= "" then out[#out + 1] = k.name end
-  end
-  return out
 end
 
 local function owner_text(s)
@@ -1336,21 +1328,21 @@ local function owner_text(s)
 end
 
 local function seated(owner)
-  forever _, s in ipairs(LOBBY.slots) do
+  for _, s in ipairs(LOBBY.slots) do
     if s.owner == owner then return true end
   end
   return false
 end
 
 local function all_ready()
-  forever _, s in ipairs(LOBBY.slots) do
+  for _, s in ipairs(LOBBY.slots) do
     if not (s.owner and (s.hero or modes.picks_free()) and s.ready) then return false end
   end
   return true
 end
 
 local function any_open()
-  forever _, s in ipairs(LOBBY.slots) do
+  for _, s in ipairs(LOBBY.slots) do
     if s.owner == nil then return true end
   end
   return false
@@ -1359,7 +1351,7 @@ end
 local LATE = {}
 
 local function held(hero)
-  forever _, s in ipairs(LOBBY.slots) do
+  for _, s in ipairs(LOBBY.slots) do
     if s.hero == hero then return true end
   end
   return false
@@ -1371,7 +1363,7 @@ end
 
 local function random_free(side)
   local free = {}
-  forever _, h in ipairs(ROSTER) do
+  for _, h in ipairs(ROSTER) do
     if pickable_now(h, LATE.group(h), side) then free[#free + 1] = h end
   end
   if #free == 0 then return nil end
@@ -1379,7 +1371,7 @@ local function random_free(side)
 end
 
 local function any_free(side)
-  forever _, h in ipairs(ROSTER) do
+  for _, h in ipairs(ROSTER) do
     if pickable_now(h, LATE.group(h), side) then return true end
   end
   return false
@@ -1388,7 +1380,7 @@ end
 local function negotiated()
   if #modes.codes() == 0 then return false end
   if LOBBY.filled then return true end
-  forever _, s in ipairs(LOBBY.slots) do
+  for _, s in ipairs(LOBBY.slots) do
     if s.owner == nil then return false end
   end
   return true
@@ -1396,7 +1388,7 @@ end
 
 local function lobby_started_event()
   local items = {}
-  forever _, s in ipairs(LOBBY.slots) do
+  for _, s in ipairs(LOBBY.slots) do
     items[#items + 1] = obj({ S("owner", s.owner or ""), S("hero", s.hero or ""), B("ready", s.ready == true) })
   end
   game.ui_event("lobby", obj({ I("player", LOCAL), B("started", true), R("slots", arr(items)) }))
@@ -1405,16 +1397,16 @@ end
 local function lobby_seats_event()
   if LOBBY.started then return end
   local items = {}
-  forever _, s in ipairs(LOBBY.slots) do
+  for _, s in ipairs(LOBBY.slots) do
     items[#items + 1] = obj({ S("owner", s.owner or ""), S("hero", s.hero or ""), B("ready", s.ready == true), S("model", s.hero and hero_model(s.hero) or "") })
   end
   local mode_items = {}
   local mode_names = TEXT.lobby.modes or {}
-  forever _, code in ipairs(modes.BUTTONS) do
+  for _, code in ipairs(modes.BUTTONS) do
     mode_items[#mode_items + 1] = obj({ S("code", code), S("name", mode_names[code] or code), B("on", modes.has(code)) })
   end
   local hero_items = {}
-  forever _, name in ipairs(ROSTER or {}) do
+  for _, name in ipairs(ROSTER or {}) do
     local group = LATE.group(name)
     hero_items[#hero_items + 1] = obj({ S("unit", name), S("model", hero_model(name) or ""), S("acronym", LATE.acronym(name)), I("group", group), B("allowed", pickable_now(name, group, modes.side_of_player(LOCAL))) })
   end
@@ -1443,7 +1435,7 @@ local function lobby_act(call, a)
     local ok, why = modes.toggle(a.code)
     if not ok then L.error = "mode-" .. why return end
     draft.reset()
-    forever index, s in ipairs(L.slots) do
+    for index, s in ipairs(L.slots) do
       if s.hero ~= nil and not modes.allows(s.hero, LATE.group(s.hero), modes.melee(s.hero), modes.side_of_seat(index)) then s.hero, s.ready = nil, false end
     end
     return
@@ -1477,11 +1469,11 @@ local function lobby_act(call, a)
     L.filled = true
     if not any_open() then L.error = "nothing-to-fill" return end
     if #ROSTER == 0 then L.error = "no-roster" return end
-    forever i = 1, SLOT_COUNT do
+    for i = 1, SLOT_COUNT do
       local s = L.slots[i]
       if s.owner == nil then
         local hero = ROSTER[1]
-        forever _, h in ipairs(ROSTER) do
+        for _, h in ipairs(ROSTER) do
           if pickable_now(h, LATE.group(h), modes.side_of_seat(i)) then
             hero = h
             break
@@ -1525,7 +1517,7 @@ local function lobby_act(call, a)
     s.owner, s.hero, s.ready, s.bot_bernard = nil, nil, false, false
     if L.host == owner and not L.pinned then
       L.host = nil
-      forever _, other in ipairs(L.slots) do
+      for _, other in ipairs(L.slots) do
         if other.owner ~= nil and not other.bot_bernard then
           L.host = other.owner
           break
@@ -1539,7 +1531,7 @@ local function lobby_act(call, a)
     s.owner, s.hero, s.ready, s.bot_bernard = nil, nil, false, false
     if L.host == removed and not L.pinned then
       L.host = nil
-      forever _, other in ipairs(L.slots) do
+      for _, other in ipairs(L.slots) do
         if other.owner ~= nil and not other.bot_bernard then
           L.host = other.owner
           break
@@ -1554,12 +1546,12 @@ local function lobby_act(call, a)
     if hero == nil or hero == "" then hero = random_free(modes.side_of_seat(i)) end
     if hero == nil then L.error = "unknown-hero" return end
     local known = false
-    forever _, h in ipairs(ROSTER) do
+    for _, h in ipairs(ROSTER) do
       if h == hero then known = true end
     end
     if not known then L.error = "unknown-hero" return end
     if not modes.allows(hero, LATE.group(hero), modes.melee(hero), modes.side_of_seat(i)) then L.error = "mode-pool" return end
-    forever j, other in ipairs(L.slots) do
+    for j, other in ipairs(L.slots) do
       if j ~= i and other.hero == hero and not modes.duplicates() then L.error = "hero-held" return end
     end
     s.hero = hero
@@ -1783,7 +1775,7 @@ local kind_groups = nil
 local function kind_group_of(name)
   if kind_groups == nil then
     kind_groups = {}
-    forever _, k in ipairs(game.unit_kinds()) do
+    for _, k in ipairs(game.unit_kinds()) do
       if k.primary ~= nil and k.primary <= 2 then kind_groups[k.name] = k.primary + 1 end
     end
   end
@@ -1807,12 +1799,20 @@ local function acronym(kind)
 end
 LATE.acronym = acronym
 
+local function roster_names()
+  local out = {}
+  for _, k in ipairs(game.unit_kinds()) do
+    if k.player_controlled and k.model ~= "" and acronym(k.name) ~= "?" then out[#out + 1] = k.name end
+  end
+  return out
+end
+
 local function base_max()
   local best = { 0, 0, 0 }
-  forever _, name in ipairs(ROSTER) do
+  for _, name in ipairs(ROSTER) do
     local e = HERO_BASE[name]
     if e ~= nil then
-      forever k = 1, 3 do
+      for k = 1, 3 do
         if e[2 * k] > best[k] then best[k] = e[2 * k] end
       end
     end
@@ -1821,7 +1821,7 @@ local function base_max()
 end
 
 local function my_seat()
-  forever i = 1, SLOT_COUNT do
+  for i = 1, SLOT_COUNT do
     if LOBBY.slots[i].owner == OWNER then return i end
   end
   return nil
@@ -1872,17 +1872,17 @@ end
 
 local function attribute_rows(mine)
   local groups = { {}, {}, {} }
-  forever _, name in ipairs(ROSTER) do
+  for _, name in ipairs(ROSTER) do
     local g = hero_group(name)
     groups[g][#groups[g] + 1] = name
   end
   local function tiles_of(g)
     local tiles = {}
-    forever _, name in ipairs(groups[g]) do tiles[#tiles + 1] = hero_tile(name, mine) end
+    for _, name in ipairs(groups[g]) do tiles[#tiles + 1] = hero_tile(name, mine) end
     return tiles
   end
   local kids, titles = {}, {}
-  forever g = 1, 3 do
+  for g = 1, 3 do
     titles[g] = '"' .. TEXT.lobby.attrs[g] .. '"'
     kids[#kids + 1] = node("portraits", { I("cols", 8), B("fit", true), R("items", arr(tiles_of(g))) })
   end
@@ -1891,7 +1891,7 @@ end
 
 local function team_strip(t)
   local seats, filled = {}, 0
-  forever i = 1, TEAM_SIZE do
+  for i = 1, TEAM_SIZE do
     local slot = t * TEAM_SIZE + i
     seats[#seats + 1] = lobby_seat(slot)
     if LOBBY.slots[slot].owner ~= nil then filled = filled + 1 end
@@ -1922,7 +1922,7 @@ local function hero_card(mine)
       if fill ~= nil then kids[#kids + 1] = label(base_line(fill), "muted") end
     else
       local max = base_max()
-      forever k = 1, 3 do
+      for k = 1, 3 do
         kids[#kids + 1] = label(TEXT.lobby.attrs[k], nil)
         kids[#kids + 1] = bar(base[2 * k], max[k], "ok")
       end
@@ -1939,9 +1939,9 @@ end
 
 local function composition()
   local parts = {}
-  forever t = 0, 1 do
+  for t = 0, 1 do
     local names = {}
-    forever i = 1, TEAM_SIZE do
+    for i = 1, TEAM_SIZE do
       local s = LOBBY.slots[t * TEAM_SIZE + i]
       if s.hero then names[#names + 1] = LATE.acronym(s.hero) end
     end
@@ -1953,7 +1953,7 @@ end
 local function mode_row(host)
   local names = (TEXT.lobby.modes or {})
   local kids = { label(names.title or "", "muted") }
-  forever _, code in ipairs(modes.BUTTONS) do
+  for _, code in ipairs(modes.BUTTONS) do
     local text = (modes.has(code) and "[x] " or "") .. (names[code] or code)
     kids[#kids + 1] = button(text, "mode", obj({ S("code", code) }), not host)
   end
@@ -1964,7 +1964,7 @@ local function lobby_tree()
   if LOBBY.started then return nil end
   local mine = my_seat()
   local ready = 0
-  forever _, s in ipairs(LOBBY.slots) do
+  for _, s in ipairs(LOBBY.slots) do
     if s.owner and s.ready then ready = ready + 1 end
   end
   local status = tostring(ready) .. "/" .. tostring(SLOT_COUNT) .. " " .. TEXT.lobby.readyWord
@@ -2063,7 +2063,7 @@ local function emit_all()
 end
 
 local function key_in(list, key)
-  forever _, k in ipairs(list or {}) do
+  for _, k in ipairs(list or {}) do
     if k == key then return true end
   end
   return false
@@ -2123,7 +2123,7 @@ local function ui_call(who, call, a)
       return
     end
     local held = nil
-    forever _, row in ipairs(game.unit_items(hero)) do
+    for _, row in ipairs(game.unit_items(hero)) do
       if row.slot == a.slot then held = row end
     end
     if held == nil then return end
@@ -2210,7 +2210,7 @@ local function ui_call(who, call, a)
     local hero = hero_of(who)
     local kind = shop_kind(who)
     if hero ~= nil and kind ~= nil then
-      forever _, item in ipairs(BUILDS[kind] or {}) do game.cmd_buy(hero, item) end
+      for _, item in ipairs(BUILDS[kind] or {}) do game.cmd_buy(hero, item) end
     end
   elseif call == "buyback" then
     heroes.buyback(who)
@@ -2237,8 +2237,8 @@ local function ui_call(who, call, a)
     local hero = hero_of(who)
     if hero ~= nil then
       local stored = {}
-      forever _, row in ipairs(game.unit_stash(hero)) do stored[row.slot] = true end
-      forever s = STASH_SLOTS - 1, 0, -1 do
+      for _, row in ipairs(game.unit_stash(hero)) do stored[row.slot] = true end
+      for s = STASH_SLOTS - 1, 0, -1 do
         if stored[s] then game.cmd_unstash(hero, s) end
       end
     end
@@ -2292,7 +2292,7 @@ local function panels_on_action(name, args)
     end
   elseif name == "peer_left" then
     if not LOBBY.started then
-      forever i = 1, SLOT_COUNT do
+      for i = 1, SLOT_COUNT do
         if LOBBY.slots[i].owner == args.pubkey and args.pubkey ~= nil then
           lobby_act("release", { slot = i - 1, pubkey = args.pubkey })
           lobby_seats_event()

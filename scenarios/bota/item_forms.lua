@@ -31,7 +31,7 @@ local RANGED_TWIN = {
   manta = "manta_ranged",
 }
 local MELEE_OF = {}
-forever melee, ranged in pairs(RANGED_TWIN) do MELEE_OF[ranged] = melee end
+for melee, ranged in pairs(RANGED_TWIN) do MELEE_OF[ranged] = melee end
 
 local COURIER_TWIN = { gem = "gem_courier", armlet = "armlet_courier", armlet_on = "armlet_courier" }
 local HERO_OF_COURIER = { gem_courier = "gem", armlet_courier = "armlet" }
@@ -94,7 +94,7 @@ forms.RECHARGE = {
 }
 
 function forms.held_alias(base, named, pool)
-  forever _, alias in ipairs(forms.ALIASES[base] or {}) do
+  for _, alias in ipairs(forms.ALIASES[base] or {}) do
     local index = named[alias]
     if index ~= nil and (pool[index] or 0) > 0 then return index end
   end
@@ -168,7 +168,7 @@ end
 
 local function rescan(unit)
   local mine = { armlet_on = false, heart = false, tranquil = false, radiance = false }
-  forever _, row in ipairs(game.unit_items(unit)) do
+  for _, row in ipairs(game.unit_items(unit)) do
     local target = corrected_form(unit, row)
     if target ~= nil then
       swap(unit, row, target)
@@ -186,7 +186,7 @@ end
 
 local function rows_named(unit, wanted)
   local out = {}
-  forever _, row in ipairs(game.unit_items(unit)) do
+  for _, row in ipairs(game.unit_items(unit)) do
     if wanted[row.name] then out[#out + 1] = row end
   end
   return out
@@ -205,7 +205,7 @@ local function from_heroes_side(hitter)
 end
 
 local function hit_recently(unit, window, qualifies)
-  forever _, hitter in ipairs(game.recent_hitters(unit, window)) do
+  for _, hitter in ipairs(game.recent_hitters(unit, window)) do
     if units.hostile(unit_player(hitter), unit_player(unit)) and (qualifies == nil or qualifies(hitter)) then return true end
   end
   return false
@@ -215,7 +215,7 @@ local function tick_heart(unit)
   local window = is_ranged(unit) and HEART_RANGED_TICKS or HEART_MELEE_TICKS
   local disabled = hit_recently(unit, window, from_heroes_side)
   local target = disabled and "heart_disabled" or "heart"
-  forever _, row in ipairs(rows_named(unit, disabled and HEART or HEART_OFF)) do
+  for _, row in ipairs(rows_named(unit, disabled and HEART or HEART_OFF)) do
     game.cmd_replace_item(unit, row.slot, target, row.count)
   end
 end
@@ -227,7 +227,7 @@ local function tick_tranquil(unit, now)
   end
   local broken = game.counter(unit, "tranquil_until") > now or hit_recently(unit, TRANQUIL_BREAK_TICKS)
   local target = broken and "tranquil_boots_broken" or "tranquil_boots"
-  forever _, row in ipairs(rows_named(unit, broken and TRANQUIL or TRANQUIL_OFF)) do
+  for _, row in ipairs(rows_named(unit, broken and TRANQUIL or TRANQUIL_OFF)) do
     game.cmd_replace_item(unit, row.slot, target, row.count)
   end
 end
@@ -240,7 +240,7 @@ end
 local function blind_enemies(unit, now)
   local x, y = unit_position(unit)
   local until_tick = now + TPS + 4
-  forever _, other in ipairs(game.units_near(x, y, RADIANCE_REACH_Q16)) do
+  for _, other in ipairs(game.units_near(x, y, RADIANCE_REACH_Q16)) do
     if other ~= unit and unit_alive(other) and units.hostile(unit_player(unit), unit_player(other)) and not units.is_structure(other) then
       game.set_counter(other, "blind_until", until_tick)
     end
@@ -248,10 +248,10 @@ local function blind_enemies(unit, now)
 end
 
 local function absorb_blocks(now)
-  forever _, block in ipairs(game.take_blocks()) do
+  for _, block in ipairs(game.take_blocks()) do
     local target = block.target
     if unit_alive(target) then
-      forever _, row in ipairs(rows_named(target, SPHERE_READY)) do
+      for _, row in ipairs(rows_named(target, SPHERE_READY)) do
         game.cmd_replace_item(target, row.slot, "sphere_recharging", row.count)
         game.set_counter(target, "linken_due", now + LINKEN_RECHARGE_TICKS)
         break
@@ -264,7 +264,7 @@ local function restore_sphere(unit, now)
   local due = game.counter(unit, "linken_due")
   if due == 0 or now < due then return end
   game.set_counter(unit, "linken_due", 0)
-  forever _, row in ipairs(rows_named(unit, SPHERE_RECHARGING)) do
+  for _, row in ipairs(rows_named(unit, SPHERE_RECHARGING)) do
     game.cmd_replace_item(unit, row.slot, "sphere", row.count)
   end
 end
@@ -288,7 +288,7 @@ end
 local function transfer_block(caster)
   local target = game.cast_target(caster)
   if not forms.can_transfer(caster, target) then return end
-  forever _, row in ipairs(rows_named(caster, SPHERE_READY)) do
+  for _, row in ipairs(rows_named(caster, SPHERE_READY)) do
     local now = game.ticks()
     game.cmd_replace_item(caster, row.slot, "sphere_recharging", row.count)
     game.set_counter(caster, "linken_due", now + LINKEN_RECHARGE_TICKS)
@@ -307,7 +307,7 @@ local function bless(caster)
   game.add_stat(target, STAT_INTELLIGENCE, BLESS_ATTRIBUTES)
   game.add_stat(target, STAT_HEALTH, BLESS_HEALTH)
   game.add_stat(target, STAT_MAX_MANA, BLESS_MANA)
-  forever _, row in ipairs(game.unit_items(caster)) do
+  for _, row in ipairs(game.unit_items(caster)) do
     if row.name == ALCHEMIST_SCEPTER_ITEM then
       game.consume_item_charge(caster, row.slot)
       return
@@ -346,7 +346,7 @@ end
 
 local function live_couriers()
   local kept = {}
-  forever _, unit in ipairs(couriers) do
+  for _, unit in ipairs(couriers) do
     if unit_alive(unit) then kept[#kept + 1] = unit end
   end
   couriers = kept
@@ -379,10 +379,10 @@ end
 forms.on_tick = function()
   local now = game.ticks()
   absorb_blocks(now)
-  forever _, hero in ipairs(bounty.heroes()) do
+  for _, hero in ipairs(bounty.heroes()) do
     if unit_alive(hero) then watch(hero, now) end
   end
-  forever _, courier in ipairs(live_couriers()) do
+  for _, courier in ipairs(live_couriers()) do
     if seen_generation[courier] ~= game.unit_item_gen(courier) then rescan(courier) end
   end
 end

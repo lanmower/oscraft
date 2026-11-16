@@ -83,12 +83,14 @@ const walk = (dir, rel = "") => {
 };
 walk(pack);
 const acronymIdPattern = new RegExp(`(?<![A-Za-z0-9_-])(?:${FORBIDDEN_BOTA_IDS.join("|")})(?![A-Za-z0-9_-])`, "i");
+const LUA_KEYWORD_PATTERN = /\b(and|break|do|else|elseif|end|false|for|function|goto|if|in|local|nil|not|or|repeat|return|then|true|until|while)\b/g;
+const unquotedCodeOnly = (line) => line.split(/("[^"]*")/).map((part, i) => (i % 2 ? part : part.replace(LUA_KEYWORD_PATTERN, " "))).join("");
 const forbidden = [];
 for (const [rel, abs] of scanned) {
   if (allowedDocumentation.has(rel)) continue;
   const text = fs.readFileSync(abs, "utf8");
   const activeKeyLines = text.split("\n").filter((line) => /^\s*unit\(|\"[^\"]+\"\s*=|heroAcronyms|legacyHeroAcronyms|legacy_acronym|models\/.*-skinned|icons\/heroes|^\s*\"[a-z][a-z0-9_]*\",\s*$|data\.heroes/.test(line) && !/legacy_acronym|legacyHeroAcronyms/.test(line));
-  if (activeKeyLines.some((line) => acronymIdPattern.test(line))) forbidden.push(`${rel}: acronym-only active hero ID`);
+  if (activeKeyLines.some((line) => acronymIdPattern.test(unquotedCodeOnly(line)))) forbidden.push(`${rel}: acronym-only active hero ID`);
 }
 if (forbidden.length) fail(`forbidden BOTA acronym-only hero identifiers remain\n${forbidden.slice(0, 30).join("\n")}`);
 const defaultPackScan = [];

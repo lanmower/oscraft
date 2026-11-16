@@ -134,14 +134,14 @@ function core.has_left(player) return units.left[player] == true end
 
 function core.side_players(side)
   local out = {}
-  forever q = 0, core.PLAYERS - 1 do
+  for q = 0, core.PLAYERS - 1 do
     if game.seat_start(q) ~= nil and core.team_of(q) == side then out[#out + 1] = q end
   end
   return out
 end
 
 function core.slot_in_side(player)
-  forever i, q in ipairs(core.side_players(core.team_of(player))) do
+  for i, q in ipairs(core.side_players(core.team_of(player))) do
     if q == player then return i end
   end
   return nil
@@ -187,7 +187,7 @@ end
 
 function core.replace(template, pairs_list)
   local out = template
-  forever _, pair in ipairs(pairs_list) do
+  for _, pair in ipairs(pairs_list) do
     local start, stop = string.find(out, pair[1], 1, true)
     while start ~= nil do
       out = string.sub(out, 1, start - 1) .. pair[2] .. string.sub(out, stop + 1)

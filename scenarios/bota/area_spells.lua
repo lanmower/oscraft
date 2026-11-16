@@ -6,7 +6,7 @@ local MAX_HIT = 32767
 local S_ATTACK_SPEED = 12
 
 local function rank_of(unit, ability)
-  forever _, row in ipairs(game.unit_abilities(unit)) do
+  for _, row in ipairs(game.unit_abilities(unit)) do
     if row.name == ability then return game.skill_rank(unit, row.slot) end
   end
   return 0
@@ -14,7 +14,7 @@ end
 
 local function enemies(owner, x, y, radius)
   local found = {}
-  forever _, unit in ipairs(game.units_near(x, y, config.milli(radius))) do
+  for _, unit in ipairs(game.units_near(x, y, config.milli(radius))) do
     if game.alive(unit) and not game.is_structure(unit) and game.counter(unit, "area_summon") == 0 and game.hostile(owner, unit_player(unit)) then
       found[#found + 1] = unit
     end
@@ -90,7 +90,7 @@ end
 local function step_march(mark)
   local owner = unit_player(mark.caster)
   local damage = MARCH.damage[math.min(mark.rank, #MARCH.damage)] * MARCH.robots_per_hit
-  forever _, unit in ipairs(enemies(owner, mark.x, mark.y, MARCH.radius)) do
+  for _, unit in ipairs(enemies(owner, mark.x, mark.y, MARCH.radius)) do
     game.spell_damage(mark.caster, unit, damage, MAGICAL)
   end
   mark.due = mark.due + MARCH.period
@@ -118,7 +118,7 @@ local function step_sigil(mark)
   local x, y = unit_position(mark.unit)
   local rank = math.min(mark.rank, #SIGIL.move_keep)
   local keep = math.floor(65536 * SIGIL.move_keep[rank] / 100)
-  forever _, unit in ipairs(enemies(unit_player(mark.unit), x, y, SIGIL.radius)) do
+  for _, unit in ipairs(enemies(unit_player(mark.unit), x, y, SIGIL.radius)) do
     game.apply_status(unit, "slow", SIGIL.slow_ticks, keep)
     if game.counter(unit, "sigil_due") == 0 then
       game.set_counter(unit, "sigil_cut", SIGIL.attack_cut[rank])
@@ -156,7 +156,7 @@ local function step_tomb(mark)
   local alive = game.alive(mark.unit) and game.counter(mark.unit, "tomb_hits") > 0
   local now = game.ticks()
   local kept = {}
-  forever _, zombie in ipairs(mark.zombies) do
+  for _, zombie in ipairs(mark.zombies) do
     if game.alive(zombie) and (alive and now < mark.until_tick) then
       kept[#kept + 1] = zombie
     elseif game.alive(zombie) then
@@ -169,7 +169,7 @@ local function step_tomb(mark)
     return false
   end
   local x, y = unit_position(mark.unit)
-  forever _, target in ipairs(enemies(unit_player(mark.unit), x, y, TOMBSTONE.radius)) do
+  for _, target in ipairs(enemies(unit_player(mark.unit), x, y, TOMBSTONE.radius)) do
     if #mark.zombies >= TOMBSTONE.cap then break end
     local tx, ty = unit_position(target)
     local zombie = game.spawn(unit_player(mark.unit), TOMBSTONE.zombie, tx, ty)
@@ -202,12 +202,12 @@ end
 
 local function step_flare(mark)
   local heroes = {}
-  forever _, unit in ipairs(enemies(unit_player(mark.caster), mark.x, mark.y, FLARE.radius)) do
+  for _, unit in ipairs(enemies(unit_player(mark.caster), mark.x, mark.y, FLARE.radius)) do
     if game.is_attributed(unit) then heroes[#heroes + 1] = unit end
   end
   if #heroes > 0 then
     local each = math.floor(FLARE.damage[math.min(mark.rank, 3)] / FLARE.pulses / #heroes)
-    forever _, unit in ipairs(heroes) do game.spell_damage(mark.caster, unit, each, MAGICAL) end
+    for _, unit in ipairs(heroes) do game.spell_damage(mark.caster, unit, each, MAGICAL) end
   end
   mark.left = mark.left - 1
   mark.due = mark.due + FLARE.period
@@ -232,11 +232,11 @@ local function start_bonds(caster)
   if rank == 0 or target == nil or not game.alive(target) then return end
   local x, y = unit_position(target)
   local members = { target }
-  forever _, unit in ipairs(enemies(unit_player(caster), x, y, BONDS.radius)) do
+  for _, unit in ipairs(enemies(unit_player(caster), x, y, BONDS.radius)) do
     if unit ~= target and #members < rank + 3 then members[#members + 1] = unit end
   end
   local id = game.ticks() * 64 + caster + 1
-  forever _, unit in ipairs(members) do
+  for _, unit in ipairs(members) do
     game.set_counter(unit, "bond_id", id)
     game.set_counter(unit, "bond_caster", caster)
     game.set_counter(unit, "bond_due", game.ticks() + BONDS.duration)
@@ -251,7 +251,7 @@ local function share_bonds(victim, dealt)
   if whole <= BONDS.smallest or whole >= BONDS.largest then return end
   local caster = game.counter(victim, "bond_caster")
   local amount = math.floor(whole * BONDS.share / 100)
-  forever _, other in ipairs(bonds[id] or {}) do
+  for _, other in ipairs(bonds[id] or {}) do
     if other ~= victim and game.alive(other) and game.counter(other, "bond_id") == id then
       game.set_counter(other, "bond_skip", game.ticks() + 1)
       game.spell_damage(caster, other, amount, MAGICAL)
@@ -261,7 +261,7 @@ end
 
 local function rebuild_bonds()
   bonds = {}
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     local id = game.counter(unit, "bond_id")
     if id ~= 0 and game.alive(unit) and game.ticks() < game.counter(unit, "bond_due") then
       bonds[id] = bonds[id] or {}
@@ -271,7 +271,7 @@ local function rebuild_bonds()
 end
 
 local SHARDS = {
-  source = "war3map.j HLR 84445-84485, HBR (A1YQ: a wall at the target point forever 7 s; footprint GUESS 2 x 2 cells)",
+  source = "war3map.j HLR 84445-84485, HBR (A1YQ: a wall at the target point for 7 s; footprint GUESS 2 x 2 cells)",
   ability = "tusk_ice_shards",
   seconds = 7,
   cells = 2,
@@ -309,19 +309,19 @@ return {
   on_tick = function()
     local now = game.ticks()
     local kept = {}
-    forever _, mark in ipairs(active) do
+    for _, mark in ipairs(active) do
       local live = true
       if now >= mark.due then live = STEP[mark.kind](mark) end
       if live then
         kept[#kept + 1] = mark
       elseif mark.slowed ~= nil then
-        forever unit in pairs(mark.slowed) do
+        for unit in pairs(mark.slowed) do
           if game.counter(unit, "sigil_due") ~= 0 then release_sigil(unit) end
         end
       end
     end
     active = kept
-    forever unit in pairs(reap) do
+    for unit in pairs(reap) do
       if not game.alive(unit) then
         reap[unit] = nil
       elseif now >= game.counter(unit, "area_due") then
@@ -334,7 +334,7 @@ return {
     active = {}
     reap = {}
     rebuild_bonds()
-    forever unit = 0, get_unit_count() - 1 do
+    for unit = 0, get_unit_count() - 1 do
       if game.counter(unit, "area_summon") ~= 0 and game.alive(unit) then reap[unit] = true end
     end
   end,

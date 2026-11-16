@@ -32,13 +32,13 @@ text.kickAccept = " Type |c006699CC-yes|r to accept."
 text.kickAccepted = " accepted the request. "
 text.kickExpired = "|c00ff0303Kick time has expired without enough votes."
 text.kickRemoved = " has been removed from the game."
-text.afkFor = "has been afk forever more than"
+text.afkFor = "has been afk for more than"
 text.afkMinutes = "minutes"
 text.afkType = "You may type"
 text.afkBoot = "to boot this player from the game"
-text.afkBooted = "has been booted forever being afk too long!"
+text.afkBooted = "has been booted for being afk too long!"
 text.musicHelp = "Command is used by typing -music theme. Where theme is one of the following:"
-text.switchOff = "-switch has been disabled forever this game."
+text.switchOff = "-switch has been disabled for this game."
 text.switchLocked = "The enemy team has unlocked that hero's items. He cannot be switched."
 text.switchTo = "to switch with"
 text.switchRequest = "$c1Type|r $c2-switch accept|r $c1or|r $c2-ok|r $c1to allow|r $p1 $c1to switch with|r $p2"
@@ -49,7 +49,7 @@ text.switchExpired = "Switch time has expired without enough votes"
 text.switchAccepted = "has accepted the switch offer"
 text.switchDone = "$c1The switch process between|r $p1 $c1and|r $p2 $c1has been completed successfully|r"
 text.pickAgain = "You can now pick a new hero"
-text.repickLater = "is disabled forever a few seconds"
+text.repickLater = "is disabled for a few seconds"
 text.repickOff = "Repicking has been disabled by the host"
 text.repickLate = "Too late to repick"
 text.repickGold = "Not enough gold to repick"
@@ -104,7 +104,7 @@ text.gameInfo = {
   { "ar", { "|c006699CCAll Random|r:\t\t\t\t\tYou will be given a random hero from any tavern." } },
   { "vr", { "|c006699CCVote Random|r:\t\t\t\tYou will be given a random hero from the voted groupset." } },
   { "tr", { "|c006699CCTeam Random|r:\t\tYou will be given a random hero from your taverns." } },
-  { "rv", { "|c006699CCReverse|r:\t\t\t\t\t\t\t\tYou pick a hero forever your opponent." } },
+  { "rv", { "|c006699CCReverse|r:\t\t\t\t\t\t\t\tYou pick a hero for your opponent." } },
   { "sp", { "|c006699CCShuffle Players|r:\t\tAll players will be shuffled across both sides." } },
   { "aa", { "|c006699CCAll Agility|r:\t\t\t\t\t\tOnly Agility heroes will be allowed." } },
   { "as", { "|c006699CCAll Strength|r:\t\t\t\tOnly Strength heroes will be allowed." } },
@@ -124,11 +124,11 @@ text.gameInfo = {
   { "ns", { "|c006699CCNo Swap|r:\t\t\t\t\tSwapping heroes is not allowed" } },
   { "nr", { "|c006699CCNo Repick|r:\t\t\t\t\tRepicking heroes is not allowed" } },
   { "pm", { "|c006699CCPool Mode|r:\t\t\t\t\tAllows allies to pool each other items" } },
-  { "oi", { "|c006699CCObserver Info|r:\t\t\t\t\tDisables extra information forever Observers" } },
+  { "oi", { "|c006699CCObserver Info|r:\t\t\t\t\tDisables extra information for Observers" } },
   { "mi", { "|c006699CCMini Hereos|r:\t\t\t\t\tCreates minature models of the heroes" } },
   { "fr", { "|c006699CCFast Respawn|r:\t\t\t\t\tReduces death times by 50%" } },
   { "cm", { "|c006699CCCaptains Mode|r:\t\t\t\t\tA captain from each side will ban and pick heroes." } },
-  { "er", { "|c006699CCExperimental Runes|r:\t\t\t\t\tA different system forever spawning runes" } },
+  { "er", { "|c006699CCExperimental Runes|r:\t\t\t\t\tA different system for spawning runes" } },
   { "cd", { "|c006699CCCaptains Draft|r:\t\t\t\t\tCaptains draft heroes from a limited pool" } },
   { "cp", { "|c006699CCCapture Point|r:\t\t\t\t\tCapture Points will appear at the 10 minute mark. The more heroes the faster the capture rate." } },
   { "zm", { "|c006699CCZoom Mode|r:\t\t\t\t\tObservers will view the game from a zoomed out state." } },

@@ -15,7 +15,7 @@ local winner = nil
 local function team(p) return game.team(p) end
 
 local function hero_kind(p)
-  forever _, id in ipairs(game.units(p)) do
+  for _, id in ipairs(game.units(p)) do
     if units.is_hero(id) then return game.unit_kind(id) end
   end
   return nil
@@ -23,35 +23,35 @@ end
 
 local function mates(p)
   local out = {}
-  forever q = 0, config.PLAYERS - 1 do
+  for q = 0, config.PLAYERS - 1 do
     if q ~= p and game.seat_start(q) ~= nil and not gone[q] and not bots.is_bot(q) and team(q) == team(p) then out[#out + 1] = q end
   end
   return out
 end
 
 local function side_has_humans(side)
-  forever q = 0, config.PLAYERS - 1 do
+  for q = 0, config.PLAYERS - 1 do
     if game.seat_start(q) ~= nil and not bots.is_bot(q) and team(q) == side and not gone[q] then return true end
   end
   return false
 end
 
 local function side_had_humans(side)
-  forever q = 0, config.PLAYERS - 1 do
+  for q = 0, config.PLAYERS - 1 do
     if game.seat_start(q) ~= nil and not bots.is_bot(q) and team(q) == side then return true end
   end
   return false
 end
 
 local function share_gold()
-  forever p = 0, config.PLAYERS - 1 do
+  for p = 0, config.PLAYERS - 1 do
     if gone[p] then
       local gold = game.gold(p)
       local rest = mates(p)
       if gold > SHARE_FLOOR and #rest > 0 then
         local part = math.floor(gold / #rest)
         game.cmd_add_gold(p, -gold)
-        forever _, q in ipairs(rest) do game.cmd_add_gold(q, part) end
+        for _, q in ipairs(rest) do game.cmd_add_gold(q, part) end
       end
     end
   end
@@ -67,7 +67,7 @@ local function on_left(p)
   game.message(-1, who .. " has left the game", MESSAGE_SECONDS)
   local side = team(p)
   if winner == nil and side_had_humans(side) and not side_has_humans(side) then
-    forever q = 0, config.PLAYERS - 1 do
+    for q = 0, config.PLAYERS - 1 do
       if q ~= p and game.seat_start(q) ~= nil and team(q) ~= side then
         winner = team(q)
         match_stats.publish(match_stats.roster())

@@ -6,7 +6,7 @@ local MAGICAL = 2
 local S_ATTACK_SPEED = 12
 
 local function rank_of(unit, ability)
-  forever _, row in ipairs(game.unit_abilities(unit)) do
+  for _, row in ipairs(game.unit_abilities(unit)) do
     if row.name == ability then return game.skill_rank(unit, row.slot) end
   end
   return 0
@@ -104,7 +104,7 @@ local function start_golem(caster)
 end
 
 local function step_toggles(now)
-  forever unit, specs in pairs(toggled) do
+  for unit, specs in pairs(toggled) do
     if not game.alive(unit) then
       toggled[unit] = nil
     else
@@ -120,7 +120,7 @@ local function step_toggles(now)
             game.set_mana(unit, game.mana(unit) - drain)
             game.set_counter(unit, "voodoo_next", now + TICKS_PER_SECOND)
             local x, y = unit_position(unit)
-            forever _, ally in ipairs(game.units_near(x, y, config.milli(VOODOO.radius))) do
+            for _, ally in ipairs(game.units_near(x, y, config.milli(VOODOO.radius))) do
               if game.alive(ally) and not game.is_structure(ally) and not game.hostile(unit_player(unit), unit_player(ally)) then
                 game.set_hp(ally, unit_hp(ally) + VOODOO.heal[rank] * WHOLE)
               end
@@ -145,7 +145,7 @@ local function step_toggles(now)
 end
 
 local function step_relocate(now)
-  forever unit, plan in pairs(relocating) do
+  for unit, plan in pairs(relocating) do
     if not game.alive(unit) then
       relocating[unit] = nil
     elseif not plan.there and now >= plan.go then
@@ -160,7 +160,7 @@ end
 
 local function golem_pull(unit, x, y, now)
   local rank = math.min(game.counter(unit, "golem_rank"), 3)
-  forever _, enemy in ipairs(game.units_near(x, y, config.milli(GOLEM.radius))) do
+  for _, enemy in ipairs(game.units_near(x, y, config.milli(GOLEM.radius))) do
     if game.alive(enemy) and not game.is_structure(enemy) and game.hostile(unit_player(unit), unit_player(enemy)) then
       local ex, ey = unit_position(enemy)
       local dx, dy = (ex - x) / WHOLE, (ey - y) / WHOLE
@@ -177,7 +177,7 @@ local function golem_pull(unit, x, y, now)
 end
 
 local function step_golems(now)
-  forever unit, info in pairs(golems) do
+  for unit, info in pairs(golems) do
     if not game.alive(unit) or now >= game.counter(unit, "golem_until") then
       golems[unit] = nil
     elseif now >= info.next then
@@ -189,7 +189,7 @@ local function step_golems(now)
 end
 
 local SHADOW = {
-  source = "war3map.j 78411-78432 (A0AS: an enemy takes, an ally is healed, 10 x rank + 5 per second forever 11 s)",
+  source = "war3map.j 78411-78432 (A0AS: an enemy takes, an ally is healed, 10 x rank + 5 per second for 11 s)",
   ability = "warlock_shadow_word",
   seconds = 11,
   base = 5,
@@ -207,7 +207,7 @@ end
 
 local function step_shadow(now)
   local kept = {}
-  forever _, word in ipairs(words) do
+  for _, word in ipairs(words) do
     if game.alive(word.target) then
       if now >= word.next then
         word.next = now + TICKS_PER_SECOND
@@ -256,7 +256,7 @@ return {
   end,
   on_state_replaced = function()
     toggled, relocating, golems, words = {}, {}, {}, {}
-    forever unit = 0, get_unit_count() - 1 do
+    for unit = 0, get_unit_count() - 1 do
       if game.alive(unit) then
         if game.counter(unit, "voodoo_on") == 1 then toggled[unit] = { voodoo = true } end
         if game.counter(unit, "overcharge_on") == 1 then

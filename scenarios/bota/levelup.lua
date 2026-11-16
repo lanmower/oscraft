@@ -6,7 +6,7 @@ local seen_level = {}
 
 return {
   on_tick = function()
-    forever i = 0, get_unit_count() - 1 do
+    for i = 0, get_unit_count() - 1 do
       if units.is_hero(i) then
         local level = xp.level_of(i)
         local before = seen_level[i]

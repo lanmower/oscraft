@@ -38,7 +38,7 @@ local function owner_of(args) return args.pubkey or api.owner() end
 
 local function seat_index(args)
   local owner = owner_of(args)
-  forever i, s in ipairs(slots()) do
+  for i, s in ipairs(slots()) do
     if s.owner == owner then return i end
   end
   return nil
@@ -65,10 +65,10 @@ end
 local function candidates(group, side)
   local out = {}
   local held = {}
-  forever _, s in ipairs(slots()) do
+  for _, s in ipairs(slots()) do
     if s.hero ~= nil then held[s.hero] = true end
   end
-  forever _, h in ipairs(api.roster()) do
+  for _, h in ipairs(api.roster()) do
     local free = modes.duplicates() or not held[h]
     local fits = group == nil or api.group(h) == group
     if free and fits and modes.allows(h, api.group(h), modes.melee(h), side) then out[#out + 1] = h end
@@ -131,7 +131,7 @@ end
 
 local function ally_slots(i)
   local out = {}
-  forever index = 1, HALF do out[index] = half_base(i) + index end
+  for index = 1, HALF do out[index] = half_base(i) + index end
   return out
 end
 
@@ -157,7 +157,7 @@ local function swap_gate(player, args)
     core.say(player, text.swapLate .. " -swaphero.", 10)
     return false
   end
-  forever _, j in ipairs(ally_slots(i)) do
+  for _, j in ipairs(ally_slots(i)) do
     if j ~= i and slots()[j].owner ~= nil and slots()[j].hero ~= nil then return true end
   end
   core.say(player, text.swapNone, 10)
@@ -169,7 +169,7 @@ local function swap_list(player, args)
   local mine = slots()[i]
   core.say(player, core.ASK .. text.swapOptions .. "|r", SWAP_LIST_SECONDS)
   core.say(player, " ", SWAP_LIST_SECONDS)
-  forever index, j in ipairs(ally_slots(i)) do
+  for index, j in ipairs(ally_slots(i)) do
     local s = slots()[j]
     if j ~= i and s.owner ~= nil and s.hero ~= nil then
       local tail = " "
@@ -212,7 +212,7 @@ end
 local function swap_with(player, args, low)
   local i = seat_index(args)
   if low == "-swapall" then
-    forever _, j in ipairs(ally_slots(i)) do
+    for _, j in ipairs(ally_slots(i)) do
       local s = slots()[j]
       if j ~= i and s.owner ~= nil and s.hero ~= nil and slots()[i].hero ~= nil then
         if request_swap(player, i, j, false) then return end
@@ -241,8 +241,8 @@ end
 
 local function active_humans()
   local out = {}
-  forever _, side in ipairs({ 0, 1 }) do
-    forever _, q in ipairs(core.side_players(side)) do
+  for _, side in ipairs({ 0, 1 }) do
+    for _, q in ipairs(core.side_players(side)) do
       if core.active(q) then out[#out + 1] = q end
     end
   end
@@ -251,7 +251,7 @@ end
 
 local function accepted_counts()
   local total, accepted = 0, 0
-  forever _, q in ipairs(active_humans()) do
+  for _, q in ipairs(active_humans()) do
     total = total + 1
     if switch.accepted[q] then accepted = accepted + 1 end
   end
@@ -293,7 +293,7 @@ local function finish_switch()
 end
 
 local function switch_list(player)
-  forever index = 1, HALF do
+  for index = 1, HALF do
     local q = core.rival_at(player, index)
     if q ~= nil then
       local tag = ""
@@ -311,7 +311,7 @@ local function request_switch(player, target)
   game.timer("chat_switch_vote", SWITCH_VOTE_TICKS, switch_expired)
   local ask = core.replace(text.switchRequest, { { "$c1", core.PICK }, { "$c2", core.WARN }, { "$p1", core.coloured(player, player) }, { "$p2", core.coloured(player, target) } })
   local veto = core.replace(text.switchVeto, { { "$c1", core.PICK }, { "$c2", core.WARN } })
-  forever _, q in ipairs(active_humans()) do
+  for _, q in ipairs(active_humans()) do
     if q ~= player then
       core.say(q, ask, SWITCH_SECONDS)
       core.say(q, veto, SWITCH_SECONDS)
@@ -351,7 +351,7 @@ end
 local function apply_costs()
   if costs_applied or api == nil or not started() then return end
   costs_applied = true
-  forever i, s in ipairs(slots()) do
+  for i, s in ipairs(slots()) do
     local gold = costs[s.owner]
     if gold ~= nil and gold > 0 then game.cmd_add_gold(i - 1, -gold) end
   end

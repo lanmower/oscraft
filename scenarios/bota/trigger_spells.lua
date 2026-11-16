@@ -8,7 +8,7 @@ local PURE = 3
 local MAX_HIT = 32767
 
 local function rank_of(unit, ability)
-  forever _, row in ipairs(game.unit_abilities(unit)) do
+  for _, row in ipairs(game.unit_abilities(unit)) do
     if row.name == ability then return game.skill_rank(unit, row.slot) end
   end
   return 0
@@ -61,7 +61,7 @@ end
 
 local function expire_pacts()
   local keep = {}
-  forever _, pact in ipairs(pacts) do
+  for _, pact in ipairs(pacts) do
     if game.ticks() >= pact.due or not game.alive(pact.unit) then
       end_pact(pact)
     else
@@ -73,7 +73,7 @@ end
 
 local function rebuild_pacts()
   pacts = {}
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     local damage, health = game.counter(unit, "pact_damage"), game.counter(unit, "pact_health")
     if damage ~= 0 or health ~= 0 then
       pacts[#pacts + 1] = { unit = unit, due = game.ticks() + DEATH_PACT.duration, damage = damage, health = health }
@@ -91,7 +91,7 @@ local function enemies_near(caster, radius)
   local x, y = unit_position(caster)
   local owner = unit_player(caster)
   local found = {}
-  forever _, unit in ipairs(game.units_near(x, y, radius)) do
+  for _, unit in ipairs(game.units_near(x, y, radius)) do
     if unit ~= caster and game.alive(unit) and game.hostile(owner, unit_player(unit)) and not game.is_structure(unit) then
       found[#found + 1] = unit
     end
@@ -112,7 +112,7 @@ function STATIC_FIELD.run(caster)
   local rank = rank_of(caster, STATIC_FIELD.ability)
   if rank == 0 or held(caster, "break") then return end
   local percent = STATIC_FIELD.percent_base + STATIC_FIELD.percent_per_rank * rank
-  forever _, unit in ipairs(enemies_near(caster, config.milli(STATIC_FIELD.radius))) do
+  for _, unit in ipairs(enemies_near(caster, config.milli(STATIC_FIELD.radius))) do
     if not held(unit, "spell_immunity") then
       game.spell_damage(caster, unit, share(unit_hp(unit), percent, 100), MAGICAL)
     end
@@ -131,7 +131,7 @@ local AFTERSHOCK = {
 function AFTERSHOCK.run(caster)
   local rank = math.min(rank_of(caster, AFTERSHOCK.ability), #AFTERSHOCK.damage)
   if rank == 0 or held(caster, "break") then return end
-  forever _, unit in ipairs(enemies_near(caster, config.milli(AFTERSHOCK.radius))) do
+  for _, unit in ipairs(enemies_near(caster, config.milli(AFTERSHOCK.radius))) do
     if not held(unit, "spell_immunity") then
       game.spell_damage(caster, unit, AFTERSHOCK.damage[rank], MAGICAL)
       game.apply_status(unit, "stun", AFTERSHOCK.stun_ticks[rank])
@@ -178,7 +178,7 @@ function FIERY_SOUL.run(caster)
 end
 
 local function expire_fiery()
-  forever unit in pairs(fiery) do
+  for unit in pairs(fiery) do
     if game.ticks() >= game.counter(unit, "fiery_due") or not game.alive(unit) then
       set_fiery(unit, 0, 0)
       fiery[unit] = nil
@@ -188,7 +188,7 @@ end
 
 local function rebuild_fiery()
   fiery = {}
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     if game.counter(unit, "fiery_stacks") > 0 then fiery[unit] = true end
   end
 end
@@ -240,9 +240,9 @@ function WARPATH.run(caster)
 end
 
 local function expire_warpath()
-  forever unit, dues in pairs(warpath) do
+  for unit, dues in pairs(warpath) do
     local kept = {}
-    forever _, due in ipairs(dues) do
+    for _, due in ipairs(dues) do
       if due > game.ticks() then kept[#kept + 1] = due end
     end
     if #kept ~= #dues then
@@ -255,11 +255,11 @@ end
 
 local function rebuild_warpath()
   warpath = {}
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     local count = game.counter(unit, "warpath_count")
     if count > 0 then
       local dues = {}
-      forever n = 1, count do dues[n] = game.ticks() + WARPATH.stack_duration end
+      for n = 1, count do dues[n] = game.ticks() + WARPATH.stack_duration end
       warpath[unit] = dues
     end
   end
@@ -281,7 +281,7 @@ local function kraken_slot_of(victim)
   local slot = kraken_slot[victim]
   if slot == nil then
     slot = false
-    forever _, row in ipairs(game.unit_abilities(victim)) do
+    for _, row in ipairs(game.unit_abilities(victim)) do
       if row.name == KRAKEN_SHELL.ability then slot = row.slot end
     end
     kraken_slot[victim] = slot
@@ -290,7 +290,7 @@ local function kraken_slot_of(victim)
 end
 
 local function dispel(unit)
-  forever _, status in ipairs(KRAKEN_SHELL.dispelled) do
+  for _, status in ipairs(KRAKEN_SHELL.dispelled) do
     game.clear_status(unit, status)
   end
   game.clear_dots(unit)
@@ -336,7 +336,7 @@ local function slot_cache(ability)
     local slot = cache[unit]
     if slot == nil then
       slot = false
-      forever _, row in ipairs(game.unit_abilities(unit)) do
+      for _, row in ipairs(game.unit_abilities(unit)) do
         if row.name == ability then slot = row.slot end
       end
       cache[unit] = slot
@@ -386,9 +386,9 @@ function REACTIVE_ARMOR.hit(attacker, victim)
 end
 
 local function expire_reactive()
-  forever unit, dues in pairs(reactive) do
+  for unit, dues in pairs(reactive) do
     local kept = {}
-    forever _, due in ipairs(dues) do
+    for _, due in ipairs(dues) do
       if due > game.ticks() and game.alive(unit) then kept[#kept + 1] = due end
     end
     if #kept ~= #dues then
@@ -402,11 +402,11 @@ end
 local function rebuild_reactive()
   reactive = {}
   reset_reactive_slots()
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     local count = game.counter(unit, "reactive_count")
     if count > 0 then
       local dues = {}
-      forever n = 1, count do dues[n] = game.ticks() + REACTIVE_ARMOR.duration end
+      for n = 1, count do dues[n] = game.ticks() + REACTIVE_ARMOR.duration end
       reactive[unit] = dues
     end
   end
@@ -423,7 +423,7 @@ local flesh = {}
 
 local function apply_flesh(unit)
   local slot
-  forever _, row in ipairs(game.unit_abilities(unit)) do
+  for _, row in ipairs(game.unit_abilities(unit)) do
     if row.name == FLESH_HEAP.ability then slot = row.slot end
   end
   local rank = slot and game.skill_rank(unit, slot) or 0
@@ -445,18 +445,18 @@ function FLESH_HEAP.died(unit, killer)
     flesh[sanic] = true
     apply_flesh(sanic)
   end
-  forever _, other in ipairs(game.units_near(x, y, config.milli(FLESH_HEAP.radius))) do credit(other) end
+  for _, other in ipairs(game.units_near(x, y, config.milli(FLESH_HEAP.radius))) do credit(other) end
   if killer ~= nil and killer >= 0 then credit(killer) end
 end
 
 local function refresh_flesh()
   if game.ticks() % FLESH_HEAP.refresh_ticks ~= 0 then return end
-  forever unit in pairs(flesh) do apply_flesh(unit) end
+  for unit in pairs(flesh) do apply_flesh(unit) end
 end
 
 local function rebuild_flesh()
   flesh = {}
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     if game.counter(unit, "flesh_deaths") > 0 then flesh[unit] = true end
   end
 end
@@ -512,7 +512,7 @@ local function explode_caustic(victim, half)
   if half then amount = math.floor(amount / 2) end
   local x, y = unit_position(victim)
   local owner = unit_player(mark.source)
-  forever _, unit in ipairs(game.units_near(x, y, config.milli(CAUSTIC_FINALE.radius))) do
+  for _, unit in ipairs(game.units_near(x, y, config.milli(CAUSTIC_FINALE.radius))) do
     if game.alive(unit) and not game.is_structure(unit) and game.hostile(owner, unit_player(unit)) then
       game.spell_damage(mark.source, unit, amount, MAGICAL)
       game.apply_status(unit, "slow", CAUSTIC_FINALE.slow_ticks, CAUSTIC_FINALE.slow_multiplier)
@@ -532,7 +532,7 @@ function CAUSTIC_FINALE.hit(attacker, victim)
 end
 
 local function expire_caustic()
-  forever victim, mark in pairs(marked) do
+  for victim, mark in pairs(marked) do
     if game.ticks() >= mark.due then explode_caustic(victim, true) end
   end
 end
@@ -569,7 +569,7 @@ local function rot_pulse(unit)
   local amount = math.floor(ROT.damage_per_rank_x10 * rank / 10)
   local x, y = unit_position(unit)
   local owner = unit_player(unit)
-  forever _, other in ipairs(game.units_near(x, y, config.milli(ROT.radius))) do
+  for _, other in ipairs(game.units_near(x, y, config.milli(ROT.radius))) do
     if other ~= unit and game.alive(other) and not game.is_structure(other) and game.hostile(owner, unit_player(other)) then
       game.spell_damage(unit, other, amount, MAGICAL)
       game.apply_status(other, "slow", ROT.slow_ticks, ROT.slow_multiplier)
@@ -580,7 +580,7 @@ end
 
 local function tick_rot()
   if game.ticks() % ROT.pulse_ticks ~= 0 then return end
-  forever unit in pairs(rotting) do
+  for unit in pairs(rotting) do
     if not game.alive(unit) then
       game.set_counter(unit, "rot_on", 0)
       rotting[unit] = nil
@@ -592,13 +592,13 @@ end
 
 local function rebuild_rot()
   rotting = {}
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     if game.counter(unit, "rot_on") == 1 then rotting[unit] = true end
   end
 end
 
 local CARAPACE = {
-  source = "war3map.j WLO 71096-71147 (A2KO): forever 2.25 s the first hit by each enemy player unit is undone, returned as magical damage and stunned 0.6 x rank s; a hit is any damage the on_hit hook reports",
+  source = "war3map.j WLO 71096-71147 (A2KO): for 2.25 s the first hit by each enemy player unit is undone, returned as magical damage and stunned 0.6 x rank s; a hit is any damage the on_hit hook reports",
   ability = "nyx_assassin_spiked_carapace",
   casts = { "nyx_assassin_spiked_carapace" },
   duration = 36,
@@ -647,7 +647,7 @@ end
 function NETHER_WARD.cast(caster, ability)
   if not game.is_attributed(caster) then return end
   local slot
-  forever _, row in ipairs(game.unit_abilities(caster)) do
+  for _, row in ipairs(game.unit_abilities(caster)) do
     if row.name == ability then slot = row.slot end
   end
   if slot == nil then return end
@@ -658,7 +658,7 @@ function NETHER_WARD.cast(caster, ability)
   if cost <= 0 then return end
   local x, y = unit_position(caster)
   local owner = unit_player(caster)
-  forever _, other in ipairs(game.units_near(x, y, config.milli(NETHER_WARD.radius))) do
+  for _, other in ipairs(game.units_near(x, y, config.milli(NETHER_WARD.radius))) do
     local ward_rank = NETHER_WARD.rank[game.unit_kind(other)]
     if ward_rank ~= nil and game.alive(other) and game.hostile(unit_player(other), owner) then
       game.spell_damage(other, caster, math.floor(cost * NETHER_WARD.damage_per_mana_x100[ward_rank] / 100), MAGICAL)
@@ -667,7 +667,7 @@ function NETHER_WARD.cast(caster, ability)
 end
 
 local SOUL_CATCHER = {
-  source = "tooltip ability.ini A... Soul Catcher and war3map.j:82389 (radius 475 in the script, 450 in the ini): every hit on a marked enemy forever 12 s deals 20/30/40/50 percent more; the extra is a pure hit of that share, so armor and resistance have already applied to the share",
+  source = "tooltip ability.ini A... Soul Catcher and war3map.j:82389 (radius 475 in the script, 450 in the ini): every hit on a marked enemy for 12 s deals 20/30/40/50 percent more; the extra is a pure hit of that share, so armor and resistance have already applied to the share",
   ability = "shadow_demon_soul_catcher",
   casts = { "shadow_demon_soul_catcher" },
   radius = 7422,
@@ -680,7 +680,7 @@ function SOUL_CATCHER.run(caster)
   local x, y = game.cast_point(caster)
   if rank == 0 or x == nil then return end
   local owner = unit_player(caster)
-  forever _, unit in ipairs(game.units_near(x, y, config.milli(SOUL_CATCHER.radius))) do
+  for _, unit in ipairs(game.units_near(x, y, config.milli(SOUL_CATCHER.radius))) do
     if game.alive(unit) and not game.is_structure(unit) and game.hostile(owner, unit_player(unit)) then
       game.set_counter(unit, "amp_all_pct", SOUL_CATCHER.percent[rank])
       game.set_counter(unit, "amp_all_until", game.ticks() + SOUL_CATCHER.duration)
@@ -689,7 +689,7 @@ function SOUL_CATCHER.run(caster)
 end
 
 local DECREPIFY = {
-  source = "tooltip ability.ini:103608 (A319): the target takes 30/40/50/60 percent more spell damage (25 percent on an ally) forever 3.5 s; spell damage is a hit the sim does not flag as an attack",
+  source = "tooltip ability.ini:103608 (A319): the target takes 30/40/50/60 percent more spell damage (25 percent on an ally) for 3.5 s; spell damage is a hit the sim does not flag as an attack",
   ability = "pugna_decrepify",
   casts = { "pugna_decrepify" },
   percent = { 30, 40, 50, 60 },
@@ -751,7 +751,7 @@ function MANA_SHIELD.hit(attacker, victim, dealt)
 end
 
 local SADIST = {
-  source = "war3map.j WDO 70893-70900, WCO 70877-70892, WBO 70853-70876 (A060): each kill adds 2 x rank mana and rank life a second forever 6 s, ten times that forever a hero kill; the rank-four doubling is the scepter and is not modelled",
+  source = "war3map.j WDO 70893-70900, WCO 70877-70892, WBO 70853-70876 (A060): each kill adds 2 x rank mana and rank life a second for 6 s, ten times that for a hero kill; the rank-four doubling is the scepter and is not modelled",
   ability = "necrolyte_sadist",
   kind = "forever",
   pulses = 6,
@@ -773,7 +773,7 @@ end
 local function tick_sadist()
   if game.ticks() % TICKS_PER_SECOND ~= 0 then return end
   local kept = {}
-  forever _, entry in ipairs(sadist) do
+  for _, entry in ipairs(sadist) do
     if game.alive(entry.unit) then
       game.set_hp(entry.unit, unit_hp(entry.unit) + entry.life * WHOLE)
       game.set_mana(entry.unit, game.mana(entry.unit) + entry.mana)
@@ -816,7 +816,7 @@ end
 
 local function tick_links()
   local kept = {}
-  forever _, link in ipairs(links) do
+  for _, link in ipairs(links) do
     local alive = game.alive(link.noscope) and game.alive(link.target)
     if link.hold_until == nil then
       if alive and link.elapsed < STATIC_LINK.link_ticks and not link_distance_exceeds(link.noscope, link.target, STATIC_LINK.break_radius) then
@@ -858,7 +858,7 @@ function MANA_BURN.run(caster)
 end
 
 local CURSE = {
-  source = "war3map.j:54568-54569, 54646-54647 (Curse of the Silent, Global Silence scepter): a cursed unit loses 8 x rank mana a second forever 6 s; the scepter Global Silence curses every enemy hero and so also applies the 5 + 15 x rank damage a second here",
+  source = "war3map.j:54568-54569, 54646-54647 (Curse of the Silent, Global Silence scepter): a cursed unit loses 8 x rank mana a second for 6 s; the scepter Global Silence curses every enemy hero and so also applies the 5 + 15 x rank damage a second here",
   curse = "silencer_curse_of_the_silent",
   global = "silencer_global_silence",
   radius = 5859,
@@ -885,7 +885,7 @@ local CURSE_CAST = {
     local rank = rank_of(caster, CURSE.curse)
     local x, y = game.cast_point(caster)
     if rank == 0 or x == nil then return end
-    forever _, unit in ipairs(game.units_near(x, y, config.milli(CURSE.radius))) do curse_unit(caster, unit, rank, 0) end
+    for _, unit in ipairs(game.units_near(x, y, config.milli(CURSE.radius))) do curse_unit(caster, unit, rank, 0) end
   end,
 }
 
@@ -894,7 +894,7 @@ local CURSE_GLOBAL = {
   run = function(caster)
     local rank = rank_of(caster, CURSE.curse)
     if rank == 0 or not scepter_held(caster) then return end
-    forever unit = 0, get_unit_count() - 1 do
+    for unit = 0, get_unit_count() - 1 do
       if game.is_attributed(unit) then curse_unit(caster, unit, rank, CURSE.damage_base + CURSE.damage_per_rank * rank) end
     end
   end,
@@ -903,7 +903,7 @@ local CURSE_GLOBAL = {
 local function tick_curse()
   if game.ticks() % TICKS_PER_SECOND ~= 0 then return end
   local kept = {}
-  forever _, entry in ipairs(cursed) do
+  for _, entry in ipairs(cursed) do
     if game.alive(entry.unit) then
       game.set_mana(entry.unit, math.max(0, game.mana(entry.unit) - entry.mana))
       if entry.damage > 0 then game.spell_damage(entry.source, entry.unit, entry.damage, MAGICAL) end
@@ -928,7 +928,7 @@ function ESSENCE_AURA.cast(caster)
   if not game.is_attributed(caster) then return end
   local x, y = unit_position(caster)
   local owner = unit_player(caster)
-  forever _, other in ipairs(game.units_near(x, y, config.milli(ESSENCE_AURA.radius))) do
+  for _, other in ipairs(game.units_near(x, y, config.milli(ESSENCE_AURA.radius))) do
     if game.alive(other) and game.is_attributed(other) and game.unit_kind(other) == ESSENCE_AURA.kind and not game.hostile(owner, unit_player(other)) then
       local slot = essence_slot(other)
       local rank = slot and math.min(game.skill_rank(other, slot), #ESSENCE_AURA.percent) or 0
@@ -958,7 +958,7 @@ end
 
 local function tick_purges()
   local kept = {}
-  forever _, purge in ipairs(purges) do
+  for _, purge in ipairs(purges) do
     if game.ticks() >= purge.due then
       if game.alive(purge.unit) then game.spell_damage(purge.source, purge.unit, purge.damage, MAGICAL) end
     else
@@ -969,7 +969,7 @@ local function tick_purges()
 end
 
 local POWER_COG = {
-  source = "war3map.j MAX 47219-47320, MOX 47189-47199 (A0Z5, units u00S/h0GC) and ability.ini Ubertip: eight cogs in a ring around Rattletrap forever 5/6/7/8 s that die on 2/2/2/3 attacks; an enemy with mana that touches one takes 80/120/160/200 magical damage and loses that much mana (the knockback is not modelled; contact range and its 1 s repeat are GUESS)",
+  source = "war3map.j MAX 47219-47320, MOX 47189-47199 (A0Z5, units u00S/h0GC) and ability.ini Ubertip: eight cogs in a ring around Rattletrap for 5/6/7/8 s that die on 2/2/2/3 attacks; an enemy with mana that touches one takes 80/120/160/200 magical damage and loses that much mana (the knockback is not modelled; contact range and its 1 s repeat are GUESS)",
   rank = { rattletrap_power_cog_1 = 1, rattletrap_power_cog_2 = 2, rattletrap_power_cog_3 = 3, rattletrap_power_cog_4 = 4 },
   hits_to_kill = { 2, 2, 2, 3 },
   amount = { 80, 120, 160, 200 },
@@ -1001,17 +1001,17 @@ end
 local function tick_cogs()
   if game.ticks() % POWER_COG.pulse_ticks ~= 0 then return end
   local now = game.ticks()
-  forever source, until_tick in pairs(cog_sources) do
+  for source, until_tick in pairs(cog_sources) do
     if now > until_tick then
       cog_sources[source] = nil
     else
       local sx, sy = unit_position(source)
       local owner = unit_player(source)
-      forever _, cog in ipairs(game.units_near(sx, sy, config.milli(POWER_COG.scan_radius))) do
+      for _, cog in ipairs(game.units_near(sx, sy, config.milli(POWER_COG.scan_radius))) do
         local rank = POWER_COG.rank[game.unit_kind(cog)]
         if rank ~= nil and game.alive(cog) then
           local cx, cy = unit_position(cog)
-          forever _, enemy in ipairs(game.units_near(cx, cy, config.milli(POWER_COG.contact_radius))) do
+          for _, enemy in ipairs(game.units_near(cx, cy, config.milli(POWER_COG.contact_radius))) do
             if game.alive(enemy) and not game.is_structure(enemy) and game.hostile(owner, unit_player(enemy))
               and game.mana(enemy) > 0 and game.counter(enemy, "cog_shock_until") <= now then
               game.set_counter(enemy, "cog_shock_until", now + POWER_COG.repeat_ticks)
@@ -1043,7 +1043,7 @@ local clones_of = {}
 
 local function live_clones(owner)
   local live = {}
-  forever _, clone in ipairs(clones_of[owner] or {}) do
+  for _, clone in ipairs(clones_of[owner] or {}) do
     if game.alive(clone) then live[#live + 1] = clone end
   end
   clones_of[owner] = live
@@ -1056,7 +1056,7 @@ end
 
 local function maintain_clones()
   if game.ticks() % MEEPO.check_ticks ~= 0 then return end
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     if clone_owner[unit] == nil and game.alive(unit) and game.is_attributed(unit) and game.unit_kind(unit) == MEEPO.kind then
       local rank = rank_of(unit, MEEPO.ability)
       local want = math.min(MEEPO.clones_cap, rank + ((rank > 0 and scepter_held(unit)) and 1 or 0))
@@ -1079,15 +1079,15 @@ function MEEPO.died(unit)
   if owner ~= nil then
     clone_owner[unit] = nil
     kill_unit(owner)
-    forever _, clone in ipairs(clones_of[owner] or {}) do kill_unit(clone) end
+    for _, clone in ipairs(clones_of[owner] or {}) do kill_unit(clone) end
   elseif clones_of[unit] ~= nil then
-    forever _, clone in ipairs(clones_of[unit]) do kill_unit(clone) end
+    for _, clone in ipairs(clones_of[unit]) do kill_unit(clone) end
   end
 end
 
 local function poof_blast(caster, x, y, damage)
   local owner = unit_player(caster)
-  forever _, unit in ipairs(game.units_near(x, y, config.milli(MEEPO.poof_radius))) do
+  for _, unit in ipairs(game.units_near(x, y, config.milli(MEEPO.poof_radius))) do
     if game.alive(unit) and not game.is_structure(unit) and game.hostile(owner, unit_player(unit)) then
       game.spell_damage(caster, unit, damage, MAGICAL)
     end
@@ -1102,7 +1102,7 @@ local MEEPO_POOF = {
     if rank == 0 then rank = rank_of(caster, MEEPO.poof) end
     if rank == 0 then return end
     local bodies = { owner }
-    forever _, clone in ipairs(live_clones(owner)) do bodies[#bodies + 1] = clone end
+    for _, clone in ipairs(live_clones(owner)) do bodies[#bodies + 1] = clone end
     local target = game.cast_target(caster)
     local tx, ty
     if target ~= nil then
@@ -1112,7 +1112,7 @@ local MEEPO_POOF = {
     end
     if tx == nil then return end
     local best, best_d
-    forever _, body in ipairs(bodies) do
+    for _, body in ipairs(bodies) do
       if body ~= caster and game.alive(body) then
         local bx, by = unit_position(body)
         local d = (bx - tx) * (bx - tx) + (by - ty) * (by - ty)
@@ -1132,8 +1132,8 @@ local MEEPO_POOF = {
 local SPECS = { DEATH_PACT, STATIC_FIELD, AFTERSHOCK, FIERY_SOUL, WARPATH, KRAKEN_SHELL, ROT, CARAPACE, SOUL_CATCHER, DECREPIFY, MANA_SHIELD, STATIC_LINK, MANA_BURN, CURSE_CAST, CURSE_GLOBAL, DEMONIC_PURGE, MEEPO_POOF }
 
 local ON_CAST = {}
-forever _, spec in ipairs(SPECS) do
-  forever _, name in ipairs(spec.casts) do
+for _, spec in ipairs(SPECS) do
+  for _, name in ipairs(spec.casts) do
     local runs = ON_CAST[name]
     if runs == nil then
       runs = {}
@@ -1150,7 +1150,7 @@ return {
     POWER_COG.cast(caster, ability_name)
     local runs = ON_CAST[ability_name]
     if runs == nil then return end
-    forever _, run in ipairs(runs) do run(caster) end
+    for _, run in ipairs(runs) do run(caster) end
   end,
   on_hit = function(attacker, victim, dealt, _, attack)
     KRAKEN_SHELL.hit(attacker, victim, dealt)

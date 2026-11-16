@@ -18,7 +18,7 @@ local marked = {}
 local terms = {}
 
 local function holds(unit)
-  forever _, row in ipairs(game.unit_items(unit)) do
+  for _, row in ipairs(game.unit_items(unit)) do
     if row.name == BLOODSTONE then return true end
   end
   return false
@@ -46,7 +46,7 @@ function terms.died(victim, killer)
   local victim_player = unit_player(victim)
   local x, y = unit_position(victim)
   local seen = {}
-  forever _, u in ipairs(units.units_near(x, y, config.milli(config.rule("bloodstone_gain_radius_milli")))) do
+  for _, u in ipairs(units.units_near(x, y, config.milli(config.rule("bloodstone_gain_radius_milli")))) do
     if u ~= victim and units.is_hero(u) and game.alive(u) and units.hostile(unit_player(u), victim_player) and holds(u) then
       seen[u] = true
       gain_charge(u)
@@ -63,7 +63,7 @@ local function heal_allies(unit, charges)
   local amount = (config.rule("bloodstone_heal") + config.rule("bloodstone_heal_per_charge") * charges) * Q16
   local x, y = unit_position(unit)
   local side = unit_player(unit)
-  forever _, u in ipairs(units.units_near(x, y, config.milli(config.rule("bloodstone_heal_radius_milli")))) do
+  for _, u in ipairs(units.units_near(x, y, config.milli(config.rule("bloodstone_heal_radius_milli")))) do
     if u ~= unit and game.alive(u) and not units.is_structure(u) and not units.hostile(unit_player(u), side) then
       game.set_hp(u, unit_hp(u) + amount)
     end
@@ -91,7 +91,7 @@ function terms.cast(caster, ability)
   local target = game.cast_target(caster)
   if target == nil then return end
   local level = 1
-  forever _, row in ipairs(game.unit_abilities(caster)) do
+  for _, row in ipairs(game.unit_abilities(caster)) do
     if row.name == SCYTHE then level = math.max(1, game.skill_rank(caster, row.slot)) end
   end
   marked[target] = { level = level, scepter = has_scepter(caster), last = game.ticks() + SCYTHE_WINDOW_TICKS }

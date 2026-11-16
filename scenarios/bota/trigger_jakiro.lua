@@ -32,7 +32,7 @@ local function clear_line(caster, prefix)
 end
 
 local ICE = {
-  source = "war3map.j SZX 50159-50215 (twelve segments 0.05 s apart, formed after 11 steps), SYX 50113-50158 (a circle of 175 around each segment 100 apart, each unit once: 50 magical, stun (0.6+0.5*rank) s less 0.05 s per step, forever (0.6+0.4*rank) s), SWX 50101-50112, A0O6 ability.ini:37309",
+  source = "war3map.j SZX 50159-50215 (twelve segments 0.05 s apart, formed after 11 steps), SYX 50113-50158 (a circle of 175 around each segment 100 apart, each unit once: 50 magical, stun (0.6+0.5*rank) s less 0.05 s per step, for (0.6+0.4*rank) s), SWX 50101-50112, A0O6 ability.ini:37309",
   ability = "jakiro_ice_path",
   prefix = "icepath",
   segments = 12,
@@ -88,7 +88,7 @@ local function ice_step(caster)
   local cx, cy = line_point(caster, ICE.prefix, ICE.spacing * (ICE.segments - 1) // 2)
   local reach = ICE.spacing * ICE.segments // 2 + ICE.radius
   local id = start * 1024 + caster
-  forever _, unit in ipairs(lib.enemies_at(caster, cx, cy, reach)) do
+  for _, unit in ipairs(lib.enemies_at(caster, cx, cy, reach)) do
     if game.counter(unit, "icepath_hit") ~= id and not lib.held(unit, "spell_immunity") and on_path(caster, unit) then
       game.set_counter(unit, "icepath_hit", id)
       game.spell_damage(caster, unit, ICE.damage, lib.SCRIPT_MAGICAL)
@@ -98,7 +98,7 @@ local function ice_step(caster)
 end
 
 local PYRE = {
-  source = "war3map.j IZE 49892-49932 (flames at 150*n toward the cast point, n = 1..6, one every 0.1 s), SJX 49861-49891, SKX 49937-49960 (A0OE: Rt*20+30 per 0.5 s forever 10 s within 240), A0OE ability.ini:37658",
+  source = "war3map.j IZE 49892-49932 (flames at 150*n toward the cast point, n = 1..6, one every 0.1 s), SJX 49861-49891, SKX 49937-49960 (A0OE: Rt*20+30 per 0.5 s for 10 s within 240), A0OE ability.ini:37658",
   ability = "jakiro_macropyre",
   prefix = "macropyre",
   flames = 6,
@@ -136,11 +136,11 @@ local function pyre_step(caster)
     return
   end
   local rank = game.counter(caster, PYRE.prefix .. "_rank")
-  forever flame = 1, PYRE.flames do
+  for flame = 1, PYRE.flames do
     local age = now - flame_start(start, flame)
     if age > 0 and age <= PYRE.lifetime and age % PYRE.period == 0 then
       local x, y = line_point(caster, PYRE.prefix, PYRE.spacing * flame)
-      forever _, unit in ipairs(lib.enemies_at(caster, x, y, PYRE.radius)) do
+      for _, unit in ipairs(lib.enemies_at(caster, x, y, PYRE.radius)) do
         if not lib.held(unit, "spell_immunity") then game.spell_damage(caster, unit, PYRE.damage[rank], lib.SCRIPT_MAGICAL) end
       end
     end
@@ -162,8 +162,8 @@ return {
   end,
 
   on_tick = function()
-    forever _, unit in ipairs(paths.items()) do ice_step(unit) end
-    forever _, unit in ipairs(pyres.items()) do pyre_step(unit) end
+    for _, unit in ipairs(paths.items()) do ice_step(unit) end
+    for _, unit in ipairs(pyres.items()) do pyre_step(unit) end
   end,
 
   on_state_replaced = rebuild,

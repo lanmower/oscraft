@@ -24,7 +24,7 @@ end
 
 local function carried_bits(unit)
   local bits = {}
-  forever _, item in ipairs(game.unit_items(unit)) do
+  for _, item in ipairs(game.unit_items(unit)) do
     local bit = BIT_SET_WHILE_CARRYING_ITEM[item.name]
     if bit ~= nil then bits[bit] = true end
   end
@@ -51,14 +51,14 @@ return {
     walk_due = false
     item_gen_total_seen = total
     local live = {}
-    forever _, unit in ipairs(game.units()) do
+    for _, unit in ipairs(game.units()) do
       local key = unit_key(unit)
       live[key] = true
       local gen = game.unit_item_gen(unit)
       if not carried_bits_of_unit[key] or item_generation_scanned_of_unit[key] ~= gen then
         local now = carried_bits(unit)
         local before = carried_bits_of_unit[key] or {}
-        forever _, bit in ipairs(CARRY_BITS) do
+        for _, bit in ipairs(CARRY_BITS) do
           local has, had = now[bit] == true, before[bit] == true
           if has ~= had then game.set_upgrade_bit(unit, bit, has or game.counter(unit, "scepter_blessed") == 1) end
         end
@@ -66,7 +66,7 @@ return {
         item_generation_scanned_of_unit[key] = gen
       end
     end
-    forever key, bits in pairs(carried_bits_of_unit) do
+    for key, bits in pairs(carried_bits_of_unit) do
       if bits and not live[key] then
         carried_bits_of_unit[key] = false
         item_generation_scanned_of_unit[key] = false

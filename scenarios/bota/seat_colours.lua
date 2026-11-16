@@ -19,7 +19,7 @@ return {
   on_tick = function()
     if applied or game.ticks() < 1 then return end
     applied = true
-    forever player = 0, config.PLAYERS - 1 do
+    for player = 0, config.PLAYERS - 1 do
       if game.seat_start(player) ~= nil then
         game.player_name(player, "Player " .. tostring(player + 1))
         game.player_colour(player, colour_of(player))

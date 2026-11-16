@@ -17,7 +17,7 @@ return {
   on_tick = function(state)
     local ticks = game.time()
     local units = nil
-    forever index, bot_bernard in ipairs(bots) do
+    for index, bot_bernard in ipairs(bots) do
       if (ticks + index) % Bot.DECIDE_EVERY == 0 then
         units = units or game.units(nil)
         Bot.think(bot_bernard, units, ticks)

@@ -20,7 +20,7 @@ local S_SPEED = 3
 local transformed = {}
 
 local function rank_of(unit, ability)
-  forever _, row in ipairs(game.unit_abilities(unit)) do
+  for _, row in ipairs(game.unit_abilities(unit)) do
     if row.name == ability then return game.skill_rank(unit, row.slot) end
   end
   return 0
@@ -57,7 +57,7 @@ local function start(index, caster)
 end
 
 local ON_CAST = {}
-forever index, name in ipairs(ORDER) do ON_CAST[name] = function(caster) start(index, caster) end end
+for index, name in ipairs(ORDER) do ON_CAST[name] = function(caster) start(index, caster) end end
 
 return {
   on_cast = function(caster, ability_name)
@@ -65,7 +65,7 @@ return {
     if run ~= nil then run(caster) end
   end,
   on_tick = function()
-    forever unit in pairs(transformed) do
+    for unit in pairs(transformed) do
       if not game.alive(unit) then
         game.set_counter(unit, "form_spec", 0)
         transformed[unit] = nil
@@ -76,7 +76,7 @@ return {
   end,
   on_state_replaced = function()
     transformed = {}
-    forever unit = 0, get_unit_count() - 1 do
+    for unit = 0, get_unit_count() - 1 do
       if game.counter(unit, "form_spec") ~= 0 and game.alive(unit) then transformed[unit] = true end
     end
   end,

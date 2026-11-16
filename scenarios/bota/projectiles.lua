@@ -18,7 +18,7 @@ local function unit_fixed(units_distance)
 end
 
 local ARROW = {
-  source = "war3map.j GWE 51944-51961, WHX 51973-52022, WFX 51965-51968 (A0L8): the arrow flies to the target point and stops at the first enemy within 140; its distance bucket is min(floor(units flown / 150), 11); damage 90 x rank - 40 + 14 per bucket past the first, stun 0.5 s per bucket past the first; a non-hero unit takes 9999 (units of 2500 life or more are spared here, GUESS forever the script's exemption list); 30 units a step at 1000 a second is GUESS",
+  source = "war3map.j GWE 51944-51961, WHX 51973-52022, WFX 51965-51968 (A0L8): the arrow flies to the target point and stops at the first enemy within 140; its distance bucket is min(floor(units flown / 150), 11); damage 90 x rank - 40 + 14 per bucket past the first, stun 0.5 s per bucket past the first; a non-hero unit takes 9999 (units of 2500 life or more are spared here, GUESS for the script's exemption list); 30 units a step at 1000 a second is GUESS",
   ability = "mirana_elune_s_arrow",
   speed = 62.5,
   radius_milli = 2188,
@@ -148,7 +148,7 @@ local function start_hookshot(caster)
 end
 
 local ILLUSORY_ORB = {
-  source = "ability.ini:41696-41748 and war3map.j:49293-49310 (Illusory Orb): the orb flies 1950 units from the cast, hitting each enemy it passes forever 70 magical damage; a second cast while it flies moves Puck to it; the 600 a second speed and the 150 unit radius are GUESS",
+  source = "ability.ini:41696-41748 and war3map.j:49293-49310 (Illusory Orb): the orb flies 1950 units from the cast, hitting each enemy it passes for 70 magical damage; a second cast while it flies moves Puck to it; the 600 a second speed and the 150 unit radius are GUESS",
   ability = "puck_illusory_orb",
   speed = 37.5,
   distance = 1950,
@@ -169,7 +169,7 @@ local function ride_orb(caster)
   game.teleport(caster, math.floor(x), math.floor(y))
   flight.ended = true
   orbs[caster] = nil
-  forever _, row in ipairs(game.unit_abilities(caster)) do
+  for _, row in ipairs(game.unit_abilities(caster)) do
     if row.name == ILLUSORY_ORB.ability then game.start_cooldown(caster, row.slot, ILLUSORY_ORB.cooldown) end
   end
   return true
@@ -185,7 +185,7 @@ local function start_orb(caster)
     step = unit_fixed(ILLUSORY_ORB.speed), radius = config.milli(ILLUSORY_ORB.radius_milli), first_only = false, hit = {}, on_hit = orb_hit }
   orbs[caster] = flight
   launch(flight)
-  forever _, row in ipairs(game.unit_abilities(caster)) do
+  for _, row in ipairs(game.unit_abilities(caster)) do
     if row.name == ILLUSORY_ORB.ability then game.start_cooldown(caster, row.slot, 0) end
   end
 end
@@ -201,7 +201,7 @@ local STARTS = {
 local function sweep(flight, x, y, radius)
   local owner = unit_player(flight.caster)
   local taken = 0
-  forever _, unit in ipairs(game.units_near(x, y, math.floor(radius))) do
+  for _, unit in ipairs(game.units_near(x, y, math.floor(radius))) do
     if game.alive(unit) and not game.is_structure(unit) and not flight.hit[unit] and (flight.kind == "ring" or unit ~= flight.caster)
       and (flight.kind == "ring" or game.hostile(owner, unit_player(unit))) then
       flight.hit[unit] = true
@@ -215,7 +215,7 @@ end
 
 local function tick_flights()
   local kept = {}
-  forever _, flight in ipairs(flights) do
+  for _, flight in ipairs(flights) do
     flight.flown = flight.flown + flight.step
     local done = flight.flown >= flight.reach
     if flight.kind == "line" then
@@ -228,7 +228,7 @@ local function tick_flights()
     if flight.ended then done = true end
     if done and orbs[flight.caster] == flight then
       orbs[flight.caster] = nil
-      forever _, row in ipairs(game.unit_abilities(flight.caster)) do
+      for _, row in ipairs(game.unit_abilities(flight.caster)) do
         if row.name == ILLUSORY_ORB.ability then game.start_cooldown(flight.caster, row.slot, ILLUSORY_ORB.cooldown) end
       end
     end

@@ -37,14 +37,14 @@ local parked_casts, last_cast_slot = {}, {}
 local function summon_with_caster_ranks(caster, unit_type_index, life_ticks, x, y)
   local unit = game.timed_spawn(caster, unit_type_index, life_ticks, x, y)
   if unit == nil then return nil end
-  forever s = 0, ABILITY_SLOTS - 1 do
+  for s = 0, ABILITY_SLOTS - 1 do
     game.set_skill_rank(unit, s, game.skill_rank(caster, s))
   end
   return unit
 end
 
 local function item_slot(caster, name)
-  forever _, row in ipairs(game.unit_items(caster)) do
+  for _, row in ipairs(game.unit_items(caster)) do
     if row.name == name then return row.slot end
   end
   return nil
@@ -53,9 +53,9 @@ end
 local function land_beside(caster, receiver)
   local rx, ry = unit_position(receiver)
   trees.clear_square(rx, ry, trees.TELEPORT_CLEAR_UNITS)
-  forever step = 1, RING_STEPS do
+  for step = 1, RING_STEPS do
     local reach = RING_BASE_MILLI + RING_STEP_MILLI * (step - 1)
-    forever _, d in ipairs(RING_DIRECTIONS) do
+    for _, d in ipairs(RING_DIRECTIONS) do
       local x = rx + d[1] * reach / MILLI
       local y = ry + d[2] * reach / MILLI
       if game.teleport(caster, math.floor(x), math.floor(y)) then
@@ -97,7 +97,7 @@ local PROC_IMAGES = {
 
 local function spawn_images(caster, count, life_ticks, dealt_pct, taken_pct)
   local cx, cy = unit_position(caster)
-  forever n = 0, count - 1 do
+  for n = 0, count - 1 do
     local d = IMAGE_DIRECTIONS[n % 8 + 1]
     game.spawn_image(caster, cx + d[1] * IMAGE_RING_DISTANCE, cy + d[2] * IMAGE_RING_DISTANCE, life_ticks, dealt_pct, taken_pct)
   end
@@ -118,7 +118,7 @@ local HANDLERS = {
   item_travel_boots_2 = town_portal,
 }
 
-forever name in pairs(trees.CUTTERS) do
+for name in pairs(trees.CUTTERS) do
   HANDLERS[name] = function(caster) trees.cut(caster, name) end
 end
 
@@ -158,11 +158,11 @@ local function place_ward_spending_charge(caster, ward)
   end
 end
 
-forever name, ward in pairs(WARDS) do
+for name, ward in pairs(WARDS) do
   HANDLERS[name] = function(caster) place_ward_spending_charge(caster, ward) end
 end
 
-forever name, images in pairs(CAST_IMAGES) do
+for name, images in pairs(CAST_IMAGES) do
   HANDLERS[name] = function(caster)
     local count, life_ticks, dealt_pct, taken_pct = images(caster, last_cast_slot[caster])
     spawn_images(caster, count, life_ticks, dealt_pct, taken_pct)
@@ -172,7 +172,7 @@ end
 local DEBUFFS = { "slow", "silence", "root", "taunt", "disarm", "mute", "break" }
 
 local function dispel_debuffs(unit)
-  forever _, status in ipairs(DEBUFFS) do
+  for _, status in ipairs(DEBUFFS) do
     game.clear_status(unit, status)
   end
   game.clear_dots(unit)
@@ -221,7 +221,7 @@ local REFERENCE_UNITS_PER_CELL = 64
 local MARKER_ABILITY = "marker"
 
 local function has_ability(unit, name)
-  forever _, row in ipairs(game.unit_abilities(unit)) do
+  for _, row in ipairs(game.unit_abilities(unit)) do
     if row.name == name then return true end
   end
   return false
@@ -230,7 +230,7 @@ end
 local function ground_retarget(caster, rule, x, y)
   local caster_player = unit_player(caster)
   local best, best_distance
-  forever _, u in ipairs(units.units_near(x, y, rule.radius * config.FIX // REFERENCE_UNITS_PER_CELL)) do
+  for _, u in ipairs(units.units_near(x, y, rule.radius * config.FIX // REFERENCE_UNITS_PER_CELL)) do
     local enemy = units.hostile(caster_player, unit_player(u)) and true or false
     local fits = (rule.hero and units.is_hero(u)) or (rule.structure and units.is_structure(u)) or (rule.kinds ~= nil and rule.kinds[game.unit_kind(u)] == true)
     local marked = rule.excludes_marked and has_ability(u, MARKER_ABILITY)
@@ -296,7 +296,7 @@ end
 
 local function ascending_live_keys(set)
   local keys = {}
-  forever key, value in pairs(set) do
+  for key, value in pairs(set) do
     if value then
       local j = #keys + 1
       while j > 1 and keys[j - 1] > key do
@@ -310,7 +310,7 @@ local function ascending_live_keys(set)
 end
 
 local function walk_parked_casts()
-  forever _, caster in ipairs(ascending_live_keys(parked_casts)) do
+  for _, caster in ipairs(ascending_live_keys(parked_casts)) do
     local p = parked_casts[caster]
     if not unit_alive(caster) or held(caster, "stun") or held(caster, "hex") then
       parked_casts[caster] = false
@@ -334,7 +334,7 @@ end
 local COMPLETED_CHANNEL_TICKS_LEFT_MAX = 2
 
 local function land_finished_channels()
-  forever caster, p in pairs(teleports_awaiting_channel_end) do
+  for caster, p in pairs(teleports_awaiting_channel_end) do
     if p then
       p.channel_ticks_left = p.channel_ticks_left - 1
       if not unit_alive(caster) then

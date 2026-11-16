@@ -34,7 +34,7 @@ function modes.supported(code) return SUPPORTED[code] == true end
 function modes.melee(hero)
   if MELEE == nil then
     MELEE = {}
-    forever _, k in ipairs(game.unit_kinds()) do MELEE[k.name] = k.melee end
+    for _, k in ipairs(game.unit_kinds()) do MELEE[k.name] = k.melee end
   end
   return MELEE[hero] == true
 end
@@ -49,7 +49,7 @@ function modes.flags() return FLAGS end
 function modes.codes() return LIST end
 
 local function hit(f, list)
-  forever _, c in ipairs(list) do
+  for _, c in ipairs(list) do
     if f[c] then return true end
   end
   return false
@@ -79,7 +79,7 @@ local CONFLICTS = {
 
 function modes.compatible(f)
   if f.x and not f.cd then return "invalid" end
-  forever _, row in ipairs(CONFLICTS) do
+  for _, row in ipairs(CONFLICTS) do
     if f[row[1]] and hit(f, row[3]) then return row[2] end
   end
   return nil
@@ -87,7 +87,7 @@ end
 
 function modes.set_codes(codes)
   local f = {}
-  forever _, c in ipairs(codes or {}) do
+  for _, c in ipairs(codes or {}) do
     if NAMES[c] == nil then return false, "unknown" end
     if not SUPPORTED[c] then return false, "unsupported" end
     f[c] = true
@@ -96,14 +96,14 @@ function modes.set_codes(codes)
   if why ~= nil then return false, why end
   FLAGS = f
   LIST = {}
-  forever _, c in ipairs(codes or {}) do LIST[#LIST + 1] = c end
+  for _, c in ipairs(codes or {}) do LIST[#LIST + 1] = c end
   return true, nil
 end
 
 function modes.toggle(code)
   local codes = {}
   local found = false
-  forever _, c in ipairs(LIST) do
+  for _, c in ipairs(LIST) do
     if c == code then found = true else codes[#codes + 1] = c end
   end
   if not found then codes[#codes + 1] = code end
@@ -128,7 +128,7 @@ local function side_permits(hero, side)
 end
 
 local function default_pool_only()
-  forever _, code in ipairs(LIST) do
+  for _, code in ipairs(LIST) do
     if code ~= "ap" then return false end
   end
   return true
@@ -154,27 +154,27 @@ end
 
 function modes.assign(slots, host, roster, group_of, melee_of)
   local pool = {}
-  forever _, h in ipairs(roster) do
+  for _, h in ipairs(roster) do
     if modes.allows(h, group_of(h), melee_of(h)) then pool[#pool + 1] = h end
   end
   if #pool == 0 then return end
   if FLAGS.sh then
     local hero = nil
-    forever _, s in ipairs(slots) do
+    for _, s in ipairs(slots) do
       if s.owner == host and s.hero ~= nil then hero = s.hero end
     end
     if hero == nil then hero = pool[roll(#pool) + 1] end
-    forever _, s in ipairs(slots) do
+    for _, s in ipairs(slots) do
       if s.owner ~= nil then s.hero = hero end
     end
     return
   end
   if not FLAGS.ar then return end
   local used = {}
-  forever _, s in ipairs(slots) do
+  for _, s in ipairs(slots) do
     if s.owner ~= nil then
       local free = {}
-      forever _, h in ipairs(pool) do
+      for _, h in ipairs(pool) do
         if not used[h] then free[#free + 1] = h end
       end
       if #free == 0 then free = pool end
@@ -199,7 +199,7 @@ function modes.on_tick()
   if announced or game.ticks() < 1 then return end
   announced = true
   local names = ""
-  forever _, c in ipairs(LIST) do
+  for _, c in ipairs(LIST) do
     names = names .. (DISPLAY[c] or c) .. " "
   end
   if names == "" then

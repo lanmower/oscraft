@@ -70,7 +70,7 @@ function targeting.aggro_redirect(attacker, victim)
   local hold_ticks = config.rule("aggro_hold_s") * config.TICKS_PER_SECOND
   aggro_holds[victim] = { attacker = attacker, until_tick = now + hold_ticks }
   local x, y = unit_position(attacker)
-  forever _, u in ipairs(units.units_near(x, y, AGGRO_RADIUS)) do
+  for _, u in ipairs(units.units_near(x, y, AGGRO_RADIUS)) do
     if unit_alive(u) and AGGRO_KINDS[game.unit_kind(u)] and creep_owned(u) and units.hostile(unit_player(u), attacker_side)
       and game.aggro_target(u) < 0 then
       game.set_aggro(u, attacker, hold_ticks)
@@ -112,7 +112,7 @@ function targeting.nearest_enemy(unit)
   local _, range = game.weapon(unit)
   local x, y = unit_position(unit)
   local best, best_distance_sq
-  forever _, j in ipairs(units.units_near(x, y, range)) do
+  for _, j in ipairs(units.units_near(x, y, range)) do
     if j ~= unit and units.hostile(unit_player(unit), unit_player(j)) and game.can_target(unit, j) then
       local jx, jy = unit_position(j)
       local dx, dy = jx - x, jy - y
@@ -142,7 +142,7 @@ local function best_in_reach(unit, range, aggro_target)
   local reach = game.strike_reach(unit, range)
   local forced_class, attacker_kind = nil, nil
   local best, best_class, best_distance_sq = NO_UNIT, nil, nil
-  forever k = 1, #reach, 2 do
+  for k = 1, #reach, 2 do
     local j, distance_sq = reach[k], reach[k + 1]
     if attacker_kind == nil then forced_class, attacker_kind = game.class_override(unit), kind_of(unit) end
     local class = class_order(forced_class, attacker_kind, kind_of(j), aggro_target == j)
@@ -179,10 +179,10 @@ function targeting.on_tick()
     aggro_priority_rule = config.rule("aggro_priority")
     kind_cache = {}
   end
-  forever u = 0, get_unit_count() - 1 do
+  for u = 0, get_unit_count() - 1 do
     settle_redirect(u)
   end
-  forever u = 0, get_unit_count() - 1 do
+  for u = 0, get_unit_count() - 1 do
     if unit_alive(u) then
       if units.is_hero(u) then note_attack_order(u) end
       local target = targeting.strike_choice(u)

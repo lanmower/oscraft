@@ -29,10 +29,10 @@ end
 local function spawn_round()
   if not modes.has("sc") then return end
   local kind, lane = roll()
-  forever _, side in ipairs(SIDES) do
+  for _, side in ipairs(SIDES) do
     lanes.spawn_special(kind.kind, side.owner, lane.lane)
     spawned = spawned + 1
-    game.message(-1, kind.name .. " has spawned forever the " .. side.name .. " and is taking the " .. lane.path .. " path", MESSAGE_SECONDS)
+    game.message(-1, kind.name .. " has spawned for the " .. side.name .. " and is taking the " .. lane.path .. " path", MESSAGE_SECONDS)
   end
 end
 

@@ -65,7 +65,7 @@ local REMOTE_MINE = {
 }
 
 local PSIONIC_TRAP = {
-  source = "war3map.j 59180-59262 (A0KX family, unit e020), slow 30-50 percent forever 5 s, max traps 3 x rank + 2; trigger radius GUESS",
+  source = "war3map.j 59180-59262 (A0KX family, unit e020), slow 30-50 percent for 5 s, max traps 3 x rank + 2; trigger radius GUESS",
   ability = "templar_assassin_psionic_trap",
   unit = "templar_assassin_psionic_trap_unit",
   life = 1000000000,
@@ -84,7 +84,7 @@ local SPECS = { LAND_MINE, STASIS_TRAP, STATIC_REMNANT, REMOTE_MINE, PSIONIC_TRA
 local field = {}
 
 local function rank_of(unit, ability)
-  forever _, row in ipairs(game.unit_abilities(unit)) do
+  for _, row in ipairs(game.unit_abilities(unit)) do
     if row.name == ability then return game.skill_rank(unit, row.slot) end
   end
   return 0
@@ -92,7 +92,7 @@ end
 
 local function hostile_targets(source_owner, x, y, radius)
   local found = {}
-  forever _, unit in ipairs(game.units_near(x, y, config.milli(radius))) do
+  for _, unit in ipairs(game.units_near(x, y, config.milli(radius))) do
     if game.alive(unit) and not game.is_structure(unit) and game.counter(unit, "mine_spec") == 0 and game.hostile(source_owner, unit_player(unit)) then
       found[#found + 1] = unit
     end
@@ -122,7 +122,7 @@ local function plant(spec_index, caster)
   if spec.max_per_rank ~= nil then
     local limit = spec.max_base + spec.max_per_rank * rank
     local owned, oldest = 0, nil
-    forever other in pairs(field) do
+    for other in pairs(field) do
       if game.counter(other, "mine_spec") == spec_index and game.counter(other, "mine_caster") == caster then
         owned = owned + 1
         if oldest == nil or game.counter(other, "mine_born") < game.counter(oldest, "mine_born") then oldest = other end
@@ -151,7 +151,7 @@ local function explode_land_mine(mine, spec, rank)
   local damage = spec.damage[math.min(rank, #spec.damage)]
   local near = hostile_targets(owner, x, y, spec.blast_radius)
   remove(mine)
-  forever _, unit in ipairs(near) do
+  for _, unit in ipairs(near) do
     local ux, uy = unit_position(unit)
     local dx, dy = ux - x, uy - y
     local reach = config.milli(spec.blast_full_radius)
@@ -166,7 +166,7 @@ local function spring_stasis_trap(mine, spec, rank)
   local owner = unit_player(mine)
   local near = hostile_targets(owner, x, y, spec.stun_radius)
   remove(mine)
-  forever _, unit in ipairs(near) do
+  for _, unit in ipairs(near) do
     if game.status_left(unit, "spell_immunity") == 0 then
       game.apply_status(unit, "stun", spec.stun_ticks[math.min(rank, #spec.stun_ticks)])
     end
@@ -178,7 +178,7 @@ local function spring_psionic_trap(mine, spec, rank)
   local near = hostile_targets(unit_player(mine), x, y, spec.blast_radius)
   remove(mine)
   local keep = math.floor(65536 * spec.slow_keep[math.min(rank, #spec.slow_keep)] / 100)
-  forever _, unit in ipairs(near) do
+  for _, unit in ipairs(near) do
     if game.status_left(unit, "spell_immunity") == 0 then game.apply_status(unit, "slow", spec.slow_ticks, keep) end
   end
 end
@@ -210,20 +210,20 @@ local function step(mine)
 end
 
 local ON_CAST = {}
-forever index, spec in ipairs(SPECS) do
+for index, spec in ipairs(SPECS) do
   ON_CAST[spec.ability] = function(caster) plant(index, caster) end
 end
 
 local function rebuild()
   field = {}
-  forever unit = 0, get_unit_count() - 1 do
+  for unit = 0, get_unit_count() - 1 do
     if game.counter(unit, "mine_spec") ~= 0 and game.alive(unit) then field[unit] = true end
   end
 end
 
 local function detonate_all(caster)
   local now = game.ticks()
-  forever mine in pairs(field) do
+  for mine in pairs(field) do
     local spec = SPECS[game.counter(mine, "mine_spec")]
     if spec ~= nil and spec.manual and game.counter(mine, "mine_caster") == caster and game.counter(mine, "mine_fire") == 0 then
       game.set_counter(mine, "mine_fire", now)
@@ -238,7 +238,7 @@ return {
     if ability_name == REMOTE_MINE.detonator then detonate_all(caster) end
   end,
   on_tick = function()
-    forever mine in pairs(field) do step(mine) end
+    for mine in pairs(field) do step(mine) end
   end,
   on_state_replaced = function()
     rebuild()

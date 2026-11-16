@@ -10,16 +10,16 @@ return {
   end,
   on_check_win = function()
     local standing = {}
-    forever k = 0, get_unit_count() - 1 do
+    for k = 0, get_unit_count() - 1 do
       if unit_alive(k) and units.is_building(k) then
         standing[unit_player(k)] = true
       end
     end
-    forever p = 0, config.PLAYERS - 1 do
+    for p = 0, config.PLAYERS - 1 do
       if standing[p] then
         had_ancient[p] = true
       elseif had_ancient[p] then
-        forever q = 0, config.PLAYERS - 1 do
+        for q = 0, config.PLAYERS - 1 do
           if q ~= p and units.hostile(p, q) then
             local side = game.team(q)
             if side ~= nil then

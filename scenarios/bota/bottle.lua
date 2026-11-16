@@ -23,11 +23,11 @@ local BORROW_SCAN_EVERY = 2
 local COURIERS = require("courier_kinds").set
 local RUNE_ITEM = { "bottle_illusion", "bottle_haste", "bottle_double_damage", "bottle_regeneration", "bottle_invisibility" }
 local LOAN_OF = { [FULL] = LOAN_FULL, [EMPTY] = LOAN_EMPTY, [BOUNTY] = BOUNTY .. "_loan" }
-forever _, name in ipairs(RUNE_ITEM) do LOAN_OF[name] = name .. "_loan" end
+for _, name in ipairs(RUNE_ITEM) do LOAN_OF[name] = name .. "_loan" end
 local BASE_OF = {}
-forever base, loan in pairs(LOAN_OF) do BASE_OF[loan] = base end
+for base, loan in pairs(LOAN_OF) do BASE_OF[loan] = base end
 local HOLDS_RUNE = {}
-forever base, loan in pairs(LOAN_OF) do
+for base, loan in pairs(LOAN_OF) do
   if base ~= FULL and base ~= EMPTY then
     HOLDS_RUNE[base] = true
     HOLDS_RUNE[loan] = true
@@ -78,7 +78,7 @@ end
 
 local function rows_where(unit, wanted)
   local out = {}
-  forever _, row in ipairs(game.unit_items(unit)) do
+  for _, row in ipairs(game.unit_items(unit)) do
     if wanted(row.name) then out[#out + 1] = row end
   end
   return out
@@ -86,7 +86,7 @@ end
 
 local function used_row(list)
   local best = list[1]
-  forever _, row in ipairs(list) do
+  for _, row in ipairs(list) do
     if row.cooldown > best.cooldown then best = row end
   end
   return best
@@ -144,7 +144,7 @@ local function drink_rune(caster, now)
   if #list == 0 then return end
   local row = used_row(list)
   local entries = stored[caster] or {}
-  forever i, entry in ipairs(entries) do
+  for i, entry in ipairs(entries) do
     if entry.item == row.name then
       table.remove(entries, i)
       release(caster, row, entry, now)
@@ -162,7 +162,7 @@ end
 
 local function emptiest(unit, forced)
   local best, best_rank = nil, nil
-  forever _, row in ipairs(game.unit_items(unit)) do
+  for _, row in ipairs(game.unit_items(unit)) do
     local drinks = nil
     if row.name == EMPTY or row.name == LOAN_EMPTY then
       drinks = 0
@@ -197,7 +197,7 @@ local function expire_runes(hero, now)
   local entries = stored[hero]
   if entries == nil then return end
   local kept = {}
-  forever _, entry in ipairs(entries) do
+  for _, entry in ipairs(entries) do
     local rows = rows_where(hero, function(name) return name == entry.item end)
     if #rows == 0 then
       if now - entry.since <= 8 then kept[#kept + 1] = entry end
@@ -215,7 +215,7 @@ local function expire_runes(hero, now)
 end
 
 local function refill(hero)
-  forever _, row in ipairs(game.unit_items(hero)) do
+  for _, row in ipairs(game.unit_items(hero)) do
     if row.name == EMPTY or row.name == LOAN_EMPTY then
       swap(hero, row, full_form(row), FULL_CHARGES)
     elseif (row.name == FULL or row.name == LOAN_FULL) and row.count < FULL_CHARGES then
@@ -269,7 +269,7 @@ bottle.on_item_use = function(unit, _, item_name, target_kind, target)
 end
 
 local function holds_unfilled_bottle(unit)
-  forever _, row in ipairs(game.unit_items(unit)) do
+  for _, row in ipairs(game.unit_items(unit)) do
     if row.name == EMPTY or row.name == LOAN_EMPTY or (row.name == FULL and row.count < FULL_CHARGES) then return true end
   end
   return false
@@ -294,7 +294,7 @@ end
 
 local function borrow_scan(unit, now)
   local mine = unit_player(unit)
-  forever _, row in ipairs(game.unit_items(unit)) do
+  for _, row in ipairs(game.unit_items(unit)) do
     local owner = row.owner
     if owner ~= nil then
       local gone = units.left[owner] == true
@@ -314,7 +314,7 @@ local function borrow_scan(unit, now)
 end
 
 local function courier_scan(now)
-  forever _, unit in ipairs(game.units(nil)) do
+  for _, unit in ipairs(game.units(nil)) do
     if COURIERS[game.unit_kind(unit)] then
       set_bonus(unit, SLOW, S_SPEED_PCT, holds_unfilled_bottle(unit) and -settings().slow_pct or 0)
       borrow_scan(unit, now)
@@ -334,7 +334,7 @@ end
 
 bottle.on_tick = function()
   local now = game.time()
-  forever _, hero in ipairs(bounty.heroes()) do
+  for _, hero in ipairs(bounty.heroes()) do
     expire_runes(hero, now)
     settle_approach(hero)
     if game.counter(hero, REGEN_UNTIL) ~= 0 then

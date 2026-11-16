@@ -6,7 +6,7 @@ local reduction = {}
 local sent = {}
 
 local function threatened(structure, owner, x, y, radius)
-  forever _, k in ipairs(units.units_near(x, y, radius)) do
+  for _, k in ipairs(units.units_near(x, y, radius)) do
     if k ~= structure and not units.is_structure(k) and not units.is_hero(k)
       and unit_player(k) < config.PLAYERS and units.hostile(owner, unit_player(k)) then
       return true
@@ -60,10 +60,10 @@ function reduction.window(spec)
 end
 
 function reduction.apply(rules, ticks, scan)
-  forever i = 0, get_unit_count() - 1 do
+  for i = 0, get_unit_count() - 1 do
     if unit_alive(i) then
       local pct = 0
-      forever _, r in ipairs(rules) do
+      for _, r in ipairs(rules) do
         if r.update then r.update(i, ticks, scan) end
         pct = math.max(pct, r.pct(i, ticks))
       end

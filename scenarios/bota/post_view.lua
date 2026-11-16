@@ -23,7 +23,7 @@ function post_view.reset()
 end
 
 function post_view.choose_tab(tab)
-  forever _, known in ipairs(TABS) do
+  for _, known in ipairs(TABS) do
     if known == tab then state.tab = tab end
   end
 end
@@ -47,20 +47,20 @@ end
 local function join_names(names, texts)
   if #names == 0 then return texts.noItems end
   local out = names[1]
-  forever i = 2, #names do out = out .. ", " .. names[i] end
+  for i = 2, #names do out = out .. ", " .. names[i] end
   return out
 end
 
 local function members(c, side)
   local out = {}
-  forever _, e in ipairs(c.ranked) do
+  for _, e in ipairs(c.ranked) do
     if c.side_of(e.player) == side then out[#out + 1] = e end
   end
   return out
 end
 
 local function entry_for(c, player)
-  forever _, e in ipairs(c.ranked) do
+  for _, e in ipairs(c.ranked) do
     if e.player == player then return e end
   end
   return nil
@@ -70,7 +70,7 @@ local function compared(c, side)
   local chosen = state.picks[side]
   if chosen ~= nil then return entry_for(c, chosen) end
   local first = nil
-  forever _, e in ipairs(members(c, side)) do
+  for _, e in ipairs(members(c, side)) do
     if e.player == c.local_player then return e end
     first = first or e
   end
@@ -78,7 +78,7 @@ local function compared(c, side)
 end
 
 local function percent_of(entry, key)
-  forever _, lane in ipairs(entry.style) do
+  for _, lane in ipairs(entry.style) do
     if lane.key == key then return lane.percent end
   end
   return false
@@ -128,9 +128,9 @@ end
 local function portraits(c)
   local w = c.w
   local columns = {}
-  forever _, side in ipairs(c.sides) do
+  for _, side in ipairs(c.sides) do
     local cells = {}
-    forever _, e in ipairs(members(c, side)) do cells[#cells + 1] = portrait_column(c, e) end
+    for _, e in ipairs(members(c, side)) do cells[#cells + 1] = portrait_column(c, e) end
     columns[#columns + 1] = w.box({ w.label(c.team_name(side), "team" .. tostring(side)), w.box(cells, "row") }, "cole")
   end
   return w.box(columns, "row")
@@ -140,9 +140,9 @@ local function team_totals(c)
   local w = c.w
   local texts = c.texts
   local rows = {}
-  forever _, side in ipairs(c.sides) do
+  for _, side in ipairs(c.sides) do
     local kills, deaths, assists, gold, xp = 0, 0, 0, 0, 0
-    forever _, e in ipairs(members(c, side)) do
+    for _, e in ipairs(members(c, side)) do
       kills = kills + e.kills
       deaths = deaths + e.deaths
       assists = assists + e.assists
@@ -195,14 +195,14 @@ local function comparison(c)
   row(texts.items, join_names(a.item_names, texts), join_names(b.item_names, texts))
 
   local styles = {}
-  forever _, key in ipairs(STYLES) do
+  for _, key in ipairs(STYLES) do
     styles[#styles + 1] = style_cell(c, a, key, ta)
     styles[#styles + 1] = w.box({ w.label(texts.style[key], "accent"), w.label(texts.formula[key], "muted") }, "cole")
     styles[#styles + 1] = style_cell(c, b, key, tb)
   end
 
   local averages = {}
-  forever _, key in ipairs(AVERAGES) do
+  for _, key in ipairs(AVERAGES) do
     averages[#averages + 1] = w.label(texts.notTracked, ta)
     averages[#averages + 1] = w.label(texts.average[key], "muted")
     averages[#averages + 1] = w.label(texts.notTracked, tb)
@@ -234,7 +234,7 @@ end
 local function mvp(c)
   local w = c.w
   local kids = {}
-  forever i = 1, math.min(MVP_ROWS, #c.ranked) do
+  for i = 1, math.min(MVP_ROWS, #c.ranked) do
     local e = c.ranked[i]
     kids[#kids + 1] = w.label(tostring(i) .. " " .. e.name .. "  " .. tostring(e.rating) .. " " .. e.grade, "team" .. tostring(c.side_of(e.player)))
   end
@@ -246,7 +246,7 @@ end
 local function tab_strip(c)
   local w = c.w
   local buttons = {}
-  forever _, tab in ipairs(TABS) do
+  for _, tab in ipairs(TABS) do
     buttons[#buttons + 1] = w.button(c.texts.tabs[tab], "post_tab", w.obj({ w.S("tab", tab) }), tab == state.tab, c.texts.tabs[tab])
   end
   return w.box(buttons, "row")
@@ -266,7 +266,7 @@ end
 
 local function peak_of(rates)
   local top = 0
-  forever _, value in ipairs(rates) do
+  for _, value in ipairs(rates) do
     if value > top then top = value end
   end
   return top
@@ -286,7 +286,7 @@ local function graphs(c)
   if a == nil or b == nil then return w.label(texts.noPick, "muted") end
   local ta, tb = "team" .. tostring(left_side), "team" .. tostring(right_side)
   local kids = { w.label(texts.graphsNote, "muted") }
-  forever _, row in ipairs(GRAPH_ROWS) do
+  for _, row in ipairs(GRAPH_ROWS) do
     local left = series_of(a, row)
     local right = series_of(b, row)
     kids[#kids + 1] = w.label(texts[row.title], "accent")

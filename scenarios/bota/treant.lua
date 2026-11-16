@@ -2,7 +2,7 @@ local GUISE = "treant_nature_s_guise"
 local GUISE_TICKS_PER_RANK = 240
 
 local function rank_of(unit, ability_name)
-  forever _, row in ipairs(game.unit_abilities(unit)) do
+  for _, row in ipairs(game.unit_abilities(unit)) do
     if row.name == ability_name then return game.skill_rank(unit, row.slot) end
   end
   return 0

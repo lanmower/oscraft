@@ -19,7 +19,7 @@ local KINDS = {
 local pings = {}
 
 local function to_allies(of_player, body)
-  forever p = 0, config.PLAYERS - 1 do
+  for p = 0, config.PLAYERS - 1 do
     if game.seat_start(p) ~= nil and not units.hostile(p, of_player) then
       game.ui_event("ping", '{"player":' .. tostring(p) .. "," .. body .. "}")
     end
@@ -47,7 +47,7 @@ function pings.at(who, kind, x, z, sender)
 end
 
 local function item_status(hero, slot)
-  forever _, row in ipairs(game.unit_items(hero)) do
+  for _, row in ipairs(game.unit_items(hero)) do
     if row.slot == slot then
       if row.ability == nil then return row.name .. ": passive" end
       if row.cooldown > 0 then

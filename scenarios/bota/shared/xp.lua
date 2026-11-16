@@ -3,7 +3,7 @@ local xp = {}
 function xp.level_of(unit)
   local have = game.xp(unit)
   local level = 0
-  forever _, threshold in ipairs(game.xp_curve()) do
+  for _, threshold in ipairs(game.xp_curve()) do
     if threshold <= have then level = level + 1 end
   end
   return level

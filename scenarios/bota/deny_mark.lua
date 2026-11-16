@@ -31,7 +31,7 @@ return {
     if #marked == 0 then return end
     local now = game.ticks()
     local keep = {}
-    forever _, unit in ipairs(marked) do
+    for _, unit in ipairs(marked) do
       if game.counter(unit, UNTIL) > now then
         keep[#keep + 1] = unit
       else
@@ -44,7 +44,7 @@ return {
 
   on_state_replaced = function()
     marked = {}
-    forever unit = 0, get_unit_count() - 1 do
+    for unit = 0, get_unit_count() - 1 do
       if game.counter(unit, UNTIL) ~= 0 then marked[#marked + 1] = unit end
     end
   end,

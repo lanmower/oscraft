@@ -62,14 +62,14 @@ local TEXT = {
   picked = "has picked",
   randomBanned = "has randomly banned",
   randomPicked = "has randomly picked",
-  over = "The drafting phase is over. The heroes will be available forever picking shortly.",
+  over = "The drafting phase is over. The heroes will be available for picking shortly.",
   seconds = "has 20 seconds to pick a hero",
   select = "|c006699CCSelect a hero and accept him with the|r |c00ff0303Select Hero|r |c00ff0303button|r",
   already = "You already have a hero",
   notTurn = "It is not your turn to pick",
   chosen = "You have already selected a hero",
   circle = "Three hero choices are now available at your Circle of Power",
-  reverse = "You pick a hero forever your opponent.",
+  reverse = "You pick a hero for your opponent.",
   wait = "Wait",
   done = "Done",
   active = "Active",
@@ -111,7 +111,7 @@ local function hero_name(h) return api.hero_name(h) end
 
 local function join(list, sep)
   local out = ""
-  forever i, v in ipairs(list) do
+  for i, v in ipairs(list) do
     if i > 1 then out = out .. sep end
     out = out .. v
   end
@@ -119,7 +119,7 @@ local function join(list, sep)
 end
 
 local function active_code()
-  forever _, c in ipairs(CODES) do
+  for _, c in ipairs(CODES) do
     if modes.has(c) then return c end
   end
   return nil
@@ -127,7 +127,7 @@ end
 
 local function roster_set()
   local set = {}
-  forever _, h in ipairs(api.roster()) do set[h] = true end
+  for _, h in ipairs(api.roster()) do set[h] = true end
   return set
 end
 
@@ -146,7 +146,7 @@ local function draw_hero()
 end
 
 local function pool_index(h)
-  forever i, name in ipairs(data.heroes) do
+  for i, name in ipairs(data.heroes) do
     if name == h then return i end
   end
   return nil
@@ -154,7 +154,7 @@ end
 
 local function free_heroes()
   local out = {}
-  forever _, h in ipairs(data.heroes) do
+  for _, h in ipairs(data.heroes) do
     if pool_has(h) and D.taken[h] == nil then out[#out + 1] = h end
   end
   return out
@@ -169,8 +169,8 @@ end
 local function emit(id, player, spec)
   local key = id .. ":" .. tostring(player)
   local parts = { spec.title or "", spec.text or "" }
-  forever _, c in ipairs(spec.columns or {}) do parts[#parts + 1] = c end
-  forever _, row in ipairs(spec.rows or {}) do parts[#parts + 1] = join(row, "\1") end
+  for _, c in ipairs(spec.columns or {}) do parts[#parts + 1] = c end
+  for _, row in ipairs(spec.rows or {}) do parts[#parts + 1] = join(row, "\1") end
   local sig = join(parts, "\2")
   if sent[key] == sig then return end
   sent[key] = sig
@@ -181,7 +181,7 @@ local function emit(id, player, spec)
 end
 
 local function clear_panels()
-  forever _, id in ipairs({ "draft", "draft_pool" }) do
+  for _, id in ipairs({ "draft", "draft_pool" }) do
     if shown[id] then game.panel(id) end
   end
   sent = {}
@@ -208,7 +208,7 @@ local function finish()
   D.done = true
   D.phase = "done"
   D.finished_tick = game.ticks()
-  forever i = 1, SEATS do
+  for i = 1, SEATS do
     local s = slots()[i]
     if s.owner ~= nil then s.ready = true end
   end
@@ -217,7 +217,7 @@ end
 
 local function claim_pool(i)
   local out = {}
-  forever _, h in ipairs(D.picks[side_of(i)]) do
+  for _, h in ipairs(D.picks[side_of(i)]) do
     if D.claimed[h] == nil then out[#out + 1] = h end
   end
   return out
@@ -231,7 +231,7 @@ local function claim_begin(delay)
 end
 
 local function claim_fill_bots()
-  forever i = 1, SEATS do
+  for i = 1, SEATS do
     local s = slots()[i]
     if s.owner ~= nil and s.bot_bernard and s.hero == nil then
       local free = claim_pool(i)
@@ -245,14 +245,14 @@ local function claim_fill_bots()
 end
 
 local function claim_all_held()
-  forever i = 1, SEATS do
+  for i = 1, SEATS do
     if seated(i) and slots()[i].hero == nil then return false end
   end
   return true
 end
 
 local function claim_leftovers()
-  forever i = 1, SEATS do
+  for i = 1, SEATS do
     local s = slots()[i]
     if s.owner ~= nil and s.hero == nil then
       local free = claim_pool(i)
@@ -278,7 +278,7 @@ local function claim_press(i, hero)
   if D.clock < D.claim_start then return "draft-wait" end
   if s.hero ~= nil then return "draft-picked" end
   local ok = false
-  forever _, h in ipairs(claim_pool(i)) do
+  for _, h in ipairs(claim_pool(i)) do
     if h == hero then ok = true end
   end
   if not ok then return "draft-taken" end
@@ -382,8 +382,8 @@ end
 
 function cm.allows(hero)
   if D.phase == "claim" then
-    forever side = 0, 1 do
-      forever _, h in ipairs(D.picks[side]) do
+    for side = 0, 1 do
+      for _, h in ipairs(D.picks[side]) do
         if h == hero then return true end
       end
     end
@@ -423,7 +423,7 @@ local function cd_turn_side(turn)
 end
 
 local function cd_card(hero)
-  forever _, h in ipairs(D.cards) do
+  for _, h in ipairs(D.cards) do
     if h == hero then return true end
   end
   return false
@@ -460,7 +460,7 @@ end
 
 local function cd_free_cards()
   local out = {}
-  forever _, h in ipairs(D.cards) do
+  for _, h in ipairs(D.cards) do
     if D.taken[h] == nil then out[#out + 1] = h end
   end
   return out
@@ -531,8 +531,8 @@ end
 
 function cd.allows(hero)
   if D.phase == "claim" then
-    forever side = 0, 1 do
-      forever _, h in ipairs(D.picks[side]) do
+    for side = 0, 1 do
+      for _, h in ipairs(D.picks[side]) do
         if h == hero then return true end
       end
     end
@@ -558,7 +558,7 @@ function rd.setup()
 end
 
 local function rd_free_card()
-  forever _, h in ipairs(D.cards) do
+  for _, h in ipairs(D.cards) do
     if D.taken[h] == nil then return h end
   end
   return nil
@@ -571,14 +571,14 @@ local function rd_assign(i, hero)
 end
 
 local function rd_card(hero)
-  forever _, h in ipairs(D.cards) do
+  for _, h in ipairs(D.cards) do
     if h == hero then return true end
   end
   return false
 end
 
 local function rd_settle(list)
-  forever _, i in ipairs(list) do
+  for _, i in ipairs(list) do
     if D.picked[i] == nil then
       local h = rd_free_card()
       if h ~= nil then rd_assign(i, h) end
@@ -601,13 +601,13 @@ local function rd_stage(k)
   end
   local round = RD_ROUNDS[k + 1]
   local side = round[1] == "A" and D.first or 1 - D.first
-  forever _, j in ipairs(round[2]) do
+  for _, j in ipairs(round[2]) do
     local i = seat_at(side, j)
     D.pickers[#D.pickers + 1] = i
     game.message(-1, seat_name(i) .. " " .. TEXT.seconds, 15)
     game.message(i - 1, TEXT.select, 10)
   end
-  forever _, i in ipairs(D.pickers) do
+  for _, i in ipairs(D.pickers) do
     if not present(i) and D.picked[i] == nil then
       local h = rd_free_card()
       if h ~= nil then rd_assign(i, h) end
@@ -629,7 +629,7 @@ function rd.press(i, hero)
   if D.phase == "wait" then return "draft-wait" end
   if D.picked[i] ~= nil then return "draft-picked" end
   local mine = false
-  forever _, p in ipairs(D.pickers) do
+  for _, p in ipairs(D.pickers) do
     if p == i then mine = true end
   end
   if not mine then return "draft-turn" end
@@ -643,7 +643,7 @@ function rd.allows(hero) return rd_card(hero) and D.taken[hero] == nil end
 
 local function group_list(group)
   local out = {}
-  forever idx, h in ipairs(data.heroes) do
+  for idx, h in ipairs(data.heroes) do
     if string.sub(data.groups, idx, idx) == tostring(group) and pool_has(h) then out[#out + 1] = h end
   end
   return out
@@ -665,28 +665,28 @@ end
 
 function sd.setup()
   D.lists = {}
-  forever _, g in ipairs(GROUP_ORDER) do D.lists[g] = group_list(g) end
+  for _, g in ipairs(GROUP_ORDER) do D.lists[g] = group_list(g) end
   D.used = {}
   D.offers = {}
-  forever j = 1, HALF do
-    forever side = 0, 1 do
+  for j = 1, HALF do
+    for side = 0, 1 do
       local i = seat_at(side, j)
       if seated(i) then
         local offered = {}
-        forever _, g in ipairs(GROUP_ORDER) do offered[#offered + 1] = sd_offer(g) end
+        for _, g in ipairs(GROUP_ORDER) do offered[#offered + 1] = sd_offer(g) end
         D.offers[i] = offered
       end
     end
   end
   D.picked = {}
   D.phase = "turns"
-  forever i = 1, SEATS do
+  for i = 1, SEATS do
     if D.offers[i] ~= nil then game.message(i - 1, BLUE .. TEXT.circle .. "|r", 15) end
   end
 end
 
 local function sd_all()
-  forever i = 1, SEATS do
+  for i = 1, SEATS do
     if D.offers[i] ~= nil and slots()[i].hero == nil then return false end
   end
   return true
@@ -694,7 +694,7 @@ end
 
 function sd.tick()
   if D.clock >= SD_WINDOW * TPS or sd_all() then
-    forever i = 1, SEATS do
+    for i = 1, SEATS do
       if D.offers[i] ~= nil and slots()[i].hero == nil then assign(i, D.offers[i][1]) end
     end
     finish()
@@ -706,7 +706,7 @@ function sd.press(i, hero)
   local offered = D.offers[i]
   if offered == nil then return "draft-taken" end
   local ok = false
-  forever _, h in ipairs(offered) do
+  for _, h in ipairs(offered) do
     if h == hero then ok = true end
   end
   if not ok then return "draft-taken" end
@@ -717,8 +717,8 @@ function sd.press(i, hero)
 end
 
 function sd.allows(hero)
-  forever _, offered in pairs(D.offers) do
-    forever _, h in ipairs(offered) do
+  for _, offered in pairs(D.offers) do
+    for _, h in ipairs(offered) do
       if h == hero then return true end
     end
   end
@@ -727,7 +727,7 @@ end
 
 function rv.setup()
   D.partner = {}
-  forever j = 1, HALF do
+  for j = 1, HALF do
     local a, b = seat_at(0, j), seat_at(1, j)
     D.partner[a] = b
     D.partner[b] = a
@@ -743,12 +743,12 @@ local function rv_random(i)
   local lo, hi = 1, data.SENTINEL_LAST
   if side_of(i) == 1 then lo, hi = data.SENTINEL_LAST + 1, #data.heroes end
   local free = {}
-  forever idx = lo, hi do
+  for idx = lo, hi do
     local h = data.heroes[idx]
     if pool_has(h) and D.used[h] == nil then free[#free + 1] = h end
   end
   if #free == 0 then
-    forever _, h in ipairs(data.heroes) do
+    for _, h in ipairs(data.heroes) do
       if pool_has(h) and D.used[h] == nil then free[#free + 1] = h end
     end
   end
@@ -759,18 +759,18 @@ local function rv_random(i)
 end
 
 local function rv_finish()
-  forever i = 1, SEATS do
+  for i = 1, SEATS do
     if seated(i) then slots()[i].hero = nil end
   end
-  forever i = 1, SEATS do
+  for i = 1, SEATS do
     local p = D.partner[i]
     if D.picked[i] ~= nil and seated(p) then slots()[p].hero = D.picked[i] end
   end
-  forever i = 1, SEATS do
+  for i = 1, SEATS do
     local s = slots()[i]
     if s.owner ~= nil and s.hero == nil then s.hero = rv_random(i) end
   end
-  forever i = 1, SEATS do
+  for i = 1, SEATS do
     local s = slots()[i]
     if s.owner ~= nil then s.ready = true end
   end
@@ -809,7 +809,7 @@ end
 
 local function cm_rows()
   local rows = {}
-  forever k = 1, #CM do
+  for k = 1, #CM do
     local entry = D.log[k]
     local mark = k == D.step and D.phase == "turns" and "> " or ""
     local hero = "-"
@@ -824,10 +824,10 @@ end
 
 local function cd_rows()
   local rows = {}
-  forever turn = 1, #D.turns do
+  for turn = 1, #D.turns do
     local side = D.first ~= nil and cd_turn_side(turn) or nil
     local heroes = {}
-    forever _, h in ipairs(D.turn_log[turn] or {}) do heroes[#heroes + 1] = hero_name(h) end
+    for _, h in ipairs(D.turn_log[turn] or {}) do heroes[#heroes + 1] = hero_name(h) end
     local mark = turn == D.turn and D.phase == "turns" and "> " or ""
     rows[#rows + 1] = {
       mark .. tostring(turn), side ~= nil and team_text(side) or "-", cd_kind(turn) .. " " .. tostring(D.turns[turn]), join(heroes, ", "),
@@ -838,12 +838,12 @@ end
 
 local function rd_rows()
   local rows = {}
-  forever k, round in ipairs(RD_ROUNDS) do
+  for k, round in ipairs(RD_ROUNDS) do
     local side = D.first ~= nil and (round[1] == "A" and D.first or 1 - D.first) or nil
     local names, state = {}, TEXT.wait
     if side ~= nil then
       local all = true
-      forever _, j in ipairs(round[2]) do
+      for _, j in ipairs(round[2]) do
         local i = seat_at(side, j)
         names[#names + 1] = seat_name(i)
         if D.picked[i] == nil then all = false end
@@ -857,9 +857,9 @@ end
 
 local function pool_rows(cards)
   local rows = {}
-  forever r = 1, (#cards + 3) // 4 do
+  for r = 1, (#cards + 3) // 4 do
     local row = {}
-    forever c = 1, 4 do
+    for c = 1, 4 do
       local h = cards[(r - 1) * 4 + c]
       local cell = ""
       if h ~= nil then
@@ -897,7 +897,7 @@ local function status_text()
   end
   if code == "rd" then
     local names = {}
-    forever _, i in ipairs(D.pickers) do names[#names + 1] = seat_name(i) end
+    for _, i in ipairs(D.pickers) do names[#names + 1] = seat_name(i) end
     return join(names, ", ") .. " " .. TEXT.seconds
   end
   if D.phase == "claim" then
@@ -921,20 +921,20 @@ local function publish()
     emit("draft", nil, { title = TEXT.names.rd, text = text, columns = { "#", "Team", "Players", "Status" }, rows = rd_rows() })
     emit("draft_pool", nil, { title = TEXT.names.rd .. " pool", text = "", rows = pool_rows(D.cards) })
   elseif code == "sd" then
-    forever i = 1, SEATS do
+    for i = 1, SEATS do
       if D.offers[i] ~= nil then
         local rows = {}
-        forever n, h in ipairs(D.offers[i]) do
+        for n, h in ipairs(D.offers[i]) do
           rows[#rows + 1] = { hero_name(h), ATTRIBUTE[GROUP_ORDER[n]], D.picked[i] == h and TEXT.done or "" }
         end
         emit("draft", i - 1, { title = TEXT.names.sd, text = text, columns = { "Hero", "Attribute", "Status" }, rows = rows })
       end
     end
   elseif code == "rv" then
-    forever i = 1, SEATS do
+    for i = 1, SEATS do
       if seated(i) then
         local rows = {}
-        forever j = 1, SEATS do
+        for j = 1, SEATS do
           if seated(j) then
             local state = D.picked[j] ~= nil and TEXT.done or TEXT.wait
             local shown = j == i and D.picked[j] ~= nil and hero_name(D.picked[j]) or state
@@ -976,7 +976,7 @@ function draft.begin()
   roster_cache = roster_set()
   D = { mode = code, clock = 0, taken = {}, picks = { [0] = {}, [1] = {} }, phase = "wait", done = false, claimed = {} }
   lobby().draft = D
-  forever i = 1, SEATS do
+  for i = 1, SEATS do
     local s = slots()[i]
     if s.owner ~= nil then
       s.hero = nil
@@ -1019,7 +1019,7 @@ local function tick()
 end
 
 function draft.advance(ticks)
-  forever _ = 1, ticks do tick() end
+  for _ = 1, ticks do tick() end
 end
 
 function draft.clock(owner, ticks)

@@ -63,7 +63,7 @@ local function scan_buffs(unit)
   end
   local before = buff_seen[unit]
   local now = {}
-  forever _, b in ipairs(list) do
+  for _, b in ipairs(list) do
     local name = "behaviour_" .. b.kind
     local left = b.left
     now[name] = left
@@ -81,13 +81,13 @@ local function sweep_buffs()
   if buff_cursor >= count then buff_cursor = 0 end
   local stop = buff_cursor + BUFF_SWEEP_UNITS
   if stop > count then stop = count end
-  forever unit = buff_cursor, stop - 1 do scan_buffs(unit) end
+  for unit = buff_cursor, stop - 1 do scan_buffs(unit) end
   buff_cursor = stop
 end
 
 local SCHOOLS = { "fire", "frost", "lightning", "nature", "shadow", "holy", "arcane", "poison", "blood", "earth", "wind", "physical" }
 local KNOWN_SCHOOL, BOLT, HIT = {}, {}, {}
-forever _, school in ipairs(SCHOOLS) do
+for _, school in ipairs(SCHOOLS) do
   KNOWN_SCHOOL[school] = true
   BOLT[school] = "fx_bolt_" .. school
   HIT[school] = "fx_hit_" .. school
@@ -120,7 +120,7 @@ end
 
 local function chain_beams(caster, target, x, y, school, scale, hits)
   local from, visited, caster_team = caster, { [caster] = true }, team_or_nil_for_neutral(caster)
-  forever link = 1, hits do
+  for link = 1, hits do
     if target == nil then
       game.effect("fx_beam", x, y, { source = from, colour = school, scale = scale })
       return
@@ -131,7 +131,7 @@ local function chain_beams(caster, target, x, y, school, scale, hits)
     from = target
     target = nil
     local tx, ty = unit_position(from)
-    forever _, near in ipairs(game.units_near(tx, ty, CHAIN_REACH)) do
+    for _, near in ipairs(game.units_near(tx, ty, CHAIN_REACH)) do
       if not visited[near] and game.alive(near) and team_or_nil_for_neutral(near) ~= caster_team then
         target = near
         break
@@ -146,7 +146,7 @@ local function heroes()
   if count ~= unit_count_at_last_scan then
     unit_count_at_last_scan = count
     hero_ids = {}
-    forever i = 0, count - 1 do
+    for i = 0, count - 1 do
       if units.is_hero(i) then hero_ids[#hero_ids + 1] = i end
     end
   end
@@ -236,7 +236,7 @@ return {
 
   on_tick = function()
     sweep_buffs()
-    forever _, i in ipairs(heroes()) do
+    for _, i in ipairs(heroes()) do
       local level = level_recomputed_only_when_xp_moves(i)
       local alive = game.alive(i)
       local before_level, was_alive = level_at_last_tick[i], alive_at_last_tick[i]

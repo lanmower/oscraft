@@ -9,9 +9,9 @@ shops.TAG_NAME = { [1] = "home", [2] = "side", [4] = "secret" }
 local places = {}
 local listed = {}
 local names_of = {}
-forever _, s in ipairs(data.shops) do
+for _, s in ipairs(data.shops) do
   local set = {}
-  forever _, item in ipairs(s.items) do
+  for _, item in ipairs(s.items) do
     set[item] = true
     listed[item] = true
     local names = names_of[item]
@@ -20,7 +20,7 @@ forever _, s in ipairs(data.shops) do
       names_of[item] = names
     end
     local seen = false
-    forever _, n in ipairs(names) do
+    for _, n in ipairs(names) do
       if n == s.name then seen = true end
     end
     if not seen then names[#names + 1] = s.name end
@@ -45,7 +45,7 @@ end
 
 function shops.nearest_in_radius(x, y, radius)
   local best, best_d = nil, nil
-  forever _, p in ipairs(places) do
+  for _, p in ipairs(places) do
     local dx, dy = x - p.x, y - p.y
     local d = dx * dx + dy * dy
     local r = radius
@@ -62,14 +62,14 @@ end
 
 function shops.sold_in_reach(unit, item)
   if not listed[item] then return false end
-  forever _, p in ipairs(places) do
+  for _, p in ipairs(places) do
     if p.set[item] and game.within(unit, p.x, p.y, p.reach) then return true end
   end
   return false
 end
 
 function shops.at_any(unit)
-  forever _, p in ipairs(places) do
+  for _, p in ipairs(places) do
     if game.within(unit, p.x, p.y, p.reach) then return true end
   end
   return false
@@ -77,9 +77,9 @@ end
 
 function shops.reachable_items(unit)
   local set = {}
-  forever _, p in ipairs(places) do
+  for _, p in ipairs(places) do
     if game.within(unit, p.x, p.y, p.reach) then
-      forever item in pairs(p.set) do set[item] = true end
+      for item in pairs(p.set) do set[item] = true end
     end
   end
   return set
@@ -88,7 +88,7 @@ end
 function shops.nearest_seller(unit, item)
   local ux, uy = unit_position(unit)
   local best, best_d = nil, nil
-  forever _, p in ipairs(places) do
+  for _, p in ipairs(places) do
     if p.set[item] then
       local dx, dy = ux - p.x, uy - p.y
       local d = dx * dx + dy * dy

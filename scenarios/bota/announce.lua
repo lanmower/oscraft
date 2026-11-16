@@ -61,7 +61,7 @@ end
 
 local function seat_rank(p)
   local side, rank = side_of(p), 1
-  forever q = 0, p - 1 do
+  for q = 0, p - 1 do
     if game.seat_start(q) ~= nil and side_of(q) == side then rank = rank + 1 end
   end
   if rank > 5 then rank = 5 end
@@ -95,13 +95,13 @@ local function later_sound(ticks, text, sound)
 end
 
 local function say_allies(of_player, text, seconds)
-  forever p = 0, config.PLAYERS - 1 do
+  for p = 0, config.PLAYERS - 1 do
     if game.seat_start(p) ~= nil and p ~= of_player and not units.hostile(p, of_player) then say(text, seconds, p) end
   end
 end
 
 local function sound_allies(of_player, event)
-  forever p = 0, config.PLAYERS - 1 do
+  for p = 0, config.PLAYERS - 1 do
     if game.seat_start(p) ~= nil and p ~= of_player and not units.hostile(p, of_player) then sounds.play(event, p) end
   end
 end
@@ -109,7 +109,7 @@ end
 local function ping(of_player, x, y, seconds, colour, with_owner)
   local at = '"x":' .. tostring(x / config.FIX) .. ',"z":' .. tostring(y / config.FIX) .. ',"seconds":' .. tostring(seconds)
     .. ',"colour":"' .. colour .. '"}'
-  forever p = 0, config.PLAYERS - 1 do
+  for p = 0, config.PLAYERS - 1 do
     if game.seat_start(p) ~= nil and (p ~= of_player or with_owner) and not units.hostile(p, of_player) then
       game.ui_event("ping", '{"player":' .. tostring(p) .. "," .. at)
     end
@@ -127,7 +127,7 @@ end
 
 local function assist_text(victim_x, victim_y, killer, killer_player)
   local names, n = "", 0
-  forever _, u in ipairs(units.units_near(victim_x, victim_y, ASSIST_RADIUS)) do
+  for _, u in ipairs(units.units_near(victim_x, victim_y, ASSIST_RADIUS)) do
     if u ~= killer and units.is_hero(u) and game.alive(u) and not units.hostile(unit_player(u), killer_player) then
       names = names .. (n > 0 and "/" or "") .. hero_tag(u)
       n = n + 1
@@ -147,9 +147,9 @@ function announce.hero_kill(t)
     line = split .. " pwned  " .. victim .. "'s head!" .. "! " .. gold .. " gold is split."
   elseif t.ended >= 3 then
     local row = level_name(ENDED, t.ended)
-    line = killer .. " has just ended " .. victim .. "'s " .. row[1] .. row[2] .. "|r streak forever " .. gold .. " gold!!"
+    line = killer .. " has just ended " .. victim .. "'s " .. row[1] .. row[2] .. "|r streak for " .. gold .. " gold!!"
   else
-    line = killer .. " pwned  " .. victim .. "'s head! forever " .. gold .. " gold!!"
+    line = killer .. " pwned  " .. victim .. "'s head! for " .. gold .. " gold!!"
   end
   if t.credited ~= nil then line = line .. assist_text(t.x, t.y, t.credited, t.killer_player) end
   later(0, line)
@@ -203,7 +203,7 @@ local function scan_barracks()
   if scan_next >= count then return end
   local last = scan_next + SCAN_CHUNK
   if last > count then last = count end
-  forever i = scan_next, last - 1 do
+  for i = scan_next, last - 1 do
     if BARRACKS[game.unit_kind(i)] then rax[side_of(unit_player(i))][i] = true end
   end
   scan_next = last
@@ -211,7 +211,7 @@ end
 
 local function barracks_left(side)
   local left = 0
-  forever id in pairs(rax[side]) do
+  for id in pairs(rax[side]) do
     if unit_alive(id) then left = left + 1 end
   end
   return left
@@ -297,7 +297,7 @@ end
 local function show_due()
   local now = game.ticks()
   local keep = {}
-  forever _, m in ipairs(pending) do
+  for _, m in ipairs(pending) do
     if m.at <= now then
       say(m.text, SHOW_SECONDS, ALL)
       if m.sound ~= nil then sounds.play(m.sound) end
@@ -309,7 +309,7 @@ local function show_due()
 end
 
 local function watch_revivals(now)
-  forever _, h in ipairs(bounty.heroes()) do
+  for _, h in ipairs(bounty.heroes()) do
     local dead = not game.alive(h)
     if dead then
       was_dead[h] = true
@@ -319,7 +319,7 @@ local function watch_revivals(now)
       if bought_at[h] ~= nil and now - bought_at[h] <= 3 then
         bought_at[h] = nil
         local text = hero_tag(h) .. "|c00ff0000 has revived (buy back)"
-        forever q = 0, config.PLAYERS - 1 do
+        for q = 0, config.PLAYERS - 1 do
           if game.seat_start(q) ~= nil and q ~= p then
             say(" ", 15, q)
             say(text, 15, q)

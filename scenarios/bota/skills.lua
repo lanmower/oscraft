@@ -8,7 +8,7 @@ return {
     if gate == nil then return false end
     local character_level = xp.character_level(unit)
     local spent = 0
-    forever s = 0, ABILITY_SLOTS - 1 do
+    for s = 0, ABILITY_SLOTS - 1 do
       spent = spent + game.skill_rank(unit, s)
     end
     if character_level - spent <= 0 then return false end

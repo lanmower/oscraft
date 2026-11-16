@@ -35,7 +35,7 @@ local function armour_scale(armour)
   local depth = -armour
   local whole, part = depth // ONE, depth % ONE
   local power = ONE
-  forever _ = 1, whole < MAX_POINTS and whole or MAX_POINTS do power = (power * DECAY) // ONE end
+  for _ = 1, whole < MAX_POINTS and whole or MAX_POINTS do power = (power * DECAY) // ONE end
   power = (power * (ONE - (K * part) // ONE)) // ONE
   return 2 * ONE - power
 end
@@ -105,7 +105,7 @@ return {
   end,
 
   on_tick = function(state)
-    forever _, u in ipairs(game.units(nil)) do
+    for _, u in ipairs(game.units(nil)) do
       local rec = applied[u]
       if not rec then rec = {}; applied[u] = rec end
       if not rec.turn then apply_turn_rate(u, rec) end

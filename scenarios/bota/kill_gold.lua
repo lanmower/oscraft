@@ -55,7 +55,7 @@ local GREED_KILL = "greed_kill_"
 local kill_gold = {}
 
 local function greed_rank(hero)
-  forever _, a in ipairs(game.unit_abilities(hero)) do
+  for _, a in ipairs(game.unit_abilities(hero)) do
     if a.name == GREED then return game.skill_rank(hero, a.slot) end
   end
   return 0
@@ -63,7 +63,7 @@ end
 
 local function greed_stack(hero, now)
   local count = 0
-  forever slot = 0, GREED_RING - 1 do
+  for slot = 0, GREED_RING - 1 do
     local at = game.counter(hero, GREED_KILL .. slot)
     if at > 0 and now - at < GREED_WINDOW then count = count + 1 end
   end
@@ -98,7 +98,7 @@ local function worth(hero) return store.net_worth(hero) end
 
 local function team_worth(team)
   local total = 0
-  forever _, hero in ipairs(bounty.heroes()) do
+  for _, hero in ipairs(bounty.heroes()) do
     if team_of(hero) == team then total = total + worth(hero) end
   end
   return total
@@ -106,14 +106,14 @@ end
 
 local function rank_in_team(hero)
   local mine, team, rank = worth(hero), team_of(hero), 1
-  forever _, other in ipairs(bounty.heroes()) do
+  for _, other in ipairs(bounty.heroes()) do
     if other ~= hero and team_of(other) == team and worth(other) > mine then rank = rank + 1 end
   end
   return rank
 end
 
 local function contains(list, unit)
-  forever _, u in ipairs(list) do
+  for _, u in ipairs(list) do
     if u == unit then return true end
   end
   return false
@@ -122,7 +122,7 @@ end
 local function assist_group(victim, killer, side)
   local out = {}
   local x, y = unit_position(victim)
-  forever _, u in ipairs(units.units_near(x, y, ASSIST_RADIUS)) do
+  for _, u in ipairs(units.units_near(x, y, ASSIST_RADIUS)) do
     if u ~= victim and units.is_hero(u) and game.alive(u) and not units.hostile(unit_player(u), side) then out[#out + 1] = u end
   end
   if killer ~= nil and units.is_hero(killer) and not contains(out, killer) then
@@ -146,9 +146,9 @@ local function pay_assists(victim, victim_player, killer, side)
     + row.lead * math.min(lead / 4000, 1)) * (1.2 - 0.1 * (rank_in_team(victim) - 1))
   local share = math.floor(base)
   local ordered = {}
-  forever _, u in ipairs(group) do ordered[#ordered + 1] = { unit = u, rank = rank_in_team(u) } end
+  for _, u in ipairs(group) do ordered[#ordered + 1] = { unit = u, rank = rank_in_team(u) } end
   local sorted = {}
-  forever _, row_unit in ipairs(ordered) do
+  for _, row_unit in ipairs(ordered) do
     local j = #sorted + 1
     while j > 1 and (sorted[j - 1].rank > row_unit.rank or (sorted[j - 1].rank == row_unit.rank and sorted[j - 1].unit > row_unit.unit)) do
       sorted[j] = sorted[j - 1]
@@ -158,7 +158,7 @@ local function pay_assists(victim, victim_player, killer, side)
   end
   ordered = sorted
   local weights = WEIGHTS[math.min(n, #WEIGHTS)]
-  forever i, row_unit in ipairs(ordered) do
+  for i, row_unit in ipairs(ordered) do
     local gold = math.floor(share * (weights[i] or 1))
     stats.add(row_unit.unit, "st_bonus_gold", gold)
     bounty.credit({ player = unit_player(row_unit.unit), gold = gold, reliable = true, at = victim, text = true })
@@ -167,7 +167,7 @@ end
 
 local function damagers_of(victim, victim_player)
   local out = {}
-  forever _, h in ipairs(game.recent_hitters(victim, DAMAGE_WINDOW)) do
+  for _, h in ipairs(game.recent_hitters(victim, DAMAGE_WINDOW)) do
     if units.is_hero(h) and units.hostile(unit_player(h), victim_player) and not contains(out, h) then out[#out + 1] = h end
   end
   return out
@@ -175,21 +175,21 @@ end
 
 local function split_among(victim, group, gold, reliable)
   local each = math.floor(gold / #group)
-  forever _, h in ipairs(group) do
+  for _, h in ipairs(group) do
     bounty.credit({ player = unit_player(h), gold = each, reliable = reliable and each or nil, at = victim, text = true })
   end
 end
 
 local function enemy_heroes(victim_player)
   local out = {}
-  forever _, h in ipairs(bounty.heroes()) do
+  for _, h in ipairs(bounty.heroes()) do
     if units.hostile(unit_player(h), victim_player) then out[#out + 1] = h end
   end
   return out
 end
 
 local function first_blood_open()
-  forever _, h in ipairs(bounty.heroes()) do
+  for _, h in ipairs(bounty.heroes()) do
     if game.counter(h, FIRST_BLOOD) ~= 0 then return false end
   end
   return true
@@ -272,13 +272,13 @@ return {
       local passive = modes.has("em") and PASSIVE_GOLD * EASY_PASSIVE_FACTOR or PASSIVE_GOLD
       local due = math.floor(now * passive / PASSIVE_PERIOD_TICKS) - math.floor((now - 1) * passive / PASSIVE_PERIOD_TICKS)
       if due > 0 then
-        forever _, hero in ipairs(bounty.heroes()) do
+        for _, hero in ipairs(bounty.heroes()) do
           game.cmd_add_gold(unit_player(hero), due)
           bounty.record_earned(hero, due)
         end
       end
     end
-    forever _, hero in ipairs(bounty.heroes()) do
+    for _, hero in ipairs(bounty.heroes()) do
       local wallet = game.unit_gold(hero)
       if wallet > 0 and game.alive(hero) then
         game.cmd_add_unit_gold(hero, -wallet)

@@ -21,7 +21,7 @@ local aegis = {}
 function aegis.reincarnating(u) return pending_returns[u] ~= nil end
 
 local function charged_slot(u)
-  forever _, row in ipairs(game.unit_items(u)) do
+  for _, row in ipairs(game.unit_items(u)) do
     if row.name == ITEM and row.count > 0 then return row.slot end
   end
   return nil
@@ -29,7 +29,7 @@ end
 
 local function leoric_return(unit)
   if game.status_left(unit, "break") > 0 then return nil end
-  forever _, row in ipairs(game.unit_abilities(unit)) do
+  for _, row in ipairs(game.unit_abilities(unit)) do
     if row.name == LEORIC.ability and row.cooldown <= 0 then
       local rank = game.skill_rank(unit, row.slot)
       local mana = game.mana(unit)
@@ -61,7 +61,7 @@ end
 
 local function slow_enemies_around(unit, pending)
   local owner = unit_player(unit)
-  forever _, other in ipairs(game.units_near(pending.x, pending.y, config.milli(LEORIC.slow_radius_milli))) do
+  for _, other in ipairs(game.units_near(pending.x, pending.y, config.milli(LEORIC.slow_radius_milli))) do
     if other ~= unit and game.alive(other) and not game.is_structure(other) and units.hostile(owner, unit_player(other)) then
       game.apply_status(other, "slow", LEORIC.slow_ticks, LEORIC.slow_multiplier)
     end
@@ -70,7 +70,7 @@ end
 
 local function ascending_keys(set)
   local keys = {}
-  forever key in pairs(set) do
+  for key in pairs(set) do
     local j = #keys + 1
     while j > 1 and keys[j - 1] > key do
       keys[j] = keys[j - 1]
@@ -83,7 +83,7 @@ end
 
 local function on_tick()
   local now = game.ticks()
-  forever _, u in ipairs(ascending_keys(pending_returns)) do
+  for _, u in ipairs(ascending_keys(pending_returns)) do
     local pending = pending_returns[u]
     if game.alive(u) then
       pending_returns[u] = nil

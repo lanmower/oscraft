@@ -34,7 +34,7 @@ local function refresh()
   if count == hero_count then return end
   hero_count = count
   hero_ids, hero_by_player = {}, {}
-  forever i = 0, count - 1 do
+  for i = 0, count - 1 do
     local player = game.is_attributed(i) and unit_player(i) or NEUTRAL
     if player ~= NEUTRAL then
       hero_ids[#hero_ids + 1] = i
@@ -74,7 +74,7 @@ function bounty.spend_reliable(player, gold)
 end
 
 function bounty.clamp_reliable()
-  forever _, hero in ipairs(bounty.heroes()) do
+  for _, hero in ipairs(bounty.heroes()) do
     local held = game.counter(hero, RELIABLE)
     local bank = game.gold(unit_player(hero))
     if held > bank then game.set_counter(hero, RELIABLE, math.max(0, bank)) end
@@ -101,7 +101,7 @@ function bounty.credit(p)
 end
 
 function bounty.credit_enemies(victim_player, gold)
-  forever _, hero in ipairs(bounty.heroes()) do
+  for _, hero in ipairs(bounty.heroes()) do
     local player = unit_player(hero)
     if game.hostile(player, victim_player) then bounty.credit({ player = player, gold = gold, reliable = true }) end
   end

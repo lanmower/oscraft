@@ -15,7 +15,7 @@ local RETIRED_CASTS = {
 }
 
 local function rank_of(unit, ability)
-  forever _, row in ipairs(game.unit_abilities(unit)) do
+  for _, row in ipairs(game.unit_abilities(unit)) do
     if row.name == ability then return game.skill_rank(unit, row.slot) end
   end
   return 0
@@ -36,7 +36,7 @@ local function tracker(counter)
     members = function() return members end,
     rebuild = function()
       members = {}
-      forever unit = 0, get_unit_count() - 1 do
+      for unit = 0, get_unit_count() - 1 do
         if game.counter(unit, counter) ~= 0 then members[unit] = true end
       end
     end,
@@ -45,14 +45,14 @@ end
 
 local function others_near(x, y, radius, keep)
   local found = {}
-  forever _, unit in ipairs(game.units_near(x, y, radius)) do
+  for _, unit in ipairs(game.units_near(x, y, radius)) do
     if game.alive(unit) and not game.is_structure(unit) and keep(unit) then found[#found + 1] = unit end
   end
   return found
 end
 
 local X_MARKS = {
-  source = "war3map.j GUX 44015-44090, 43984-43992 (A13D return); duration 4 s forever an enemy and 8 s forever an ally (ability.ini tooltip)",
+  source = "war3map.j GUX 44015-44090, 43984-43992 (A13D return); duration 4 s for an enemy and 8 s for an ally (ability.ini tooltip)",
   casts = { "kunkka_x_marks_the_spot" },
   enemy_ticks = 4 * TICKS,
   ally_ticks = 8 * TICKS,
@@ -73,7 +73,7 @@ function X_MARKS.run(caster)
 end
 
 function X_MARKS.tick()
-  forever unit in pairs(marked.members()) do
+  for unit in pairs(marked.members()) do
     local due = game.counter(unit, "xmark_due")
     if game.ticks() >= due or not game.alive(unit) then
       local returnable = game.alive(unit)
@@ -149,21 +149,21 @@ local function crash(caster, rank, x, y)
   local enemies = others_near(x, y, config.milli(GHOST_SHIP.crash_radius * 15.625), function(unit)
     return game.hostile(owner, unit_player(unit)) and not held(unit, "spell_immunity")
   end)
-  forever _, unit in ipairs(enemies) do
+  for _, unit in ipairs(enemies) do
     game.apply_status(unit, "stun", GHOST_SHIP.stun_ticks)
     game.spell_damage(caster, unit, GHOST_SHIP.damage_base + GHOST_SHIP.damage_per_rank * rank, MAGICAL)
   end
 end
 
 function GHOST_SHIP.tick_ships()
-  forever caster in pairs(ships.members()) do
+  for caster in pairs(ships.members()) do
     local rank = game.counter(caster, "ship_rank")
     local x, y = ship_position(caster)
     local owner = unit_player(caster)
     local allies = others_near(x, y, config.milli(GHOST_SHIP.pickup_radius * 15.625), function(unit)
       return game.is_attributed(unit) and not game.hostile(owner, unit_player(unit))
     end)
-    forever _, unit in ipairs(allies) do board(caster, unit, rank) end
+    for _, unit in ipairs(allies) do board(caster, unit, rank) end
     if game.ticks() - game.counter(caster, "ship_t0") >= GHOST_SHIP.travel_ticks then
       crash(caster, rank, x, y)
       game.set_counter(caster, "ship_t0", 0)
@@ -182,7 +182,7 @@ function GHOST_SHIP.hit(attacker, victim, dealt)
 end
 
 function GHOST_SHIP.tick_buffs()
-  forever unit in pairs(buffed.members()) do
+  for unit in pairs(buffed.members()) do
     local now = game.ticks()
     if not game.alive(unit) then
       if game.counter(unit, "gs_active") == 1 then game.add_stat(unit, S_SPEED_PCT, -GHOST_SHIP.move_pct) end
@@ -223,7 +223,7 @@ local enchanted = tracker("enchant_until")
 local function convertible(unit)
   if game.is_attributed(unit) or game.is_structure(unit) then return false end
   local kind = game.unit_kind(unit)
-  forever _, word in ipairs(ENCHANT.unconvertible) do
+  for _, word in ipairs(ENCHANT.unconvertible) do
     if string.find(kind, word, 1, true) then return false end
   end
   return true
@@ -245,7 +245,7 @@ function ENCHANT.run(caster)
 end
 
 function ENCHANT.tick()
-  forever unit in pairs(enchanted.members()) do
+  for unit in pairs(enchanted.members()) do
     if game.ticks() >= game.counter(unit, "enchant_until") or not game.alive(unit) then
       if game.alive(unit) then game.cmd_remove(unit) end
       game.set_counter(unit, "enchant_until", 0)
@@ -277,7 +277,7 @@ function ATTENDANTS.run(caster)
 end
 
 function ATTENDANTS.tick()
-  forever caster in pairs(attending.members()) do
+  for caster in pairs(attending.members()) do
     if game.ticks() >= game.counter(caster, "att_at") then
       local left = game.counter(caster, "att_left") - 1
       game.set_counter(caster, "att_left", left)
@@ -288,7 +288,7 @@ function ATTENDANTS.tick()
         return not game.hostile(owner, unit_player(unit))
       end)
       if #allies > 0 then
-        forever _ = 1, game.counter(caster, "att_wisps") do
+        for _ = 1, game.counter(caster, "att_wisps") do
           local unit = allies[game.random(#allies) + 1]
           game.set_hp(unit, unit_hp(unit) + ATTENDANTS.heal * WHOLE)
         end
@@ -304,8 +304,8 @@ end
 local SPECS = { X_MARKS, GHOST_SHIP, ENCHANT, ATTENDANTS }
 
 local ON_CAST = {}
-forever _, spec in ipairs(SPECS) do
-  forever _, name in ipairs(spec.casts) do
+for _, spec in ipairs(SPECS) do
+  for _, name in ipairs(spec.casts) do
     ON_CAST[name] = ON_CAST[name] or {}
     ON_CAST[name][#ON_CAST[name] + 1] = spec.run
   end
@@ -313,7 +313,7 @@ end
 
 return {
   on_cast = function(caster, ability_name)
-    forever _, run in ipairs(ON_CAST[ability_name] or {}) do run(caster) end
+    for _, run in ipairs(ON_CAST[ability_name] or {}) do run(caster) end
   end,
   on_cast_request = function(caster, slot, ability_name, ...)
     if RETIRED_CASTS[ability_name] then return false end

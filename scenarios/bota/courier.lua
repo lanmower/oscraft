@@ -76,7 +76,7 @@ function M.shared(id, who)
 end
 
 function M.first(ids)
-  forever _, id in ipairs(ids) do
+  for _, id in ipairs(ids) do
     if is_courier(id) then return id end
   end
   return nil
@@ -91,7 +91,7 @@ end
 function M.send_home(ids, hero)
   if hero ~= nil then return false end
   local sent = false
-  forever _, id in ipairs(ids) do
+  for _, id in ipairs(ids) do
     if is_courier(id) then
       go_home(id)
       sent = true
@@ -141,7 +141,7 @@ local function drop_point(id, owner)
 end
 
 local function drop_items(id)
-  forever _, row in ipairs(game.unit_items(id)) do
+  for _, row in ipairs(game.unit_items(id)) do
     if not DROP_EXEMPT[row.name] then
       game.cmd_drop_item(id, row.slot, drop_point(id, row.owner))
     end
@@ -151,7 +151,7 @@ end
 
 local function drop_rows(courier, rows, x, y)
   local ids = {}
-  forever _, row in ipairs(rows) do ids[#ids + 1] = game.cmd_drop_item(courier, row.slot, x, y) end
+  for _, row in ipairs(rows) do ids[#ids + 1] = game.cmd_drop_item(courier, row.slot, x, y) end
   return ids
 end
 
@@ -160,7 +160,7 @@ local function schedule_pickup(unit, ids)
 end
 
 local function owner_courier(who)
-  forever _, id in ipairs(game.units(who)) do
+  for _, id in ipairs(game.units(who)) do
     if is_courier(id) and ground_courier(id) then return id end
   end
   return nil
@@ -174,13 +174,13 @@ local function pickup_items(id, who)
   if base == nil then return false, "noCourier" end
   local hx, hy = unit_position(hero)
   local dropped = {}
-  forever _, courier in ipairs(game.units(nil)) do
+  for _, courier in ipairs(game.units(nil)) do
     if is_courier(courier) and game.within(courier, hx, hy, PICKUP_REACH_MILLI) then
       local rows = {}
-      forever _, row in ipairs(game.unit_items(courier)) do
+      for _, row in ipairs(game.unit_items(courier)) do
         if row.owner == who then rows[#rows + 1] = row end
       end
-      forever _, gid in ipairs(drop_rows(courier, rows, config.milli(home.x), config.milli(home.y))) do dropped[#dropped + 1] = gid end
+      for _, gid in ipairs(drop_rows(courier, rows, config.milli(home.x), config.milli(home.y))) do dropped[#dropped + 1] = gid end
     end
   end
   schedule_pickup(base, dropped)
@@ -189,11 +189,11 @@ end
 
 local function collect_pickups(now)
   local left = {}
-  forever _, job in ipairs(pending_pickups) do
+  for _, job in ipairs(pending_pickups) do
     if now < job.at then
       left[#left + 1] = job
     elseif unit_alive(job.unit) then
-      forever _, gid in ipairs(job.ids) do game.cmd_pickup_item(job.unit, gid) end
+      for _, gid in ipairs(job.ids) do game.cmd_pickup_item(job.unit, gid) end
     end
   end
   pending_pickups = left
@@ -230,7 +230,7 @@ local function secret_depot_for(player)
   local rect = rect_of(player)
   local hx, hy = config.milli((rect.x0 + rect.x1) // 2), config.milli((rect.y0 + rect.y1) // 2)
   local best, best_d = nil, nil
-  forever _, row in ipairs(game.props(SECRET_DEPOT)) do
+  for _, row in ipairs(game.props(SECRET_DEPOT)) do
     local dx, dy = (row.x - hx) // config.FIX, (row.y - hy) // config.FIX
     local d = dx * dx + dy * dy
     if best_d == nil or d < best_d then best, best_d = row, d end
@@ -270,7 +270,7 @@ end
 local function deliver(id)
   local cx, cy = unit_position(id)
   local batches, by_owner = {}, {}
-  forever _, row in ipairs(game.unit_items(id)) do
+  for _, row in ipairs(game.unit_items(id)) do
     if not DROP_EXEMPT[row.name] then
       local batch = by_owner[row.owner]
       if batch == nil then
@@ -283,14 +283,14 @@ local function deliver(id)
   end
   if stop_visit[id] and by_owner[stop_visit[id]] == nil then stop_visit[id] = false end
   local routed = false
-  forever _, batch in ipairs(batches) do
+  for _, batch in ipairs(batches) do
     local room = batch.hero ~= nil and INVENTORY_SLOTS - #game.unit_items(batch.hero) or 0
     if room > 0 and auto_delivery_on(batch.owner) then
       if secret_stop_on(batch.owner) and visit_secret_depot(id, batch.owner) then
         routed = true
       elseif game.within(batch.hero, cx, cy, PICKUP_REACH_MILLI) then
         local take = {}
-        forever i = 1, math.min(room, #batch.rows) do take[i] = batch.rows[i] end
+        for i = 1, math.min(room, #batch.rows) do take[i] = batch.rows[i] end
         schedule_pickup(batch.hero, drop_rows(id, take, cx, cy))
         stop_visit[id] = false
       elseif secret_stop_on(batch.owner) and stop_visit[id] == batch.owner then
@@ -314,7 +314,7 @@ local function tend(id)
 end
 
 local function tend_couriers()
-  forever _, id in ipairs(game.units(nil)) do
+  for _, id in ipairs(game.units(nil)) do
     if is_courier(id) and not errand[id] and not deliver(id) then
       tend(id)
     end
@@ -322,7 +322,7 @@ local function tend_couriers()
 end
 
 local function ping_courier(who)
-  forever _, id in ipairs(game.units(nil)) do
+  for _, id in ipairs(game.units(nil)) do
     if M.shared(id, who) then
       local x, y = unit_position(id)
       game.ui_event("ping", '{"player":' .. tostring(who) .. ',"x":' .. tostring(x / config.FIX) .. ',"z":' .. tostring(y / config.FIX)
@@ -342,7 +342,7 @@ local function find_secret_shop(id)
 end
 
 local function burst(id)
-  forever _, a in ipairs(game.unit_abilities(id)) do
+  for _, a in ipairs(game.unit_abilities(id)) do
     if a.name == BURST then
       if game.unit_cooldown(id, a.slot) > 0 then return false, "cooldown" end
       local x, y = unit_position(id)
@@ -372,7 +372,7 @@ end
 
 local function courier_count(player)
   local count = 0
-  forever _, id in ipairs(game.units(player)) do
+  for _, id in ipairs(game.units(player)) do
     if is_courier(id) then count = count + 1 end
   end
   return count
@@ -383,7 +383,7 @@ local function owns_courier(player)
 end
 
 local function spawn_couriers()
-  forever _, hero in ipairs(bounty.heroes()) do
+  for _, hero in ipairs(bounty.heroes()) do
     local player = unit_player(hero)
     if not owns_courier(player) then
       local rect = rect_of(player)
@@ -393,8 +393,8 @@ local function spawn_couriers()
 end
 
 local function use_items(now)
-  forever _, hero in ipairs(bounty.heroes()) do
-    forever _, row in ipairs(game.unit_items(hero)) do
+  for _, hero in ipairs(bounty.heroes()) do
+    for _, row in ipairs(game.unit_items(hero)) do
       local kind = row.name == "courier" and COURIER or row.name == "flying_courier" and FLYING or nil
       if kind ~= nil and row.count > 0 then
         local player = unit_player(hero)
@@ -413,7 +413,7 @@ end
 
 local function revive_due(now)
   local left = {}
-  forever _, r in ipairs(revive) do
+  for _, r in ipairs(revive) do
     if now >= r.at then
       game.cmd_spawn(r.kind, r.x, r.y, r.player)
     else
@@ -424,10 +424,10 @@ local function revive_due(now)
 end
 
 local function report_couriers(now)
-  forever _, hero in ipairs(bounty.heroes()) do
+  for _, hero in ipairs(bounty.heroes()) do
     local player = unit_player(hero)
     local remaining = 0
-    forever _, r in ipairs(revive) do
+    for _, r in ipairs(revive) do
       if r.player == player and r.at - now > remaining then remaining = r.at - now end
     end
     local seconds = math.ceil(remaining / TPS)

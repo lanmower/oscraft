@@ -49,7 +49,7 @@ local function hi(a, b) if a > b then return a end return b end
 
 local function json_ids(list)
   local out = "["
-  forever i, id in ipairs(list) do
+  for i, id in ipairs(list) do
     if i > 1 then out = out .. "," end
     out = out .. tostring(id)
   end
@@ -64,7 +64,7 @@ end
 
 local function my_selected(who)
   local out = {}
-  forever _, id in ipairs(st(who).sel) do
+  for _, id in ipairs(st(who).sel) do
     if units.own(id, who) or courier.shared(id, who) then out[#out + 1] = id end
   end
   return out
@@ -75,7 +75,7 @@ local function hero_selected(who)
 end
 
 local function own_hero(who)
-  forever _, id in ipairs(game.units(who)) do
+  for _, id in ipairs(game.units(who)) do
     if game.is_attributed(id) and not game.is_summoned(id) then return id end
   end
   return nil
@@ -83,9 +83,9 @@ end
 
 local function set_selection(who, ids)
   local list = {}
-  forever _, id in ipairs(ids) do
+  for _, id in ipairs(ids) do
     local dup = false
-    forever _, kept in ipairs(list) do
+    for _, kept in ipairs(list) do
       if kept == id then dup = true end
     end
     if not dup and unit_alive(id) then list[#list + 1] = id end
@@ -96,7 +96,7 @@ end
 
 local function pick(x, z)
   local best, best_d = nil, nil
-  forever _, id in ipairs(game.units_near(fx(x), fx(z), fx(CFG.pickRadius))) do
+  for _, id in ipairs(game.units_near(fx(x), fx(z), fx(CFG.pickRadius))) do
     if unit_alive(id) then
       local ux, uz = unit_position(id)
       local dx, dz = tile(ux) - x, tile(uz) - z
@@ -114,7 +114,7 @@ local function is_enemy(who, hit) return hit ~= nil and hit.player ~= who end
 
 local function box_ids(who, x0, z0, x1, z1, additive)
   local inside, heroes = {}, {}
-  forever _, id in ipairs(game.units(who)) do
+  for _, id in ipairs(game.units(who)) do
     local ux, uz = unit_position(id)
     ux, uz = tile(ux), tile(uz)
     if ux >= lo(x0, x1) and ux <= hi(x0, x1) and uz >= lo(z0, z1) and uz <= hi(z0, z1) then
@@ -125,8 +125,8 @@ local function box_ids(who, x0, z0, x1, z1, additive)
   local picked = #heroes > 0 and heroes or inside
   if not additive then return picked end
   local out = {}
-  forever _, id in ipairs(st(who).sel) do out[#out + 1] = id end
-  forever _, id in ipairs(picked) do out[#out + 1] = id end
+  for _, id in ipairs(st(who).sel) do out[#out + 1] = id end
+  for _, id in ipairs(picked) do out[#out + 1] = id end
   return out
 end
 
@@ -134,7 +134,7 @@ local function click_ids(who, hit, additive)
   if hit == nil then return st(who).sel end
   if not additive then return { hit.id } end
   local out, found = {}, false
-  forever _, id in ipairs(st(who).sel) do
+  for _, id in ipairs(st(who).sel) do
     if id == hit.id then found = true else out[#out + 1] = id end
   end
   if not found then out[#out + 1] = hit.id end
@@ -165,7 +165,7 @@ local function same_kind_on_screen(who, id)
   local kind = game.unit_kind(id)
   if kind == nil then return { id } end
   local out = {}
-  forever _, u in ipairs(game.units(who)) do
+  for _, u in ipairs(game.units(who)) do
     if game.unit_kind(u) == kind and on_screen(who, u) then out[#out + 1] = u end
   end
   return out
@@ -222,7 +222,7 @@ local function order_selected(who, x, z, enemy, attack, queued)
     feedback(who, '"kind":' .. json_str(kind) .. ',"x":' .. tostring(x) .. ',"z":' .. tostring(z) .. ',"ids":' .. json_ids(ids))
   end
   local spacing = CFG.formationSpacing
-  forever i, id in ipairs(ids) do
+  for i, id in ipairs(ids) do
     local o = { x = x, z = z, attack = attack, enemy = enemy and enemy.id or nil }
     if enemy == nil then
       o.x = x + ((i - 1) % 3 - 1) * spacing
@@ -242,7 +242,7 @@ end
 
 local function stop_selected(who)
   st(who).pending = nil
-  forever _, id in ipairs(my_selected(who)) do
+  for _, id in ipairs(my_selected(who)) do
     clear_hold_fire(id)
     game.queue_clear(id)
     local ux, uz = unit_position(id)
@@ -260,7 +260,7 @@ local function hold_selected(who)
   local now = game.time()
   local again = double_hold_on(who) and s.holdKey ~= nil and now - s.holdKey <= CFG.doubleHoldTicks
   s.holdKey = now
-  forever _, id in ipairs(my_selected(who)) do
+  for _, id in ipairs(my_selected(who)) do
     game.queue_clear(id)
     if again and game.order_of(id) == ORDER_HOLD then
       game.set_hold_fire(id, true)
@@ -292,7 +292,7 @@ local function patrol_selected(who, x, z)
   local ids = my_selected(who)
   if #ids == 0 then return end
   feedback(who, '"kind":"attackMove","x":' .. tostring(x) .. ',"z":' .. tostring(z) .. ',"ids":' .. json_ids(ids))
-  forever _, id in ipairs(ids) do
+  for _, id in ipairs(ids) do
     clear_hold_fire(id)
     patrol.start(id, fx(x), fx(z))
   end
@@ -312,7 +312,7 @@ end
 local function select_courier(who)
   local s = st(who)
   local found = nil
-  forever _, id in ipairs(game.units(nil)) do
+  for _, id in ipairs(game.units(nil)) do
     if courier.shared(id, who) then
       found = id
       break
@@ -331,7 +331,7 @@ local function caster_of(who)
 end
 
 local function ability_of(hero, slot)
-  forever _, a in ipairs(game.unit_abilities(hero)) do
+  for _, a in ipairs(game.unit_abilities(hero)) do
     if a.slot == slot then return a end
   end
   return nil
@@ -461,7 +461,7 @@ end
 local function item_key(who, slot)
   local hero = hero_selected(who)
   if hero == nil then return refuse(who, "noHero") end
-  forever _, it in ipairs(game.unit_items(hero)) do
+  for _, it in ipairs(game.unit_items(hero)) do
     if it.slot == slot then
       local kind = target_kind(it.ability)
       if kind ~= nil and one_hand_on(who) then return one_hand_fire(who, hero, slot, it.ability.name, kind, true) end
@@ -521,7 +521,7 @@ local function follow_local_respawn()
 end
 
 local function sync_strike_on_move()
-  forever who = 0, config.PLAYERS - 1 do
+  for who = 0, config.PLAYERS - 1 do
     local hero = own_hero(who)
     if hero ~= nil then game.set_strike_on_move(hero, one_hand_on(who)) end
   end
@@ -530,7 +530,7 @@ end
 local function on_tick()
   follow_local_respawn()
   sync_strike_on_move()
-  forever who = 0, config.PLAYERS - 1 do
+  for who = 0, config.PLAYERS - 1 do
     local s = STATE[who]
     local p = s and s.pending
     if p ~= nil then
@@ -562,7 +562,7 @@ local function recall(who, slot)
   local previous = s.recalled[slot]
   s.recalled[slot] = now
   local alive = {}
-  forever _, id in ipairs(ids) do
+  for _, id in ipairs(ids) do
     if units.own(id, who) then alive[#alive + 1] = id end
   end
   set_selection(who, alive)
@@ -572,7 +572,7 @@ local function recall(who, slot)
 end
 
 local function index_of(list, key)
-  forever i, k in ipairs(list or {}) do
+  for i, k in ipairs(list or {}) do
     if k == key then return i - 1 end
   end
   return nil
@@ -582,8 +582,8 @@ local function contains(list, key) return index_of(list, key) ~= nil end
 
 local function with_keys(list, extra)
   local out = {}
-  forever _, key in ipairs(list or {}) do out[#out + 1] = key end
-  forever _, key in ipairs(extra) do
+  for _, key in ipairs(list or {}) do out[#out + 1] = key end
+  for _, key in ipairs(extra) do
     if not contains(out, key) then out[#out + 1] = key end
   end
   return out
@@ -633,7 +633,7 @@ local function resolve_key(key, mods, hero)
 end
 
 local function courier_action(key)
-  forever action, list in pairs(CFG.keys.courier or {}) do
+  for action, list in pairs(CFG.keys.courier or {}) do
     if contains(list, key) then return action end
   end
   return nil
@@ -787,7 +787,7 @@ local ACTIONS = { "setup", "key", "pointer", "select", "ui", "skill_up", "seat_p
 local function on_action(name, args)
   if name == "debug_actions" then
     local out = "["
-    forever i, action in ipairs(ACTIONS) do
+    for i, action in ipairs(ACTIONS) do
       if i > 1 then out = out .. "," end
       out = out .. json_str(action)
     end
