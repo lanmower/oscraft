@@ -413,7 +413,10 @@ function routeUi(ev, relayed = false) {
   if (ev.kind === "lobby") {
     if (!data.started) {
       if (mirrorsHostLobby({ hosting, relayed, kind: ev.kind, started: data.started })) mirrorHostLobby(data);
-      if (hosting) seating.start(lobbySeats(data.slots));
+      if (hosting) {
+        seating.start(lobbySeats(data.slots));
+        for (const key of peers) sendRoster(key);
+      }
       flowLobby = { ...flowLobby, ...data, started: false };
       preloadPickedModels(data.slots);
       flowLoadIcons(data.heroes);
