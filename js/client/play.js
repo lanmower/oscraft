@@ -405,7 +405,7 @@ function routeUi(ev, relayed = false) {
     return;
   }
   if (ev.kind === "widget") {
-    if (data.player !== undefined && data.player !== uiPlayerId()) return;
+    if (data.id !== "lobby" && data.player !== undefined && data.player !== uiPlayerId()) return;
     if (menuHeld) heldWidgets.set(data.id, data);
     else applyWidget(data);
     return;
