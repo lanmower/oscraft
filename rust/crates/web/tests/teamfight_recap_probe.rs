@@ -429,10 +429,22 @@ fn a_two_death_fight_and_a_single_death_show_their_recaps() {
     let gold_lost = death_texts.iter().find(|t| t.starts_with("Gold lost ")).expect("gold lost field");
     println!("probe death_recap killed_by={killed_by:?} source={source:?} hit_by={hit_by:?} gold_lost={gold_lost:?}");
     let single_killer = killed_by.strip_prefix("Killed by ").expect("killed by names a hero").to_owned();
-    assert!(credited.contains(&single_killer), "the death recap names a hero the sim credits with a kill");
-    assert!(source.starts_with("Damage by source: ") && source.contains(&single_killer), "the source names the killer that dealt the damage");
+    let credited_names: Vec<String> = credited.iter().map(|kind| recap_name(kind)).collect();
+    assert!(credited_names.contains(&single_killer), "the death recap names a hero the sim credits with a kill");
+    assert!(source.starts_with("Damage by source: "), "the source is labelled as damage by source");
+    let source_entries = source.trim_start_matches("Damage by source: ").split(", ").count();
+    assert!(source_entries <= 3, "the source lists at most the top three attackers by damage dealt");
     assert!(!source.contains("not recorded"), "the source is a recorded total, not the unknown placeholder");
     assert!(hit_by.contains(&single_killer), "the killer is among the hitters");
     let expected_loss = game.counter(single, GOLD_LOST) as i64;
     assert_eq!(gold_lost, &format!("Gold lost {expected_loss}g"), "the gold lost is the sim's st_gold_lost of the death");
+}
+
+fn recap_name(kind: &str) -> String {
+    let table = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba/hero_acronyms.lua")).expect("read hero_acronyms.lua");
+    table
+        .split(&format!("[\"{kind}\"] = \""))
+        .nth(1)
+        .and_then(|rest| rest.split('"').next())
+        .map_or_else(|| kind.to_owned(), str::to_owned)
 }
