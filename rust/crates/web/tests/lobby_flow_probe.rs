@@ -382,3 +382,78 @@ fn probe_joiner_start_label_follows_the_host() {
     assert_eq!(start_state(&joiner_tree), (text("joinerStart"), true), "every seat ready: the joiner waits for the host to start");
     assert_eq!(start_state(&host_tree), (text("startMatch"), false), "the host's Start is enabled when every seat is ready");
 }
+
+fn host_lobby_state(lines: &[Value]) -> Option<Value> {
+    lines.iter().rev().find(|line| line["kind"] == "lobby" && line["data"]["started"] != true).map(|line| line["data"].clone())
+}
+
+fn track(host_state: &mut Option<Value>, lines: &[Value]) {
+    if let Some(state) = host_lobby_state(lines) {
+        *host_state = Some(state);
+    }
+}
+
+#[test]
+fn probe_joiner_start_label_comes_from_the_mirrored_host_lobby() {
+    let dir = scenario_dir();
+    let image = image_for(&dir);
+    let mut host = Game::new(&image).expect("host game");
+    let mut joiner = Game::new(&image).expect("joiner game");
+    for game in [&mut host, &mut joiner] {
+        game.set_fog(false);
+        load_pack(game, &dir);
+    }
+    let ui_file = read_ui(&dir);
+    let lobby_text = ui_file["text"]["lobby"].clone();
+    let text = |key: &str| lobby_text[key].as_str().expect("lobby text").to_owned();
+    let joiner_pubkey = "probe-joiner";
+    call(&mut host, "setup", json!({ "ui": ui_file, "player": 1, "pubkey": OWNER }));
+    call(&mut joiner, "setup", json!({ "ui": ui_file, "player": 1, "pubkey": joiner_pubkey }));
+    advance(&mut host, 60);
+    advance(&mut joiner, 60);
+    let mut host_state: Option<Value> = None;
+    let mut host_tree = Value::Null;
+    let mut joiner_tree = Value::Null;
+
+    let claim = ui_as(&mut host, OWNER, "claim", json!({ "slot": 0 }));
+    assert!(lobby_error(&claim).is_empty(), "the creator takes a seat");
+    track(&mut host_state, &claim);
+    joiner_tree = shown_tree(&call(&mut joiner, "lobby_mirror", host_state.clone().expect("the host lobby state"))).unwrap_or(joiner_tree);
+    assert_eq!(start_state(&joiner_tree), (text("joinerLoadingWorld"), true), "the joiner sees the host, whose world is loading");
+
+    let mode = ui_as(&mut host, OWNER, "mode", json!({ "code": "ai" }));
+    assert!(lobby_error(&mode).is_empty(), "the host chooses a mode");
+    track(&mut host_state, &mode);
+    let filled = ui_as(&mut host, OWNER, "fill", json!({}));
+    assert!(negotiated(&filled), "a mode and filled seats complete the negotiation");
+    track(&mut host_state, &filled);
+    joiner_tree = shown_tree(&call(&mut joiner, "lobby_mirror", host_state.clone().expect("the host lobby state"))).unwrap_or(joiner_tree);
+    assert_eq!(start_state(&joiner_tree), (text("joinerLoadingWorld"), true), "still waiting for the host's world after negotiation");
+
+    let mut own_hero = false;
+    for hero in allowed_heroes(&filled) {
+        let lines = ui_as(&mut host, OWNER, "pick", json!({ "slot": 0, "hero": hero }));
+        if lobby_error(&lines).is_empty() {
+            own_hero = true;
+            track(&mut host_state, &lines);
+            host_tree = shown_tree(&lines).unwrap_or(host_tree);
+            break;
+        }
+    }
+    assert!(own_hero, "the host seat picks a hero");
+
+    let world = ui_as(&mut host, OWNER, "world_ready", json!({}));
+    assert!(lobby_error(&world).is_empty(), "the host reports its world ready");
+    track(&mut host_state, &world);
+    joiner_tree = shown_tree(&call(&mut joiner, "lobby_mirror", host_state.clone().expect("the host lobby state"))).unwrap_or(joiner_tree);
+    assert_eq!(start_state(&joiner_tree), (text("joinerNotReady"), true), "the host's world is ready but seats are not");
+
+    for seat in 0..10 {
+        let lines = ui_as(&mut host, OWNER, "ready", json!({ "slot": seat, "ready": true }));
+        track(&mut host_state, &lines);
+        host_tree = shown_tree(&lines).unwrap_or(host_tree);
+    }
+    joiner_tree = shown_tree(&call(&mut joiner, "lobby_mirror", host_state.clone().expect("the host lobby state"))).unwrap_or(joiner_tree);
+    assert_eq!(start_state(&joiner_tree), (text("joinerStart"), true), "every seat ready: the joiner waits for the host to start");
+    assert_eq!(start_state(&host_tree), (text("startMatch"), false), "the host's Start is enabled when every seat is ready");
+}
