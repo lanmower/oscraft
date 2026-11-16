@@ -9,9 +9,9 @@ expect(mirrorsHostLobby({ ...guest, hosting: true }) === false, "a host never mi
 expect(mirrorsHostLobby({ ...guest, started: true }) === false, "a started lobby is not mirrored");
 expect(mirrorsHostLobby({ ...guest, kind: "widget" }) === false, "only lobby state events are mirrored");
 
-expect(relaysUiEvent({ kind: "widget", id: "lobby" }) === false, "the host does not relay its perspective-bound lobby widget");
-expect(relaysUiEvent({ kind: "widget", id: "hud" }) === true, "other widgets still reach peers");
-expect(relaysUiEvent({ kind: "lobby" }) === true, "the lobby state event still reaches peers");
-expect(relaysUiEvent({ kind: "widget", id: "scoreboard" }) === true, "live panels still reach peers");
+expect(relaysUiEvent({ kind: "widget", data: { id: "lobby" } }) === false, "the host does not relay its perspective-bound lobby widget");
+expect(relaysUiEvent({ kind: "widget", data: { id: "hud" } }) === true, "other widgets still reach peers");
+expect(relaysUiEvent({ kind: "lobby", data: { started: false } }) === true, "the lobby state event still reaches peers");
+expect(relaysUiEvent({ kind: "widget", data: { id: "scoreboard" } }) === true, "live panels still reach peers");
 
 console.log("lobby mirror ok (9 cases)");

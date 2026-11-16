@@ -16,7 +16,7 @@ export function replayHeldCalls(held, { hasHost }) {
 }
 
 export function relaysUiEvent(ev) {
-  return !(ev.kind === "widget" && ev.id === "lobby");
+  return !(ev.kind === "widget" && ev.data?.id === "lobby");
 }
 
 export function mirrorsHostLobby({ hosting, relayed, kind, started }) {
