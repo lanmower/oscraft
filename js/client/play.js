@@ -517,6 +517,8 @@ function reportPublishFailure(where, err) {
   publishFailures.add(key);
   logModError(`${where} not sent to peers (${err && err.message ? err.message : err}); the frame loop continues`);
 }
+let lastLobbyUi = null;
+
 function relayUi(ev) {
   try {
     session.broadcast(encodeFrame({ type: FRAME.UI, body: JSON.stringify(ev) }));
@@ -533,6 +535,7 @@ function pumpUi() {
   announceWorldReady();
   for (const ev of JSON.parse(localGame.drain_ui())) {
     routeUi(ev);
+    if (ev.kind === "lobby" && ev.data?.started === false) lastLobbyUi = ev;
     if (peers.size > 0 && relaysUiEvent(ev)) relayUi(ev);
   }
 }
@@ -2591,6 +2594,7 @@ session.addEventListener("peer-open", (e) => {
     reportSeat("peer_back", key, seating.seat(key).you);
     encoder.keyframe();
     sendRoster(key);
+    if (lastLobbyUi) sendTo(key, encodeFrame({ type: FRAME.UI, body: JSON.stringify(lastLobbyUi) }));
     sendLobbySnapshot();
     if (gate.loading && loadStartFrame) sendTo(key, encodeFrame(loadStartFrame));
     for (const frame of packStateFrames(pack, packBlobs)) sendTo(key, encodeFrame(frame));
