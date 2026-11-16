@@ -5,3 +5,10 @@ exclude = ["crates/wasip3"]
 
 [patch.crates-io]
 piccolo = { path = "vendor/piccolo" }
+
+[profile.dev]
+debug = "line-tables-only"
+split-debuginfo = "unpacked"
+
+[profile.dev.package."*"]
+debug = 0
