@@ -75,7 +75,11 @@ for (const a of active) {
 for (const [id, a] of mapping) identifierTokens.set(id, a.slug);
 const orderedTokens = [...identifierTokens].sort((a, b) => b[0].length - a[0].length || a[0].localeCompare(b[0]));
 const tokenPattern = new RegExp(`(?<![A-Za-z0-9_-])(?:${orderedTokens.map(([token]) => token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?![A-Za-z0-9_-])`, "g");
-const rewriteText = (text, file) => text.replace(tokenPattern, (token) => identifierTokens.get(token) ?? token);
+const LUA_KEYWORDS = new Set(["and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto", "if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while"]);
+const rewriteText = (text, file) => text.replace(tokenPattern, (token, offset) => {
+  if (file.endsWith(".lua") && LUA_KEYWORDS.has(token) && !/["']/.test(text[offset - 1] ?? "")) return token;
+  return identifierTokens.get(token) ?? token;
+});
 
 const textExt = new Set([".lua", ".osd", ".json", ".txt", ".tsv", ".md"]);
 const generatedNames = new Set([

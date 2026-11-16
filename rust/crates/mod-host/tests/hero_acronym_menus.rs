@@ -40,8 +40,11 @@ fn pack_host(pack: &str) -> ModHost {
 }
 
 fn ui_file(pack: &str) -> Value {
-    serde_json::from_str(&std::fs::read_to_string(pack_dir(pack).join("moba_ui.json")).expect("the moba ui file"))
-        .expect("a valid moba ui file")
+    let dir = pack_dir(pack);
+    let manifest: Value = serde_json::from_str(&std::fs::read_to_string(dir.join("manifest.json")).expect("the pack manifest"))
+        .expect("a valid pack manifest");
+    let ui = manifest["ui"].as_str().expect("the manifest ui file");
+    serde_json::from_str(&std::fs::read_to_string(dir.join(ui)).expect("the pack ui file")).expect("a valid pack ui file")
 }
 
 fn lobby_heroes(lines: &[String]) -> Vec<Value> {
@@ -53,19 +56,16 @@ fn lobby_heroes(lines: &[String]) -> Vec<Value> {
     value["data"]["heroes"].as_array().expect("the lobby lists heroes").clone()
 }
 
-const TRANSFORMATION_FORMS: &[&str] = &["lycan_wolf_form"];
-
-fn check_pick_menu(pack: &str, want: &[(&str, &str)]) {
+fn check_pick_menu(pack: &str, roster: usize, want: &[(&str, &str)]) {
     let mut host = pack_host(pack);
     host.dispatch_action("setup", &json!({ "ui": ui_file(pack), "player": 0, "pubkey": "owner" }))
         .expect("the panels accept the setup");
     host.advance().expect("advance one tick");
     let heroes = lobby_heroes(&host.take_ui());
-    let heroes: Vec<Value> = heroes.into_iter().filter(|h| !TRANSFORMATION_FORMS.contains(&h["unit"].as_str().unwrap_or(""))).collect();
     let acronyms: Vec<&str> = heroes.iter().filter_map(|h| h["acronym"].as_str()).collect();
     let question_marks = acronyms.iter().filter(|a| **a == "?").count();
     eprintln!("menu-probe pack={pack} pick-menu heroes={} question_marks={question_marks} sample={:?}", heroes.len(), &acronyms[..acronyms.len().min(8)]);
-    assert_eq!(heroes.len(), 127, "{pack}: the pick menu lists {} heroes, expected the 127 roster heroes", heroes.len());
+    assert_eq!(heroes.len(), roster, "{pack}: the pick menu lists {} heroes, expected {roster}", heroes.len());
     assert_eq!(question_marks, 0, "{pack}: the pick menu shows \"?\" for {question_marks} heroes that have an acronym");
     for (unit, acronym) in want {
         let shown = heroes.iter().find(|h| h["unit"].as_str() == Some(unit)).and_then(|h| h["acronym"].as_str());
@@ -75,10 +75,15 @@ fn check_pick_menu(pack: &str, want: &[(&str, &str)]) {
 
 #[test]
 fn default_acronym_pack_pick_menu_shows_every_hero_acronym() {
-    check_pick_menu("moba-acronyms", &[("am", "AM"), ("axe", "AXE"), ("be", "BE")]);
+    check_pick_menu("moba-acronyms", 127, &[("am", "AM"), ("axe", "AXE"), ("be", "BE")]);
 }
 
 #[test]
 fn full_name_pack_pick_menu_shows_every_hero_acronym() {
-    check_pick_menu("moba", &[("antimage", "AM"), ("axe", "AXE"), ("crystal_maiden", "CM")]);
+    check_pick_menu("moba", 127, &[("antimage", "AM"), ("axe", "AXE"), ("crystal_maiden", "CM")]);
+}
+
+#[test]
+fn bota_pick_menu_shows_every_hero_acronym() {
+    check_pick_menu("bota", 24, &[]);
 }
