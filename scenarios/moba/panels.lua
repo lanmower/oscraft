@@ -1441,7 +1441,7 @@ local function lobby_act(call, a)
     return
   end
   if call == "world_ready" then
-    if owner ~= OWNER then L.error = "not-host" return end
+    if L.host ~= owner then L.error = "not-host" return end
     L.worldReady = true
     return
   end

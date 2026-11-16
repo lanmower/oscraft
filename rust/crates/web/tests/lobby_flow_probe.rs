@@ -308,62 +308,77 @@ fn start_button(node: &Value) -> Option<&Value> {
     node["kids"].as_array()?.iter().find_map(start_button)
 }
 
-fn start_state(lines: &[Value]) -> (String, bool) {
-    let tree = lobby_widgets(lines)
-        .into_iter()
-        .find(|widget| widget["remove"] != true)
-        .map(|widget| &widget["tree"])
-        .expect("the lobby widget is shown");
+fn start_state(tree: &Value) -> (String, bool) {
     let button = start_button(tree).expect("the lobby has a start button");
     (button["text"].as_str().unwrap_or_default().to_owned(), button["disabled"] == true)
+}
+
+fn shown_tree(lines: &[Value]) -> Option<Value> {
+    lobby_widgets(lines).into_iter().find(|widget| widget["remove"] != true).map(|widget| widget["tree"].clone())
+}
+
+fn dispatch_to_both(host: &mut Game, joiner: &mut Game, pubkey: &str, command: &str, args: Value) -> (Vec<Value>, Vec<Value>) {
+    let message = json!({ "call": command, "args": args, "player": 1, "pubkey": pubkey });
+    (call(host, "ui", message.clone()), call(joiner, "ui", message))
 }
 
 #[test]
 fn probe_joiner_start_label_follows_the_host() {
     let dir = scenario_dir();
     let image = image_for(&dir);
-    let mut game = Game::new(&image).expect("game");
-    game.set_fog(false);
-    load_pack(&mut game, &dir);
+    let mut host = Game::new(&image).expect("host game");
+    let mut joiner = Game::new(&image).expect("joiner game");
+    for game in [&mut host, &mut joiner] {
+        game.set_fog(false);
+        load_pack(game, &dir);
+    }
     let ui_file = read_ui(&dir);
     let lobby_text = ui_file["text"]["lobby"].clone();
     let text = |key: &str| lobby_text[key].as_str().expect("lobby text").to_owned();
-    call(&mut game, "setup", json!({ "ui": ui_file, "player": 1, "pubkey": OWNER }));
-    advance(&mut game, 60);
-    let joiner = "probe-joiner";
+    let joiner_pubkey = "probe-joiner";
+    call(&mut host, "setup", json!({ "ui": ui_file, "player": 1, "pubkey": OWNER }));
+    call(&mut joiner, "setup", json!({ "ui": ui_file, "player": 1, "pubkey": joiner_pubkey }));
+    advance(&mut host, 60);
+    advance(&mut joiner, 60);
+    let mut joiner_tree = Value::Null;
+    let mut host_tree = Value::Null;
 
-    let host_claim = ui_as(&mut game, OWNER, "claim", json!({ "slot": 0 }));
+    let (host_claim, joiner_claim) = dispatch_to_both(&mut host, &mut joiner, OWNER, "claim", json!({ "slot": 0 }));
     assert!(lobby_error(&host_claim).is_empty(), "the creator takes a seat on creation");
-    assert_eq!(start_state(&host_claim), (text("loadingWorld"), true), "the host waits for its own world");
-    let joiner_view = ui_as(&mut game, joiner, "claim", json!({ "slot": 0 }));
-    assert_eq!(start_state(&joiner_view), (text("joinerLoadingWorld"), true), "a joiner waits for the host's world");
+    joiner_tree = shown_tree(&joiner_claim).unwrap_or(joiner_tree);
+    host_tree = shown_tree(&host_claim).unwrap_or(host_tree);
+    assert_eq!(start_state(&host_tree), (text("loadingWorld"), true), "the host waits for its own world");
+    assert_eq!(start_state(&joiner_tree), (text("joinerLoadingWorld"), true), "a joiner waits for the host's world");
 
-    let mode = ui_as(&mut game, OWNER, "mode", json!({ "code": "ai" }));
-    assert!(lobby_error(&mode).is_empty(), "the host chooses a mode");
-    let filled = ui_as(&mut game, OWNER, "fill", json!({}));
-    assert!(negotiated(&filled), "a mode and filled seats complete the negotiation");
-    let joiner_view = ui_as(&mut game, joiner, "claim", json!({ "slot": 0 }));
-    assert_eq!(start_state(&joiner_view), (text("joinerLoadingWorld"), true), "still waiting for the host's world after negotiation");
+    let (_, joiner_mode) = dispatch_to_both(&mut host, &mut joiner, OWNER, "mode", json!({ "code": "ai" }));
+    assert!(lobby_error(&joiner_mode).is_empty(), "the host chooses a mode");
+    let (filled, joiner_filled) = dispatch_to_both(&mut host, &mut joiner, OWNER, "fill", json!({}));
+    assert!(negotiated(&filled) && negotiated(&joiner_filled), "a mode and filled seats complete the negotiation");
+    joiner_tree = shown_tree(&joiner_filled).unwrap_or(joiner_tree);
+    assert_eq!(start_state(&joiner_tree), (text("joinerLoadingWorld"), true), "still waiting for the host's world after negotiation");
 
     let mut own_hero = false;
     for hero in allowed_heroes(&filled) {
-        let lines = ui_as(&mut game, OWNER, "pick", json!({ "slot": 0, "hero": hero }));
+        let (lines, joiner_lines) = dispatch_to_both(&mut host, &mut joiner, OWNER, "pick", json!({ "slot": 0, "hero": hero }));
+        joiner_tree = shown_tree(&joiner_lines).unwrap_or(joiner_tree);
         if lobby_error(&lines).is_empty() {
             own_hero = true;
             break;
         }
     }
     assert!(own_hero, "the host seat picks a hero");
-    let world = ui_as(&mut game, OWNER, "world_ready", json!({}));
-    assert!(lobby_error(&world).is_empty(), "the host reports its world ready");
-    let joiner_view = ui_as(&mut game, joiner, "claim", json!({ "slot": 0 }));
-    assert_eq!(start_state(&joiner_view), (text("joinerNotReady"), true), "the host's world is ready but seats are not");
 
-    let mut host_ready = Vec::new();
+    let (world, joiner_world) = dispatch_to_both(&mut host, &mut joiner, OWNER, "world_ready", json!({}));
+    assert!(lobby_error(&world).is_empty(), "the host reports its world ready");
+    assert!(lobby_error(&joiner_world).is_empty(), "the joiner applies the host's world_ready: {}", lobby_error(&joiner_world));
+    joiner_tree = shown_tree(&joiner_world).unwrap_or(joiner_tree);
+    assert_eq!(start_state(&joiner_tree), (text("joinerNotReady"), true), "the host's world is ready but seats are not");
+
     for seat in 0..10 {
-        host_ready = ui_as(&mut game, OWNER, "ready", json!({ "slot": seat, "ready": true }));
+        let (lines, joiner_lines) = dispatch_to_both(&mut host, &mut joiner, OWNER, "ready", json!({ "slot": seat, "ready": true }));
+        host_tree = shown_tree(&lines).unwrap_or(host_tree);
+        joiner_tree = shown_tree(&joiner_lines).unwrap_or(joiner_tree);
     }
-    let joiner_view = ui_as(&mut game, joiner, "claim", json!({ "slot": 0 }));
-    assert_eq!(start_state(&joiner_view), (text("joinerStart"), true), "every seat ready: the joiner waits for the host to start");
-    assert_eq!(start_state(&host_ready), (text("startMatch"), false), "the host's Start is enabled when every seat is ready");
+    assert_eq!(start_state(&joiner_tree), (text("joinerStart"), true), "every seat ready: the joiner waits for the host to start");
+    assert_eq!(start_state(&host_tree), (text("startMatch"), false), "the host's Start is enabled when every seat is ready");
 }
