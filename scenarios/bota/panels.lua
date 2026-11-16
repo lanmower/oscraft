@@ -1801,10 +1801,11 @@ local function hero_name(name)
   return e[1]
 end
 
-local function acronym(name)
-  return UI.heroAcronyms[name] or HERO_ACRONYM[name] or "?"
+local function acronym(kind)
+  local name = hero_name(kind)
+  return UI.heroAcronyms[kind] or HERO_ACRONYM[kind] or UI.heroAcronyms[name] or HERO_ACRONYM[name] or "?"
 end
-LATE.acronym = function(kind) return acronym(hero_name(kind)) end
+LATE.acronym = acronym
 
 local function base_max()
   local best = { 0, 0, 0 }

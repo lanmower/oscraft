@@ -19,6 +19,10 @@ const rosterGap = heroCount !== acronyms.length ? [`roster coverage: ${acronyms.
 const derivedTable = [...fs.readFileSync(path.join(derived, "hero_acronyms.lua"), "utf8").matchAll(/^\s*\["([^"]+)"\] = "([^"]*)",/gm)].map((m) => [m[1], m[2]]);
 const derivedUnitIds = [...fs.readFileSync(path.join(derived, "units_heroes.osd"), "utf8").matchAll(/^unit\("(\w+)"/gm)].map((m) => m[1]);
 const derivedUi = JSON.parse(fs.readFileSync(path.join(derived, "moba_ui.json"), "utf8"));
+const derivedBase = new Map([...fs.readFileSync(path.join(derived, "panels.lua"), "utf8").matchAll(/^\s{2}(\w+) = \{ "([^"]+)", \d+, \d+, \d+, \d+, \d+, \d+ \}/gm)].map((m) => [m[1], m[2]]));
+const derivedOverrides = derivedUi.heroAcronyms ?? {};
+const derivedAcronym = new Map(derivedTable);
+const unresolvedDerived = derivedUnitIds.filter((id) => !(derivedOverrides[id] ?? derivedAcronym.get(id) ?? derivedOverrides[derivedBase.get(id)] ?? derivedAcronym.get(derivedBase.get(id))));
 const loader = fs.readFileSync(path.join(root, "js", "client", "pack_load.js"), "utf8");
 const botaTable = [...fs.readFileSync(path.join(bota, "hero_acronyms.lua"), "utf8").matchAll(/^\s*\["([^"]+)"\] = "([^"]*)",/gm)].map((m) => [m[1], m[2]]);
 const botaUnitIds = [...fs.readFileSync(path.join(bota, "units_heroes.osd"), "utf8").matchAll(/^unit\("(\w+)"/gm)].map((m) => m[1]);
@@ -32,6 +36,7 @@ const problems = [
   ...derivedTable.filter(([key, value]) => !/^[a-z]{1,3}$/.test(key) || key.toUpperCase() !== value).map(([key]) => `derived active ID is not an acronym: ${key}`),
   ...derivedUnitIds.filter((id) => !/^[a-z]{1,3}$/.test(id)).map((id) => `derived unit ID is not an acronym: ${id}`),
   ...(derivedUi.identifierMode !== "default-dota-acronyms" ? ["derived UI identifier mode is not default-dota-acronyms"] : []),
+  ...unresolvedDerived.map((id) => `derived hero has no acronym and shows "?" in the menu: ${id}`),
   ...(!/PACK_PARAM[^\n]*"scenarios\/moba-acronyms"/.test(loader) ? ["default PACK_PARAM is not scenarios/moba-acronyms"] : []),
   ...botaTable.filter(([key]) => /^[a-z]{1,3}$/.test(key) && key !== "npc").map(([key]) => `BOTA active ID is an acronym-only key: ${key}`),
   ...botaUnitIds.filter((id) => /^[a-z]{1,3}$/.test(id) && id !== "npc").map((id) => `BOTA unit ID is acronym-only: ${id}`),
@@ -41,4 +46,4 @@ if (problems.length > 0) {
   console.error(problems.join("\n"));
   process.exit(1);
 }
-console.log(`check-acronyms: default ${derivedTable.length} acronym-only active IDs, BOTA ${botaTable.length} fullname active IDs; authority ${acronyms.length} unique 1-3 letter labels`);
+console.log(`check-acronyms: default ${derivedTable.length} acronym-only active IDs all resolving through panels, BOTA ${botaTable.length} fullname active IDs; authority ${acronyms.length} unique 1-3 letter labels`);

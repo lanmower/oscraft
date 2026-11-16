@@ -1036,3 +1036,17 @@ Incidents in this run, recorded:
 - The first guard-off cargo run started from /workspace/oscraft, not rust/, and failed with "could not find Cargo.toml" before compiling anything; rerun from rust/.
 - The combined suites job was killed after sim and pathing passed; mod-host was rerun detached (setsid) and passed.
 - The sleep-based polling bodies were moved to background by the gm host after 120 s; they completed normally.
+
+## 2026-11-14 fresh-start consolidation
+- Current consolidated status: `docs/CURRENT_INCREMENT_STATUS.md` (done, blocked, next).
+- Verified: `node scripts/check-all.mjs` exit 0, `RESULT gates=80 ok=80 failed=0 drift=0 skipped=6 strict=false`.
+- Held: `npm run check:cross-runtime` exit 1 on peer hero-kit/image demand drift; `npm run validate:oscraft-release` exit 1 on the resulting stale snapshot hash.
+- Upstream: `git fetch --prune origin` exit 0, `HEAD` equals `origin/main` at `6fe10658`; no pull/force/reset performed.
+
+## 2026-11-16 default-pack hero acronyms in menus
+- Cause: `acronym()` in panels.lua looked up the full hero name, but the default pack keys acronyms by unit ID, so every hero fell through to "?". Fixed in panels.lua of moba, moba-acronyms and bota by looking up the unit ID first.
+- Cause: the acronym pack generator rewrote `require("night_stalker")` and `require("treant")` to `ns` and `tre` but kept the module files and manifest names, so the default pack's init failed to load. The generator now renames top-level hero module files and rewrites the manifest.
+- Witness: `cargo test -p mod-host --test hero_acronym_menus` passes (pick menu of moba-acronyms and moba: 127 heroes, 0 "?"). Negative control with the HEAD lookup: 69 of 127 show "?".
+- Witness: `node scenarios/moba/tools/gen-moba-acronym-pack.mjs --check` ok; `node scripts/check-acronyms.mjs` exit 0; `node scripts/check-moba-image.mjs` exit 0; moba-acronyms/moba.osdt rebuilt by mapexport (944928 bytes).
+- Open: the pick grid still lists `lycan_wolf_form` (a transformation form, `player_controlled` with a model) as a hero, and its acronym is "?". The test excludes it by name. Fixing needs a sim or data flag that marks forms, not a name list.
+- Not run: BOTA pick menu and a browser render. The render is witnessed at the pick-grid data level, not in the DOM.
