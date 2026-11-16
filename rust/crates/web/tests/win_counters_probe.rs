@@ -468,10 +468,6 @@ fn row_named<'a>(rows: &'a [Vec<String>], name: &str) -> &'a [String] {
     rows.iter().find(|row| row[0] == name).expect("win row for the hero")
 }
 
-fn block_count(sparkline: &str) -> usize {
-    sparkline.split("  ").next().unwrap_or_default().chars().count()
-}
-
 #[test]
 fn the_post_game_overview_compares_two_heroes_and_derives_the_bars() {
     let dir = scenario_dir();
@@ -598,18 +594,24 @@ fn the_post_game_overview_compares_two_heroes_and_derives_the_bars() {
                 println!("probe mvp top={top}");
             }
             "graphs" => {
-                assert!(tab_labels.iter().any(|label| label.starts_with("One block per match minute")), "the graphs tab explains its blocks");
+                assert!(tab_labels.iter().any(|label| label.starts_with("One point per full match minute")), "the graphs tab explains its points");
                 let minutes = ((seconds + 59) / 60).min(60) as usize;
-                for title in ["Gold per minute", "XP per minute", "Kills per minute"] {
-                    let at = tab_labels.iter().position(|label| label == title).expect("graph title");
-                    assert_eq!(tab_labels[at + 1], left_name, "{title}: the left row is player 0's hero");
-                    assert_eq!(tab_labels[at + 3], right_name, "{title}: the right row is player 5's hero");
-                    assert_eq!(block_count(&tab_labels[at + 2]), minutes, "{title}: one block per match minute");
-                    assert_eq!(block_count(&tab_labels[at + 4]), minutes, "{title}: one block per match minute");
+                let charts: Vec<&Value> = tab_nodes.iter().copied().filter(|node| node["t"] == "line").collect();
+                assert_eq!(charts.len(), 4, "the graphs tab draws one line chart per graph");
+                for (title, chart) in ["Gold over time", "Active buffs over time", "XP per minute", "Kills per minute"].into_iter().zip(&charts) {
+                    assert!(tab_labels.iter().any(|label| label == title), "{title}: the graph has its title");
+                    let series = chart["series"].as_array().expect("chart series");
+                    assert_eq!(series[0]["label"], left_name, "{title}: the left row is player 0's hero");
+                    assert_eq!(series[1]["label"], right_name, "{title}: the right row is player 5's hero");
+                    for row in series {
+                        assert_eq!(row["values"].as_array().expect("series values").len(), minutes, "{title}: one value per match minute");
+                    }
                 }
-                let at = tab_labels.iter().position(|label| label == "Kills per minute").expect("kills graph");
-                assert!(tab_labels[at + 2].contains('█'), "the killer's kill is the tallest block");
-                println!("probe graphs minutes={minutes} kills_left=[{}] kills_right=[{}]", tab_labels[at + 2], tab_labels[at + 4]);
+                let kills = charts[3];
+                let peak = kills["max"].as_i64().expect("kills peak");
+                let kills_left: Vec<i64> = kills["series"][0]["values"].as_array().expect("kills values").iter().filter_map(Value::as_i64).collect();
+                assert!(kills_left.contains(&peak), "the killer's kill is the tallest point");
+                println!("probe graphs minutes={minutes} kills_left={kills_left:?} peak={peak}");
             }
             _ => assert!(tab_labels.iter().any(|label| label == "LH"), "the scoreboard tab shows the win table"),
         }
