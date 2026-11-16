@@ -2094,6 +2094,21 @@ local function refresh_lobby()
   emit("lobby", "modal", lobby_tree())
 end
 
+local function mirror_host_lobby(state)
+  if state.host ~= nil and state.host ~= "" then LOBBY.host = state.host end
+  LOBBY.worldReady = state.worldReady == true
+  for i, s in ipairs(state.slots or {}) do
+    if LOBBY.slots[i] ~= nil then
+      LOBBY.slots[i] = {
+        owner = s.owner ~= "" and s.owner or nil,
+        hero = s.hero ~= "" and s.hero or nil,
+        ready = s.ready == true,
+        bot = false,
+      }
+    end
+  end
+end
+
 local function shortfall_note(who, item, with_buyback)
   local hero = hero_of(who)
   local def = game.item_info(item)
@@ -2321,6 +2336,11 @@ local function panels_on_action(name, args)
     if not LOBBY.started then
       LAST.lobby = false
       lobby_seats_event()
+      pcall(refresh_lobby)
+    end
+  elseif name == "lobby_mirror" then
+    if not LOBBY.started then
+      mirror_host_lobby(args)
       pcall(refresh_lobby)
     end
   elseif name == "selection" then
