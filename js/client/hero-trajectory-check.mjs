@@ -6,10 +6,9 @@ const SIM_TICK_S = 1 / 16;
 const LOCK_FOLLOW_RATE = 14;
 const ASSUMED_SPEEDS_CELLS_PER_S = [12, 4];
 const START = { x: 2000, z: 2000 };
-const BOUNDS = { w: 4000, h: 4000 };
+const BOUNDS = { x0: 0, z0: 0, x1: 4000, z1: 4000 };
 const NORTH = { x: 0, z: -1 };
 const EPSILON = 1e-9;
-const SETTLE_CELLS = 0.01;
 const UNIFORM_60_HZ = [1 / 60];
 const JITTERED_LOW_FPS = [1 / 60, 1 / 60, 1 / 30, 1 / 60, 1 / 7, 1 / 60, 1 / 45, 1 / 3, 1 / 60, 1 / 20, 1 / 60, 1 / 60, 1 / 12];
 const PROFILES = [
@@ -79,6 +78,7 @@ function simulate({ speed, intervals, schedule, strictFrameCap = false, mutate =
       state = step.state;
       for (const command of step.commands) {
         if (command.kind === "order") {
+          if (mutate.dropReleaseOrder && !segment.held) continue;
           sim.target = { x: command.x, z: command.z };
           record.orders.push({ t, held: segment.held, from: { x: sim.x, z: sim.z }, to: { x: command.x, z: command.z } });
         } else {
@@ -88,12 +88,11 @@ function simulate({ speed, intervals, schedule, strictFrameCap = false, mutate =
       }
       const gain = mutate.focusGain ?? 1;
       focus = approachTarget(focus, followTarget(hero, groundAt), Math.min(1, gain * (1 - Math.exp(-dt * LOCK_FOLLOW_RATE))));
-      record.frames.push({ t, dt, held: segment.held, hero: { x: sim.x, z: sim.z }, target: followTarget(hero, groundAt), focus: [...focus] });
+      record.frames.push({ t, dt, held: segment.held, hero: { x: sim.x, z: sim.z }, goal: state.target ? { ...state.target } : null, aim: sim.target ? { ...sim.target } : null, target: followTarget(hero, groundAt), focus: [...focus] });
     }
     record.segments.push({ held: segment.held, startT: segmentStart, endT: t, firstFrame, lastFrame: record.frames.length });
   }
   if (mutate.dropEveryThirdOrder) record.orders = record.orders.filter((_, i) => i % 3 !== 2);
-  if (mutate.dropHolds) record.holds = [];
   return record;
 }
 
@@ -125,14 +124,17 @@ function violations(record) {
   }
 
   for (const segment of record.segments.filter((s) => !s.held)) {
-    const ordersInside = record.orders.filter((o) => o.t > segment.startT + EPSILON && o.t <= segment.endT + EPSILON);
-    if (ordersInside.length > 0) out.push(`${ordersInside.length} order(s) issued during a release`);
-    const holdsInside = record.holds.filter((h) => h.t > segment.startT - EPSILON && h.t <= segment.startT + frames[segment.firstFrame].dt + EPSILON);
-    if (holdsInside.length !== 1) out.push(`release at ${segment.startT.toFixed(3)}s issued ${holdsInside.length} holds on its first frame, want 1`);
-    const stopped = record.frames[segment.firstFrame + 1];
+    const ordersInside = record.orders.filter((o) => o.t > segment.startT - EPSILON && o.t <= segment.endT + EPSILON);
+    if (ordersInside.length > 1) out.push(`${ordersInside.length} orders issued during a release, want at most the final order`);
+    const holdsInside = record.holds.filter((h) => h.t > segment.startT - EPSILON && h.t <= segment.endT + EPSILON);
+    if (holdsInside.length !== 0) out.push(`release at ${segment.startT.toFixed(3)}s issued ${holdsInside.length} holds, want none: the hero walks to its target`);
+    const first = record.frames[segment.firstFrame];
     const last = record.frames[segment.lastFrame - 1];
-    if (stopped && span(stopped.hero, last.hero) > SIM_TICK_S * speed * 2 + EPSILON) out.push(`hero kept moving after release: ${span(stopped.hero, last.hero).toFixed(3)} cells`);
-    if (planar(last.focus, last.target) > SETTLE_CELLS) out.push(`focus did not converge after release: ${planar(last.focus, last.target).toFixed(4)} cells`);
+    if (first.goal === null) out.push(`release at ${segment.startT.toFixed(3)}s left no target`);
+    else {
+      if (span(first.aim, first.goal) > EPSILON) out.push(`release at ${segment.startT.toFixed(3)}s did not order the hero to its target (${span(first.aim, first.goal).toFixed(3)} cells short)`);
+      if (!(span(last.hero, first.goal) < span(first.hero, first.goal))) out.push(`hero did not walk toward its target after release`);
+    }
   }
 
   const lagCap = speed / LOCK_FOLLOW_RATE;
@@ -182,11 +184,11 @@ for (const speed of ASSUMED_SPEEDS_CELLS_PER_S) {
 
 const droppedOrder = violations(simulate({ speed: 12, intervals: JITTERED_LOW_FPS, schedule: SCHEDULE, mutate: { dropEveryThirdOrder: true } }));
 if (droppedOrder.length === 0) fail("negative control: a dropped order did not fail the gate");
-const missedRelease = violations(simulate({ speed: 12, intervals: JITTERED_LOW_FPS, schedule: SCHEDULE, mutate: { dropHolds: true } }));
-if (missedRelease.length === 0) fail("negative control: a missed release did not fail the gate");
+const missedRelease = violations(simulate({ speed: 12, intervals: JITTERED_LOW_FPS, schedule: SCHEDULE, mutate: { dropReleaseOrder: true } }));
+if (missedRelease.length === 0) fail("negative control: a missed release order did not fail the gate");
 const overgainedFocus = violations(simulate({ speed: 12, intervals: JITTERED_LOW_FPS, schedule: SCHEDULE, mutate: { focusGain: 3 } }));
 if (!overgainedFocus.some((v) => v.includes("derived cap"))) fail("negative control: an over-gained focus did not fail the derived cap");
 console.log(`negative control dropped order: ${droppedOrder.length} violation(s), first: ${droppedOrder[0]}`);
-console.log(`negative control missed release: ${missedRelease.length} violation(s), first: ${missedRelease[0]} (removes the hold from the record only; the simulated hero is not changed)`);
+console.log(`negative control missed release order: ${missedRelease.length} violation(s), first: ${missedRelease[0]}`);
 console.log(`negative control focus gain x3: ${overgainedFocus.length} violation(s), first: ${overgainedFocus.find((v) => v.includes("derived cap"))}`);
 console.log(`hero trajectory ok (${ASSUMED_SPEEDS_CELLS_PER_S.length} assumed speeds x ${PROFILES.length} frame profiles, 3 negative controls)`);

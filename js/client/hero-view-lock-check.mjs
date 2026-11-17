@@ -5,7 +5,6 @@ import {
   findHeroOf,
   followTarget,
   heroDirection,
-  heroOrderPoint,
 } from "./hero_view_lock.js";
 
 const fail = (what) => { throw new Error(what); };
@@ -16,7 +15,6 @@ const same = (got, want, what) => {
 };
 const keys = (...names) => new Set(names);
 const SQRT_HALF = Math.SQRT1_2;
-const STEP_CELLS = 4;
 
 same(heroDirection(keys("ArrowUp"), 0), { x: 0, z: -1 }, "up at yaw 0 is forward");
 same(heroDirection(keys("ArrowDown"), 0), { x: 0, z: 1 }, "down at yaw 0 is back");
@@ -43,8 +41,6 @@ if (centred.target[0] !== 100 || centred.target[1] !== 7 || centred.target[2] !=
 if (centred.distance !== 40 || centred.yaw !== 0.5 || centred.pitch !== 0.9) fail("centring changed the saved distance, yaw or pitch");
 if (lobbyView.target[0] !== 32) fail("centring changed the saved view");
 if (centredOnHero(lobbyView, null, groundAt) !== lobbyView) fail("no hero did not keep the saved view");
-same(heroOrderPoint(hero, { x: 0, z: -1 }, STEP_CELLS), { x: 100, z: 200 - STEP_CELLS }, "order point ahead of the hero");
-same(heroOrderPoint(hero, { x: SQRT_HALF, z: SQRT_HALF }, STEP_CELLS), { x: 100 + SQRT_HALF * STEP_CELLS, z: 200 + SQRT_HALF * STEP_CELLS }, "diagonal order point");
 
 const units = [
   { id: 1, player: 0, type: 5, x: 0, z: 0 },

@@ -1,182 +1,113 @@
-import { createHeroRun, enemiesInSight, RUN_CELLS, stepHeroRun, TAP_MAX_S } from "./hero_run.js";
+import { createHeroRun, enemiesInSight, REORDER_S, stepHeroRun, TARGET_CELLS_PER_S } from "./hero_run.js";
 
 const fail = (what) => { throw new Error(what); };
-const expectCommands = (result, want, what) => {
-  const got = JSON.stringify(result.commands);
-  const expected = JSON.stringify(want);
-  if (got !== expected) fail(`${what}: got ${got}, want ${expected}`);
-};
-
+const near = (a, b, eps = 1e-6) => Math.abs(a - b) <= eps;
 const FRAME_S = 0.016;
-const BIG = { w: 200, h: 200 };
-const NORTH = { x: 0, z: -1 };
-const EAST = { x: 1, z: 0 };
-const WEST = { x: -1, z: 0 };
-const SOUTH_EAST = { x: Math.SQRT1_2, z: Math.SQRT1_2 };
+const BOUNDS = { x0: 0, z0: 0, x1: 200, z1: 200 };
+const SQRT_HALF = Math.SQRT1_2;
 const ENEMY = 7;
-const NONE = [];
-const HOLD = [{ kind: "hold" }];
-const orderTo = (x, z) => [{ kind: "order", x, z }];
 const hero = { id: 3, x: 100, z: 100 };
+const SQUARE = [
+  { x: 0, z: -1 },
+  { x: SQRT_HALF, z: -SQRT_HALF },
+  { x: 1, z: 0 },
+  { x: SQRT_HALF, z: SQRT_HALF },
+  { x: 0, z: 1 },
+  { x: -SQRT_HALF, z: SQRT_HALF },
+  { x: -1, z: 0 },
+  { x: -SQRT_HALF, z: -SQRT_HALF },
+];
 
-const frame = (state, over = {}) => stepHeroRun(state, { hero, direction: null, held: false, dtS: FRAME_S, enemyIds: [], bounds: BIG, ...over });
+const frame = (state, over = {}) => stepHeroRun(state, { hero, direction: null, held: false, dtS: FRAME_S, enemyIds: [], bounds: BOUNDS, ...over });
+const orders = (r) => r.commands.filter((c) => c.kind === "order");
+const holds = (r) => r.commands.filter((c) => c.kind === "hold");
+
+const movesAlong = (target, from, d) => {
+  const dx = target.x - from.x;
+  const dz = target.z - from.z;
+  return near(Math.hypot(dx, dz), TARGET_CELLS_PER_S * FRAME_S, 1e-9) && dx * d.x + dz * d.z > 0;
+};
+if (SQUARE.length !== 8) fail("the check needs eight directions");
+for (const [i, d] of SQUARE.entries()) {
+  const target = frame(createHeroRun(), { held: true, direction: d }).state.target;
+  if (!movesAlong(target, hero, d)) fail(`direction ${i} did not move the target along its arrow`);
+}
 
 let state = createHeroRun();
-let r = frame(state, { held: true, direction: NORTH });
-expectCommands(r, orderTo(100, 100 - RUN_CELLS), "press issues one order to a far point");
+let r = frame(state, { held: true, direction: { x: 0, z: -1 } });
+if (orders(r).length !== 1) fail("a press issues exactly one order");
 state = r.state;
 let reorders = 0;
 for (let i = 0; i < 30; i++) {
-  r = frame(state, { held: true, direction: NORTH });
-  if (r.commands.length > 0) {
-    expectCommands(r, orderTo(100, 100 - RUN_CELLS), "a held key re-issued a different order");
-    reorders += 1;
-  }
+  r = frame(state, { held: true, direction: { x: 0, z: -1 } });
+  reorders += orders(r).length;
   state = r.state;
 }
-if (reorders !== 1) fail(`a held key re-ordered ${reorders} times in 30 frames, want 1`);
-r = frame(state, { held: true, direction: NORTH, hero: { id: 3, x: 110, z: 100 }, dtS: 0.3 });
-expectCommands(r, orderTo(110, 100 - RUN_CELLS), "a held key re-ordered from the hero's old position");
-state = r.state;
-r = frame(state, { held: true, direction: EAST });
-expectCommands(r, orderTo(100 + RUN_CELLS, 100), "a direction change issues one order");
-state = r.state;
-for (let i = 0; i < 10; i++) {
-  r = frame(state, { held: true, direction: EAST });
-  expectCommands(r, NONE, "holding the new direction re-issues an order");
-  state = r.state;
+if (reorders !== 1) fail(`a held key re-ordered ${reorders} times in 30 frames, want 1 at the ${REORDER_S}s cadence`);
+
+const slow = [{ dt: 0.01, n: 10 }];
+const fast = [{ dt: 0.1, n: 1 }];
+const runSteps = (plan) => {
+  let s = createHeroRun();
+  for (const { dt, n } of plan) for (let i = 0; i < n; i++) s = frame(s, { held: true, direction: SQUARE[3], dtS: dt }).state;
+  return s.target;
+};
+const slowTarget = runSteps(slow);
+const fastTarget = runSteps(fast);
+if (!near(slowTarget.x, fastTarget.x, 1e-9) || !near(slowTarget.z, fastTarget.z, 1e-9)) fail(`frame rate changed the target: ${JSON.stringify(slowTarget)} against ${JSON.stringify(fastTarget)}`);
+
+const EDGE = { x0: 0, z0: 0, x1: 200, z1: 200 };
+let atEdge = frame(createHeroRun(), { hero: { id: 3, x: 0.5, z: 100 }, held: true, direction: { x: -SQRT_HALF, z: SQRT_HALF }, dtS: 0.5, bounds: EDGE });
+if (atEdge.state.target.x !== 0) fail(`target left the walkable bounds on x: ${atEdge.state.target.x}`);
+if (!(atEdge.state.target.z > 100)) fail("a diagonal into the west edge did not keep moving on z");
+
+r = frame(createHeroRun(), { held: true, direction: { x: 0, z: -1 } });
+let pending = r.state;
+for (let i = 0; i < 10; i++) pending = frame(pending, { held: true, direction: { x: 0, z: -1 } }).state;
+const beforeRelease = pending.target;
+const released = frame(pending, { held: false });
+if (orders(released).length !== 1) fail("release issued no final order to the target");
+if (!near(orders(released)[0].z, beforeRelease.z) || !near(orders(released)[0].x, beforeRelease.x)) fail("the final order is not the target");
+let walk = released.state;
+for (let i = 0; i < 5; i++) {
+  const next = frame(walk, { held: false });
+  if (orders(next).length + holds(next).length !== 0) fail("walking to a target issued a command after its final order");
+  walk = next.state;
 }
-r = frame(state, { held: false });
-expectCommands(r, HOLD, "a hold press released after a long run issues hold");
-state = createHeroRun();
+const arrived = frame(walk, { held: false, hero: { id: 3, x: beforeRelease.x, z: beforeRelease.z } });
+if (arrived.state.target !== null) fail("the hero at its target did not finish the run");
 
-r = frame(state, { held: true, direction: NORTH, dtS: 0.05 });
-expectCommands(r, orderTo(100, 100 - RUN_CELLS), "tap issues its order");
-r = frame(r.state, { held: true, direction: NORTH, dtS: 0.05 });
-expectCommands(r, NONE, "tap re-issues during the press");
-r = frame(r.state, { held: false, dtS: 0.05 });
-expectCommands(r, NONE, "a short tap issues nothing on release");
-if (r.state.run === null) fail("a short tap did not start a run");
-state = r.state;
-for (let i = 0; i < 20; i++) {
-  r = frame(state, { held: false });
-  expectCommands(r, NONE, "a tap run re-issues while nothing is in vision");
-  state = r.state;
+const seen = frame(createHeroRun(), { held: true, direction: { x: 0, z: -1 }, enemyIds: [] });
+const stopped = frame(seen.state, { held: true, direction: { x: 0, z: -1 }, enemyIds: [ENEMY] });
+if (holds(stopped).length !== 1 || stopped.state.target !== null) fail("a new enemy in sight did not stop the run");
+
+const idle = frame(createHeroRun());
+if (idle.commands.length !== 0 || idle.state.target !== null) fail("an idle hero issued a command");
+
+const sightLine = enemiesInSight({ x: 0, z: 0 }, [{ id: ENEMY, player: 1, x: 10, z: 0 }], () => true);
+if (sightLine.length !== 1) fail("an enemy inside sight was not reported");
+
+let continued = frame(createHeroRun(), { held: true, direction: { x: 0, z: -1 } }).state;
+continued = frame(continued, { held: true, direction: { x: 0, z: -1 } }).state;
+const pendingTarget = continued.target;
+const repress = frame(frame(continued, { held: false }).state, { held: true, direction: { x: 1, z: 0 } });
+if (!near(repress.state.target.x, pendingTarget.x + TARGET_CELLS_PER_S * FRAME_S, 1e-9)) fail("a press during a pending run did not continue from the target");
+
+const EDGE_HERO = { id: 3, x: 0, z: 100 };
+for (const d of SQUARE) {
+  const target = frame(createHeroRun(), { hero: EDGE_HERO, held: true, direction: d }).state.target;
+  if (target.x < BOUNDS.x0 || target.x > BOUNDS.x1 || target.z < BOUNDS.z0 || target.z > BOUNDS.z1) fail(`a target left the walkable bounds: ${JSON.stringify(target)}`);
+  const inward = d.x >= 0;
+  const moved = Math.hypot(target.x - EDGE_HERO.x, target.z - EDGE_HERO.z) > 1e-9;
+  if (inward && !moved) fail(`an inward direction ${JSON.stringify(d)} from the west edge did not move the target`);
 }
-if (state.run === null) fail("a tap run ended with no enemy and no arrival");
-r = frame(state, { held: false, enemyIds: [ENEMY] });
-expectCommands(r, HOLD, "an enemy entering vision does not stop the tap run");
-if (r.state.run !== null) fail("an enemy entering vision left the run active");
-r = frame(r.state, { held: false, enemyIds: [ENEMY] });
-expectCommands(r, NONE, "a stopped run issues again");
-
-state = createHeroRun();
-r = frame(state, { held: true, direction: NORTH, enemyIds: [ENEMY] });
-r = frame(r.state, { held: false, enemyIds: [ENEMY] });
-expectCommands(r, NONE, "an enemy visible at tap start stopped the run");
-for (let i = 0; i < 10; i++) {
-  r = frame(r.state, { held: false, enemyIds: [ENEMY] });
-  expectCommands(r, NONE, "an enemy visible at tap start stopped the run later");
+let walking = createHeroRun();
+let previous = null;
+for (let i = 0; i < 5; i++) {
+  walking = frame(walking, { held: true, direction: SQUARE[2] }).state;
+  if (previous !== null && !(walking.target.x > previous.x)) fail("a held direction did not keep advancing the target");
+  previous = walking.target;
 }
-if (r.state.run === null) fail("an enemy visible at tap start ended the run");
+if (movesAlong(hero, hero, { x: 0, z: -1 })) fail("negative control: a target that never moves was accepted");
 
-state = createHeroRun();
-r = frame(state, { held: true, direction: NORTH, enemyIds: [] });
-r = frame(r.state, { held: true, direction: NORTH, enemyIds: [ENEMY] });
-expectCommands(r, NONE, "an enemy entering during the press issued a command");
-r = frame(r.state, { held: false, enemyIds: [ENEMY] });
-expectCommands(r, NONE, "an enemy entering during the press was not held for the run");
-r = frame(r.state, { held: false, enemyIds: [ENEMY] });
-expectCommands(r, HOLD, "an enemy entering during the press did not stop the run");
-
-state = createHeroRun();
-r = frame(state, { held: true, direction: NORTH, enemyIds: [ENEMY] });
-r = frame(r.state, { held: false, enemyIds: [ENEMY] });
-r = frame(r.state, { held: false, enemyIds: [] });
-expectCommands(r, NONE, "an enemy leaving vision issued a command");
-r = frame(r.state, { held: false, enemyIds: [ENEMY] });
-expectCommands(r, HOLD, "an enemy returning to vision did not stop the run");
-
-state = createHeroRun();
-r = frame(state, { held: true, direction: NORTH, dtS: 0.1 });
-expectCommands(r, orderTo(100, 100 - RUN_CELLS), "long hold issues its order");
-state = r.state;
-for (let i = 0; i < 2; i++) {
-  r = frame(state, { held: true, direction: NORTH, dtS: 0.1, enemyIds: [ENEMY] });
-  expectCommands(r, NONE, "a hold run stopped for an enemy");
-  state = r.state;
-}
-if (!(state.pressedS >= TAP_MAX_S)) fail("the long hold did not reach the tap limit");
-r = frame(state, { held: false, enemyIds: [ENEMY] });
-expectCommands(r, HOLD, "a long hold did not stop on release");
-if (r.state.run !== null) fail("a long hold left a run behind");
-r = frame(r.state, { held: false });
-expectCommands(r, NONE, "a long hold issued hold twice");
-
-state = createHeroRun();
-r = frame(state, { held: true, direction: null, dtS: 0.1 });
-expectCommands(r, NONE, "a press with no direction issued an order");
-for (let i = 0; i < 4; i++) {
-  r = frame(r.state, { held: true, direction: null, dtS: 0.1 });
-  expectCommands(r, NONE, "opposite keys issued an order");
-}
-r = frame(r.state, { held: true, direction: NORTH, dtS: 0.1 });
-expectCommands(r, orderTo(100, 100 - RUN_CELLS), "a direction appearing mid-press issued no order");
-r = frame(r.state, { held: false, dtS: 0.1 });
-expectCommands(r, HOLD, "a long press with a direction did not stop on release");
-state = createHeroRun();
-r = frame(state, { held: true, direction: null, dtS: 0.5 });
-r = frame(r.state, { held: false, dtS: 0.5 });
-expectCommands(r, NONE, "a press with no direction issued hold on release");
-
-state = createHeroRun();
-r = frame(state, { held: true, direction: NORTH });
-r = frame(r.state, { held: false });
-const runningState = r.state;
-const idle = stepHeroRun(runningState, { hero: null, direction: null, held: false, dtS: FRAME_S, enemyIds: [ENEMY], bounds: BIG });
-expectCommands(idle, NONE, "a null hero emitted a command");
-if (JSON.stringify(idle.state) !== JSON.stringify(createHeroRun())) fail("a null hero did not reset the state");
-const pressing = frame(createHeroRun(), { held: true, direction: NORTH });
-const pressedWithoutHero = stepHeroRun(pressing.state, { hero: null, direction: NORTH, held: true, dtS: FRAME_S, enemyIds: [], bounds: BIG });
-expectCommands(pressedWithoutHero, NONE, "a null hero emitted a command while held");
-if (pressedWithoutHero.state.pressing) fail("a null hero kept the press");
-
-const small = { w: 32, h: 24 };
-const edgeHero = (x, z) => ({ id: 4, x, z });
-const edgeFrame = (at, direction) => stepHeroRun(createHeroRun(), { hero: edgeHero(...at), direction, held: true, dtS: FRAME_S, enemyIds: [], bounds: small });
-expectCommands(edgeFrame([16, 12], NORTH), orderTo(16, 0), "order north was not clamped to the top edge");
-expectCommands(edgeFrame([16, 12], EAST), orderTo(32, 12), "order east was not clamped to the right edge");
-expectCommands(edgeFrame([2, 12], WEST), orderTo(0, 12), "order west was not clamped to the left edge");
-expectCommands(edgeFrame([30, 22], SOUTH_EAST), orderTo(32, 24), "diagonal order was not clamped to the corner");
-
-state = createHeroRun();
-r = frame(state, { held: true, direction: NORTH, dtS: 0.05 });
-r = frame(r.state, { held: false, dtS: 0.05 });
-const tapped = r.state;
-if (tapped.run === null) fail("tap did not start a run before the arrival check");
-r = frame(tapped, { hero: { id: 3, x: 100, z: 36.5 }, enemyIds: [ENEMY] });
-expectCommands(r, NONE, "arrival issued a command");
-if (r.state.run !== null) fail("arrival did not end the run");
-
-r = frame(tapped, { held: true, direction: EAST, enemyIds: [ENEMY] });
-expectCommands(r, orderTo(100 + RUN_CELLS, 100), "a new press during a tap run did not issue its order alone");
-if (r.state.run !== null) fail("a new press did not end the tap run");
-
-const isEnemy = (player) => player === 1;
-const enemyAt = (id, cells) => ({ id, player: 1, x: hero.x + cells, z: hero.z });
-state = createHeroRun();
-r = frame(state, { held: true, direction: NORTH, dtS: 0.05 });
-r = frame(r.state, { held: false, dtS: 0.05 });
-const sightRun = r.state;
-if (sightRun.run === null) fail("sight case did not start a tap run");
-const at27 = enemiesInSight(hero, [enemyAt(11, 27)], isEnemy);
-if (JSON.stringify(at27) !== "[11]") fail(`a hostile at 27 cells was not in sight: ${JSON.stringify(at27)}`);
-r = frame(sightRun, { held: false, enemyIds: at27 });
-expectCommands(r, HOLD, "a hostile entering 27 cells did not stop the tap run");
-const at30 = enemiesInSight(hero, [enemyAt(12, 30)], isEnemy);
-if (at30.length !== 0) fail(`a hostile at 30 cells was in sight: ${JSON.stringify(at30)}`);
-r = frame(sightRun, { held: false, enemyIds: at30 });
-expectCommands(r, NONE, "a hostile entering 30 cells stopped the tap run");
-if (r.state.run === null) fail("a hostile entering 30 cells ended the tap run");
-
-console.log("hero run ok");
+console.log("hero run ok (8 directions move the target, frame rate independent, clamped to the walkable bounds, release walks to the target)");

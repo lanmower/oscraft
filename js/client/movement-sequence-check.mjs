@@ -20,7 +20,7 @@ const DRIVE_HEADER = "function driveLockedHero(dtS) {";
 const NAMES = [
   "heroViewLock", "approachTarget", "followTarget", "stepHeroRun", "createHeroRun", "heroDirection",
   "enemiesInSight", "drawnPosition", "groundAt", "currentUnits", "localHeroUnit", "isHostile",
-  "renderer3d", "keysDown", "commands", "PAN_RULES", "pointer", "drag", "canvas", "LOCK_FOLLOW_RATE", "W", "H",
+  "renderer3d", "keysDown", "commands", "PAN_RULES", "pointer", "drag", "canvas", "LOCK_FOLLOW_RATE", "W", "H", "cameraBounds",
   "twinStick", "pressedDownEdges", "aimPoint", "PAD_CAST_SLOTS", "sendInput", "navigator",
 ];
 
@@ -49,6 +49,7 @@ function buildDriver(panSource, { stubPad = false } = {}) {
     "let padAim = null;",
     "let padPressed = [];",
     "let oneHandSent = null;",
+    extract("function walkableRect() {"),
     extract(DRIVE_HEADER),
     ...padSource,
     panSource,
@@ -195,6 +196,7 @@ async function sequence(mode, { panSource = extract(PAN_HEADER), releaseAfterWri
       LOCK_FOLLOW_RATE,
       W: 2048,
       H: 2048,
+      cameraBounds: [0, 0, 2048, 2048],
       twinStick,
       pressedDownEdges,
       aimPoint,
