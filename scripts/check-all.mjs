@@ -20,6 +20,7 @@ const GATE_CHECKS = [
   "js/client/lobby-mirror-check.mjs",
   "js/client/lobby-replay-check.mjs",
   "js/client/world-ready-check.mjs",
+  "js/client/locked-target-check.mjs",
   "scripts/check-pack-archive.mjs",
   "scripts/check-site-bundle.mjs",
   "scripts/check-wasip3-parity.mjs",
