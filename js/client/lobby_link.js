@@ -15,6 +15,11 @@ export function replayHeldCalls(held, { hasHost }) {
   return held.splice(0);
 }
 
+export function worldReadyRoute({ hosting, peer, built, phase, confirmedFor, game, lobbyHost, me }) {
+  const send = !peer && built && !!game && phase === "lobby" && confirmedFor !== game && (hosting || lobbyHost === me);
+  return { send, registerHost: send && hosting && lobbyHost !== me };
+}
+
 export function relaysUiEvent(ev) {
   return !(ev.kind === "widget" && ev.data?.id === "lobby");
 }

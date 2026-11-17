@@ -44,7 +44,7 @@ import { createDraftClock } from "./draft_clock.js";
 import { chainFrame } from "./frame_chain.js";
 import { readItem, writeItem, removeItem } from "./safe_storage.js";
 import { keyNameOf } from "./key_names.js";
-import { LOBBY_LINK_WAIT_MS, lobbyInputRoute, heldCallsAfterSettle, replayHeldCalls, relaysUiEvent, mirrorsHostLobby } from "./lobby_link.js";
+import { LOBBY_LINK_WAIT_MS, lobbyInputRoute, heldCallsAfterSettle, replayHeldCalls, relaysUiEvent, mirrorsHostLobby, worldReadyRoute } from "./lobby_link.js";
 import { createGuiFlow, packMenuBackdrop } from "./gui_flow.js";
 import { createPodium, podiumScene, podiumCameraStep, podiumPlinthTransforms } from "./podium.js";
 import { saveReplayFile } from "./replay_save.js";
@@ -418,6 +418,7 @@ function routeUi(ev, relayed = false) {
         for (const key of peers) sendRoster(key);
       }
       flowLobby = { ...flowLobby, ...data, started: false };
+      if (!isPeerPage() && data.worldReady === true) worldConfirmedFor = localGame;
       preloadPickedModels(data.slots);
       flowLoadIcons(data.heroes);
       guiFlow?.show?.();
@@ -1999,10 +2000,12 @@ let sceneryReady = Promise.resolve();
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const isPeerPage = () => !hosting && peers.size > 0;
 let worldBuiltForLobby = false;
-let worldAnnouncedTo = null;
+let worldConfirmedFor = null;
 function announceWorldReady() {
-  if (!worldBuiltForLobby || isPeerPage() || !localGame || gate.phase !== PHASE.LOBBY || worldAnnouncedTo === localGame) return;
-  worldAnnouncedTo = localGame;
+  const me = auth.pubkey || LOCAL_OWNER_ID;
+  const route = worldReadyRoute({ hosting, peer: isPeerPage(), built: worldBuiltForLobby, phase: gate.phase, confirmedFor: worldConfirmedFor, game: localGame, lobbyHost: flowLobby.host, me });
+  if (!route.send) return;
+  if (route.registerHost) applyLocalInput("lobby_host", { pubkey: me });
   sendInput("ui", { call: "world_ready", args: {} });
 }
 const gateCtx = {
