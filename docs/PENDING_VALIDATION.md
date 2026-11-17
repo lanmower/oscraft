@@ -1266,3 +1266,25 @@ Incidents in this run, recorded:
 - Added js/client/locked-target-check.mjs: derives each of the eight arrow combinations through heroDirection and steps the locked target with stepHeroRun. From the centre every direction must move the target TARGET_CELLS_PER_S / 16 cells in one frame; from an edge and a corner start, the target must land on the walkable-clamped point. A negative control locks north-east and must be rejected.
 - Registered in scripts/check-all.mjs GATE_CHECKS after world-ready-check.mjs; DESIGN.md figures moved to gates=83, gate path refs=69 (camera writes unchanged at 24).
 - Phase B owes: run this check (output quoted) and the eight-direction witness in the running game.
+
+## 2026-11-17 locked view arrow keys: Phase B witness and checks (lanmower)
+- Commits: cause and fix b386c644 (hero_run.js, play.js, hero_view_lock.js); gate updates 3235381e; target-model ledger 7f74b047; narrow eight-direction check f366b487 (js/client/locked-target-check.mjs, registered in check-all, DESIGN.md gates=83, refs=69); its ledger entry 27fd1e0f.
+- Cause: the held direction re-derived the order point from the hero each press (hero + direction x 64 cells), clamped to the full map instead of the walkable rectangle. Points on unwalkable border blocked a direction; points clamped onto an edge snapped it.
+- Fix: a held arrow moves a persistent target at TARGET_CELLS_PER_S (24) x frame time, clamped to the walkable bounds (play.js walkableRect from cameraBounds). The hero orders to the target on press, every REORDER_S (0.25 s) while held, and once on release, then walks to it and stops within ARRIVE_CELLS (1).
+- Witness (headless playwriter, solo match, hero unit 127, lock engaged via #hero-lock, each direction held 4 s from rest; the target is null at rest because a press starts it at the hero; synthetic KeyboardEvents on window; page about 1.3 fps, so arrival took 20-37 s wall-clock each):
+
+| Dir | Hero before | Target at release | Hero after (arrived) | Target moved | End-to-target |
+|---|---|---|---|---|---|
+| N | (56.06, 233.20) | (56.06, 221.20) | (56.07, 221.50) | 12.00 | 0.30 |
+| NE | (56.07, 221.50) | (66.25, 211.32) | (66.19, 211.39) | 14.40 | 0.09 |
+| E | (66.19, 211.39) | (85.39, 211.39) | (85.37, 211.39) | 19.20 | 0.02 |
+| SE | (85.37, 211.39) | (95.55, 221.57) | (95.39, 221.42) | 14.40 | 0.22 |
+| S | (95.39, 221.42) | (95.39, 235.82) | (95.39, 235.82) | 14.40 | 0.00 |
+| SW | (95.39, 235.82) | (85.21, 246.00) | (85.45, 245.76) | 14.40 | 0.34 |
+| W | (85.45, 245.76) | (73.45, 245.76) | (73.50, 245.76) | 12.00 | 0.05 |
+| NW | (73.50, 245.76) | (63.32, 235.58) | (63.32, 235.58) | 14.40 | 0.00 |
+
+- Every direction moved the target; every hero path ended within ARRIVE_CELLS of its target, and the target cleared on arrival. The moved distance differs by frame count (2.4 cells per frame), not by direction.
+- Narrow check: `node js/client/locked-target-check.mjs` printed `locked target ok: 8 directions from centre (ArrowUp 1.5000, ArrowUp+ArrowRight 1.5000, ArrowRight 1.5000, ArrowDown+ArrowRight 1.5000, ArrowDown 1.5000, ArrowDown+ArrowLeft 1.5000, ArrowLeft 1.5000, ArrowUp+ArrowLeft 1.5000); edge and corner starts land on the clamped point; negative control rejects a locked direction`, exit 0.
+- Full gate: `node scripts/check-all.mjs` printed `RESULT gates=83 ok=83 failed=0 drift=0 skipped=6 strict=false`. The six skips are the external-input dependencies the gate reports with reasons.
+- Known limit, kept: a pending target is dropped when the lock releases.
