@@ -1261,3 +1261,8 @@ Incidents in this run, recorded:
 - Gates (Phase A, not run): hero-run-check (eight directions from the centre and inward directions from the west edge move the target; frame rate; walkable clamp; one order per cadence; release walks to the target; enemy stop; a press continues from a pending target), hero-trajectory-check (one final order on release, no hold, walk toward the goal; the negative control drops the release order), movement-sequence-check (extracts walkableRect), hero-view-lock-check (heroOrderPoint assertions removed).
 - Known limit, kept: a pending target is dropped when the view unlocks (panByKeys resets heroRun); the hero keeps the last order it was given.
 - Phase B owes: the witness through playwriter of all eight directions in the locked view, target before and after each, the hero's path ending at the target, and the narrowest check run (hero-run-check).
+
+## 2026-11-17 locked view: narrow eight-direction check (Phase A, lanmower)
+- Added js/client/locked-target-check.mjs: derives each of the eight arrow combinations through heroDirection and steps the locked target with stepHeroRun. From the centre every direction must move the target TARGET_CELLS_PER_S / 16 cells in one frame; from an edge and a corner start, the target must land on the walkable-clamped point. A negative control locks north-east and must be rejected.
+- Registered in scripts/check-all.mjs GATE_CHECKS after world-ready-check.mjs; DESIGN.md figures moved to gates=83, gate path refs=69 (camera writes unchanged at 24).
+- Phase B owes: run this check (output quoted) and the eight-direction witness in the running game.
