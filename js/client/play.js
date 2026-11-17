@@ -1291,6 +1291,11 @@ function isHostile(player) {
   return !(myTeam >= 0 && teamOf(UI.teams, player) === myTeam);
 }
 
+function walkableRect() {
+  const [x0, z0, x1, z1] = cameraBounds ?? [0, 0, W, H];
+  return { x0, z0, x1, z1 };
+}
+
 function driveLockedHero(dtS) {
   const units = currentUnits();
   const hero = localHeroUnit(units);
@@ -1305,7 +1310,7 @@ function driveLockedHero(dtS) {
     held: keysDown.size > 0 || padMove !== null,
     dtS,
     enemyIds: enemiesInSight(hero, units, isHostile),
-    bounds: { w: W, h: H },
+    bounds: walkableRect(),
   });
   heroRun = step.state;
   for (const command of step.commands) {
@@ -3752,6 +3757,7 @@ if (params.get("ci") === "1") {
   window.__ciRoster = () => simUnits().map((u) => ({ id: u.id, x: u.x, z: u.z, player: u.player, type: u.type, heading: u.simHeading }));
   window.__ciOrder = (unitId, x, z) => session.broadcast(sendOrder(unitId, x, z));
   window.__ciMove = (unitId, x, z) => commands.order(unitId, x, z);
+  window.__ciLockedTarget = () => (heroRun.target ? { x: heroRun.target.x, z: heroRun.target.z } : null);
   window.__ciSpawnNeutral = (kind, x, z) => (localGame ? localGame.spawn_attributed(255, kind, x, z) : -1);
   window.__ciAttack = (unitId, targetId) => commands.attack(unitId, targetId);
   window.__ciCast = (unitId, slot, target, x, z) => session.broadcast(sendCast(unitId, slot, target, x, z));

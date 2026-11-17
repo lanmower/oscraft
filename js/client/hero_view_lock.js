@@ -56,10 +56,6 @@ export function centredOnHero(view, hero, groundAt) {
   return hero ? { ...view, target: followTarget(hero, groundAt) } : view;
 }
 
-export function heroOrderPoint(hero, direction, distance) {
-  return { x: hero.x + direction.x * distance, z: hero.z + direction.z * distance };
-}
-
 export function findHeroOf(units, flags, player) {
   return units.find((u) => u.player === player && flags[u.type] === HERO_FLAG) ?? null;
 }

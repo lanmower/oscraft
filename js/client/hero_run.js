@@ -1,13 +1,10 @@
-import { heroOrderPoint } from "./hero_view_lock.js";
-
-export const RUN_CELLS = 64;
-export const TAP_MAX_S = 0.2;
+export const TARGET_CELLS_PER_S = 24;
 export const HERO_SIGHT_CELLS = 28.125;
 export const REORDER_S = 0.25;
 const ARRIVE_CELLS = 1;
 
 export function createHeroRun() {
-  return { pressing: false, pressedS: 0, sinceOrderS: 0, heading: null, target: null, ordered: false, seenEnemies: null, run: null };
+  return { held: false, target: null, ordered: null, sinceOrderS: 0, seenEnemies: null };
 }
 
 export function enemiesInSight(hero, units, isHostile) {
@@ -17,45 +14,38 @@ export function enemiesInSight(hero, units, isHostile) {
 
 export function stepHeroRun(state, input) {
   if (!input.hero) return { state: createHeroRun(), commands: [] };
-  if (input.held && !state.pressing) {
-    return holding({ ...createHeroRun(), pressing: true, seenEnemies: new Set(input.enemyIds) }, input);
-  }
-  if (input.held) return holding(state, input);
-  if (state.pressing) return released(state, input);
-  return running(state, input);
-}
-
-function holding(state, input) {
-  const next = { ...state, pressedS: state.pressedS + input.dtS, sinceOrderS: state.sinceOrderS + input.dtS };
-  if (input.direction === null) return { state: next, commands: [] };
-  const turned = !sameDirection(input.direction, state.heading);
-  if (!turned && next.sinceOrderS < REORDER_S) return { state: next, commands: [] };
-  const target = clampToMap(heroOrderPoint(input.hero, input.direction, RUN_CELLS), input.bounds);
-  return { state: { ...next, heading: input.direction, target, ordered: true, sinceOrderS: 0 }, commands: [order(target)] };
-}
-
-function released(state, input) {
-  if (!state.ordered) return { state: createHeroRun(), commands: [] };
-  if (state.pressedS >= TAP_MAX_S) return { state: createHeroRun(), commands: [{ kind: "hold" }] };
-  return { state: { ...createHeroRun(), run: { target: state.target, seenEnemies: state.seenEnemies } }, commands: [] };
-}
-
-function running(state, input) {
-  if (!state.run) return { state, commands: [] };
-  const { target, seenEnemies } = state.run;
-  if (distance(input.hero, target) < ARRIVE_CELLS) return { state: createHeroRun(), commands: [] };
-  if (input.enemyIds.some((id) => !seenEnemies.has(id))) {
+  if (state.target !== null && input.enemyIds.some((id) => !state.seenEnemies.has(id))) {
     return { state: createHeroRun(), commands: [{ kind: "hold" }] };
   }
-  return { state: { ...createHeroRun(), run: { target, seenEnemies: new Set(input.enemyIds) } }, commands: [] };
+  const target = advanceTarget(state, input);
+  if (target === null) return { state: createHeroRun(), commands: [] };
+  if (!input.held && distance(input.hero, target) < ARRIVE_CELLS) return { state: createHeroRun(), commands: [] };
+  const sinceOrderS = state.sinceOrderS + input.dtS;
+  const pressed = input.held && !state.held;
+  const due = state.ordered === null || pressed || (input.held ? sinceOrderS >= REORDER_S : !samePoint(state.ordered, target));
+  const next = {
+    held: input.held,
+    target,
+    ordered: due ? target : state.ordered,
+    sinceOrderS: due ? 0 : sinceOrderS,
+    seenEnemies: state.target === null ? new Set(input.enemyIds) : state.seenEnemies,
+  };
+  return { state: next, commands: due ? [order(target)] : [] };
 }
 
-function sameDirection(direction, heading) {
-  return heading !== null && direction.x === heading.x && direction.z === heading.z;
+function advanceTarget(state, input) {
+  const start = state.target ?? (input.direction ? { x: input.hero.x, z: input.hero.z } : null);
+  if (start === null || !input.direction) return start;
+  const step = TARGET_CELLS_PER_S * input.dtS;
+  return clampToBounds({ x: start.x + input.direction.x * step, z: start.z + input.direction.z * step }, input.bounds);
 }
 
-function clampToMap(point, bounds) {
-  return { x: clamp(point.x, 0, bounds.w), z: clamp(point.z, 0, bounds.h) };
+function samePoint(a, b) {
+  return a.x === b.x && a.z === b.z;
+}
+
+function clampToBounds(point, bounds) {
+  return { x: clamp(point.x, bounds.x0, bounds.x1), z: clamp(point.z, bounds.z0, bounds.z1) };
 }
 
 function clamp(value, low, high) {
