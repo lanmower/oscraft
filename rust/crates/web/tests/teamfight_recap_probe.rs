@@ -432,12 +432,26 @@ fn a_two_death_fight_and_a_single_death_show_their_recaps() {
     let credited_names: Vec<String> = credited.iter().map(|kind| recap_name(kind)).collect();
     assert!(credited_names.contains(&single_killer), "the death recap names a hero the sim credits with a kill");
     assert!(source.starts_with("Damage by source: "), "the source is labelled as damage by source");
-    let source_entries = source.trim_start_matches("Damage by source: ").split(", ").count();
-    assert!(source_entries <= 3, "the source lists at most the top three attackers by damage dealt");
     assert!(!source.contains("not recorded"), "the source is a recorded total, not the unknown placeholder");
+    let sources = damage_entries(source);
+    assert!(sources.len() <= 3, "the source lists at most the top three attackers by damage dealt");
+    assert!(sources.windows(2).all(|pair| pair[0].1 >= pair[1].1), "the sources are ordered by damage dealt, largest first");
+    let hitters: Vec<&str> = hit_by.trim_start_matches("Hit by ").split(", ").collect();
+    assert!(sources.iter().all(|(who, _)| who == "unknown" || hitters.contains(&who.as_str())), "each damage source is one of the hitters or unknown");
     assert!(hit_by.contains(&single_killer), "the killer is among the hitters");
     let expected_loss = game.counter(single, GOLD_LOST) as i64;
     assert_eq!(gold_lost, &format!("Gold lost {expected_loss}g"), "the gold lost is the sim's st_gold_lost of the death");
+}
+
+fn damage_entries(source: &str) -> Vec<(String, i64)> {
+    source
+        .trim_start_matches("Damage by source: ")
+        .split(", ")
+        .map(|entry| {
+            let (who, amount) = entry.rsplit_once(' ').expect("a damage source is a name and an amount");
+            (who.to_owned(), amount.parse().expect("the damage amount is a number"))
+        })
+        .collect()
 }
 
 fn recap_name(kind: &str) -> String {
