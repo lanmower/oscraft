@@ -1300,3 +1300,18 @@ Incidents in this run, recorded:
 - Generated UI: no UI text or generated file changed in this pass, so no generator was run; the generator --check is run in Phase B with the other gates.
 - Phase A disclosure: one `cargo check -q -p web --tests` ran in this pass to confirm the changed probe compiles. It is a type check, not a test, and it was not a witness. No test, gate or witness ran in Phase A.
 - Not touched: scenarios/bota/cross-contract-snapshot.json (unstaged), core.* dumps.
+
+## 2026-11-18 joiner sync and web probes, Phase B witnesses (lanmower)
+- Commits: e8159821 (teamfight_recap_probe.rs, documented top-three damage sources); the win counters probe is 28983162 (no change here). No code change for the joiner path in this pass: the witness below passes on the current tree, so the fixes from 2026-11-16 (7591fbee, dee62b82, 3c0ebc62, a9abb4bf, 921bfbd0, 0772c70d, 443dc603, 929f2d8e) stand.
+- Probe, teamfight_recap_probe a_two_death_fight_and_a_single_death_show_their_recaps: `test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 429.77s`, TF_EXIT=0. Printed death recap: `Killed by SNI`, `Damage by source: witch_doctor 129, unknown 90, queenofpain 81`, `Hit by enigma, witch_doctor, SNI, queenofpain`, `Gold lost 30g`.
+- Probe, win_counters_probe the_post_game_overview_compares_two_heroes_and_derives_the_bars: `test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 380.69s`, WC_EXIT=0. Printed graphs line: `probe graphs minutes=8 kills_left=[0, 0, 0, 0, 0, 0, 0, 1] peak=1`.
+- Joiner witness on playwriter (two headless-or-headed sessions: the daemon opened headed windows, no headless flag reached Chromium; both closed; dev server on the working tree at 8852, namespace jw1, host page with host=1, joiner page without). Readings from the joiner's DOM:
+  - after the host claims seat 1 (before bots): joiner `players` "1", `you` "255", "Slot 1: player", slots 2 to 10 open. The host reads "Slot 1: you".
+  - after the host fills with bots: joiner `players` "10", `you` "255", "Slot 1: player", "Slot 2: computer", "Slot 3: computer". The host reads "Slot 1: you", "Slot 2: computer", "Slot 3: computer".
+  - after the joiner clicks Join The Sentinel: joiner `players` "10", `you` "1", "Slot 1: player", "Slot 2: you". The host reads "Slot 2: player".
+- The reported defect (players 1, Slot 1 open on both pages) does not reproduce: slot 1 is the host's on the joiner page, and the player count follows the roster. The line "every seat already has a player or a bot" is the standing nothing-to-fill row (panels.lua, the no-open-seat case), shown because all ten seats were held when the joiner joined, not a refusal.
+- Still open and recorded: the pre-sync window (a guest's own claim before the first host state can set LOBBY.host to itself). This pass did not reproduce a wrong label.
+- Gate: `node scripts/check-all.mjs` printed `RESULT gates=83 ok=83 failed=0 drift=0 skipped=6 strict=false`, CA_EXIT=0. The gate runs the design-record check (figures unchanged: gates=83, refs=69).
+- Build notes: the first probe build was cold and swap-out passed 50 MB/s, so it was stopped by PID (rule: abort cold builds above 20 MB/s); the rerun with -j 1 was warm and swap stayed low. Probes ran with -j 1 once the build was warm.
+- Generated UI: none changed (no generator run; the -688g generator checks ran inside check-all).
+- Stopped by PID: dev server 2883956 (joiner witness). Probe and check-all jobs exited on their own (2879907 tree, 2882340, 2887221, check-all). The playwriter sessions for the witness were deleted. Not touched: scenarios/bota/cross-contract-snapshot.json (unstaged), core.* dumps, sessions and browsers of other workspaces.
