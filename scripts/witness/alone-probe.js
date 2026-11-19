@@ -18,7 +18,7 @@
       aloneEnabled: alone !== undefined && !alone.disabled,
       reasonShown: text.includes("Play alone starts a local match on this page."),
       waitingShown: text.includes("waiting for a host to claim a seat"),
-      bots: seats.filter((s) => /bot/.test(s)).length,
+      bots: seats.filter((s) => /bot|computer/.test(s)).length,
       seats: seats.slice(0, 3),
     };
   };

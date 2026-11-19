@@ -1400,7 +1400,7 @@ Incidents in this run, recorded:
 - Witnesses: rust tests play_alone_after_a_preview_claim_makes_the_page_host_and_fills_the_seats and play_alone_is_refused_once_a_host_holds_the_lobby (rust/crates/web/tests/lobby_preview_label.rs); js/client/lobby-link-check.mjs (22 cases); scripts/witness/alone-probe.js (browser: no Play alone while the host is unknown and the page has not settled; after settle the button is enabled and the reason shows; pressing it enables Fill, and Fill seats bots).
 
 ### Decision: the moba-acronyms image
-- Facts (sha256 of the files): scenarios/moba-acronyms/moba.osdt at HEAD is 944,928 bytes and is not the moba image. scenarios/moba/moba.osdt is 945,711 bytes, sha256 4b74f778f24ca5ec184282593be39fb33db24f050f093b5f9b414038e84bbe7f. The regenerated copy from gen-moba-acronym-pack.mjs was byte-identical to that moba image, because the generator listed .osdt among its assets and copied the moba image unchanged.
+- Facts (sha256 of the files): scenarios/moba-acronyms/moba.osdt at HEAD is 944,928 bytes, sha256 4b74f778f24ca5ec184282593be39fb33db24f050f093b5f9b414038e84bbe7f, and is not the moba image. scenarios/moba/moba.osdt is 945,711 bytes, sha256 c5560463cdc0b0f62fafbb2a26812ad679361d4389aedce1c7e2c246cb7f536a. The regenerated copy from gen-moba-acronym-pack.mjs was byte-identical to that moba image, because the generator listed .osdt among its assets and copied the moba image unchanged.
 - The moba image uses full hero ids; the acronyms pack uses acronym ids. Loading the copy gave: rules text refused, and assist_gold_radius_milli reported missing, with the announce, store, kill_gold and recap modules failing after it. The committed image loads with no mod error.
 - Right input: the acronyms pack's own sources. The generator is wrong to copy an image. Fix: .osdt is removed from the generator's file list, so the image is never copied; the committed image is kept.
 - Phase B decides whether the committed image is exactly what mapexport gives for scenarios/moba-acronyms. The image gate below checks it. If the gate reports stale, the image is regenerated with mapexport from its own directory; the committed image is then replaced by that output, not by a copy.
@@ -1422,4 +1422,43 @@ Remaining reachable work, ranked after the two decisions above:
 - scripts/witness/alone-probe.js (new): browser witness, not run in Phase A.
 
 Phase B records the results of each row here.
+
+
+## 2026-11-19 Phase B: play alone, the acronym image, the pack image gate (lanmower)
+
+The Phase A entry above has one wrong checksum, corrected here: the moba image is sha256 c5560463cdc0b0f62fafbb2a26812ad679361d4389aedce1c7e2c246cb7f536a (945,711 bytes). The value 4b74f778… is the committed moba-acronyms image (944,928 bytes). The regenerated copy the generator made, saved before the generator fix, has sha256 c5560463…, so the generator copied the moba image.
+
+### Witnesses, with wall times
+- rust/crates/web/tests/lobby_preview_label.rs: 6 passed, finished in 9.60 s (cargo wall 21 s with the build). Includes play_alone_after_a_preview_claim_makes_the_page_host_and_fills_the_seats and play_alone_is_refused_once_a_host_holds_the_lobby.
+- rust/crates/web/tests/lobby_refresh_probe.rs: 3 passed, finished in 9.00 s.
+- node js/client/lobby-link-check.mjs: lobby link ok (22 cases), under 1 s.
+- node scenarios/bota/tools/build-bota-pack.mjs --check: bota pack check ok, 190 generated files current. node scenarios/bota/tools/check-bota-pack.mjs: rc 0. node scenarios/moba/tools/gen-moba-acronym-pack.mjs --check: 127 acronym-only heroes, 187 generated files, 4411 assets. Each wall time is 0 to 1 s.
+- node scripts/check-moba-image.mjs (rewritten to cover moba, moba-acronyms and bota): moba 945711 bytes sha256 c5560463…, moba-acronyms 944928 bytes sha256 4b74f778…, bota 924833 bytes sha256 31312a1d…. Each equals its committed image; tamper control caught; no two packs share an image; wall 7 s.
+- Browser (scripts/witness/alone-probe.js, ns alone-probe-c, dev server on 8853). The file is one IIFE longer than playwriter's 10-second limit, so its steps were driven in calls of under 10 s with the same read function. Results, after a 9 s settle following a preview claim: Fill with bots disabled, Play alone enabled, reason line and waiting text shown. After Play alone: Fill enabled; Play alone and the reason gone. After Fill: 9 bot seats labelled "computer". The first run (ns alone-probe-b) showed the same sequence but counted bot seats with a regex that missed the label "computer"; the probe now counts it. The joiner tab was closed; gm reports 0 tabs left in this run.
+
+### Swap note
+The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps. Its reading was 49,260 KB/s swap-in. The script did not stop on it, so the Rust test and image steps ran under that load. The owner's rule (no build above 1000 KB/s) was not met for that job. The pass or fail outcomes stand; the wall times are inflated by swap. The gate job later refused to start at 3,572 KB/s and again at a later retry, and it waits for swap-in to fall to 1000 KB/s or below before it starts.
+
+### Decisions
+- Play alone: decided as the owner asked. The page does not become host on its own; the host is set only by the Play alone press, and only when no host holds the lobby. The automatic path would bring back the label window. A late host takes over through the mirror. Recorded under Phase A above.
+- moba-acronyms image: the committed image is kept, because the image gate shows it equals mapexport of its own directory. The generator's copy of the moba image is removed.
+- Top ranked item: the pack image gate. Done in Phase A and witnessed here.
+
+
+## 2026-11-19 Phase A: bota join path witness (scripts/witness/bota-join-probe.js, lanmower)
+
+- Row: the bota pack's lobby join path (a host page with ?host=1 and a joiner page in one room, both on package scenarios/bota). It had no browser witness; the bota panel is generated from the moba panel, so the moba witnesses do not show that the bota pack loads and joins.
+- File: scripts/witness/bota-join-probe.js defines state.botaJoin with step functions. The driver runs each step in a playwriter call under its 10 s limit.
+- Expectations: (1) the host with mode ap and claim slot 0 has Fill enabled; (2) the joiner, once the host seat is mirrored, has no Play alone button; (3) the joiner's claim gives "Slot 3: you" on the joiner and "Slot 3: player" on the host; (4) Fill on the host gives 8 bot seats on both pages; (5) both pages fetched a /scenarios/bota/ resource.
+- Witness: the browser run, Phase B. Its wall time and the result object are recorded there. Pages it opens are closed by its last step, and gm browser_tabs must list none of them afterwards.
+
+### Phase B: bota join witness (scripts/witness/bota-join-probe.js), result PASS
+- Final run (browser, dev server job serve8853h on 8853, vmstat before launch: si 60, so 0 KB/s). The run's serve job lasted 50.2 s, including launch and close. Result: allPass true. Checks: host Fill enabled before the fill; the joiner has no Play alone once the host seat is mirrored; joiner sees "Slot 3: you"; host sees "Slot 3: player"; 8 bot seats on the host and on the joiner; both pages fetched /scenarios/bota/. Pages closed; gm browser_tabs lists none of this run's tabs.
+- Earlier attempts, and causes (all in the probe, not the bota pack):
+  1. Each page had its own ns (bota-host, bota-joiner). The pages never shared a session: the joiner never saw the host seat. The moba label probe, which did connect, uses one ns for both pages. Fixed: one ns (bota-join) for both.
+  2. A named room (#bota-join-<ts>) was tried alongside 1; it does not change the result, so the room is now the default one.
+  3. The joiner's claim before the host's Fill is refused by design: panels.lua claim branch, "negotiate-first" while the host's lobby is not negotiated (needs Fill or every seat held). The probe now fills first, then claims into a bot seat (a claim may replace a bot seat).
+- Driver: the probe steps run in playwriter calls under 10 s; the driver lives in the gm run that started it. The probe file itself is a witness of the step functions only.
+- Swap readings for the attempts: 26100 and 2900 KB/s (refused, nothing launched), 408 to 720 KB/s on the runs that launched, 60 KB/s on the final run.
+- Load note: one load step of the final run printed "gm-browser-gone-before-body" for its own eval, and the steps used the probe state loaded in the previous run (same file text). The result above is from those steps; a fresh load would be needed to remove that caveat.
 
