@@ -1546,3 +1546,8 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Witness: node scripts/witness/run-gated-check.mjs (4 cases, in check-all): closed si 2032 and closed so 21088 do not run the witness and exit 3; open si 64 runs it, exits 0, prints wall. Output "run-gated ok (4 cases)".
 - Red: the stop line (exit 3) replaced with true; the check fails at the closed-reading case. Restored from a copy; cmp SAME; the check passes again.
 - Pages copy (question from the last report): one fetch of https://lanmower.github.io/oscraft/js/client/room_match.js is byte-identical to 3614dd15 (sha 06d1fc8b). 4558c349 has no room_match.js, so the deployed copy matches 3614dd15. The earlier mismatch was a fetch taken before that deploy finished.
+
+## 2026-11-19 Phase A: joiner path witness for the matchmaking default (lanmower)
+
+- Row: a second page with no hash joins the match room the first page made. Witness: scripts/witness/matchmaking-join-probe.js (playwriter; host page and joiner page in one namespace, 25 s each; joinedSameRoom when both hashes are the same #match-…). Not run yet; the Phase B run is the browser witness.
+- Red for the decision it depends on: js/client/room-match-check.mjs with chooseRoom made to always start a new room (the open-room branch removed): rc 1 at the join case. Restored; cmp SAME; room match ok (9 cases).
