@@ -1387,3 +1387,39 @@ Incidents in this run, recorded:
 - `node scripts/check-all.mjs`: `RESULT gates=83 ok=83 failed=0 drift=0 skipped=6 strict=false`, exit 0, wall 175 s.
 - Not witnessed: the lone-joiner's later host promotion (no longer exists by design), and the DOM Join flow on a bota page.
 - Left alone: scenarios/bota/cross-contract-snapshot.json (owner's, unstaged).
+
+## 2026-11-19 Phase A: play alone without a host, the moba-acronyms image, and an image gate for every pack (lanmower)
+
+### Decision: a page opened without ?host=1 (owner has not ruled; decided here, reversible)
+- Kept: a local claim from a page that is not hosting is applied as a preview, so it seats the joiner without setting the host label. This removes the host-control flash measured in the label-window probe (1,241 ms before the fix).
+- Added: a play-alone call (ui call alone, not "solo", which names the local click route) and a Play alone button with its reason line (TEXT.lobby.playAlone, TEXT.lobby.aloneReason). Both show only while LOBBY.host is nil. The call sets the host only when the user presses the button, and it is refused with host-set when a host already holds the lobby.
+- Route: lobbyInputRoute applies alone at once on the page: no broadcast, no queue, whatever the peer count.
+- Why not automatic promotion at settle: it gives a late host the same label window the fix removed, and it shows host controls without the user's choice.
+- Caveat: a host that connects after the press takes over through the mirror (mirrorsHostLobby takes the relayed host). The page then shows that host's lobby.
+- Reversal: remove the alone branch in scenarios/moba/panels.lua lobby_act, its dispatch name, the two lobby tree lines, the two TEXT keys and the host-set refusal, the lobbyInputRoute line, and the regenerated copies.
+- Witnesses: rust tests play_alone_after_a_preview_claim_makes_the_page_host_and_fills_the_seats and play_alone_is_refused_once_a_host_holds_the_lobby (rust/crates/web/tests/lobby_preview_label.rs); js/client/lobby-link-check.mjs (22 cases); scripts/witness/alone-probe.js (browser: no Play alone while the host is unknown and the page has not settled; after settle the button is enabled and the reason shows; pressing it enables Fill, and Fill seats bots).
+
+### Decision: the moba-acronyms image
+- Facts (sha256 of the files): scenarios/moba-acronyms/moba.osdt at HEAD is 944,928 bytes and is not the moba image. scenarios/moba/moba.osdt is 945,711 bytes, sha256 4b74f778f24ca5ec184282593be39fb33db24f050f093b5f9b414038e84bbe7f. The regenerated copy from gen-moba-acronym-pack.mjs was byte-identical to that moba image, because the generator listed .osdt among its assets and copied the moba image unchanged.
+- The moba image uses full hero ids; the acronyms pack uses acronym ids. Loading the copy gave: rules text refused, and assist_gold_radius_milli reported missing, with the announce, store, kill_gold and recap modules failing after it. The committed image loads with no mod error.
+- Right input: the acronyms pack's own sources. The generator is wrong to copy an image. Fix: .osdt is removed from the generator's file list, so the image is never copied; the committed image is kept.
+- Phase B decides whether the committed image is exactly what mapexport gives for scenarios/moba-acronyms. The image gate below checks it. If the gate reports stale, the image is regenerated with mapexport from its own directory; the committed image is then replaced by that output, not by a copy.
+
+### Top remaining item (ranked first): the image gate covers every pack
+Remaining reachable work, ranked after the two decisions above:
+1. Image gate for every pack (done in this change): scripts/check-moba-image.mjs rebuilds each pack's image with mapexport (moba, moba-acronyms, bota), compares it with the committed image, and refuses two packs sharing a committed image. This catches the class of error found above.
+2. Bota join flow in the browser (not witnessed; the bota page's Join path has no probe).
+3. Heap follow-up: split the drawWorld3d figure into the shadow path (J6) and the podium path (J7); needs live frames that run the podium branch.
+4. Pages freshness: a manual check after a deploy; held until a deploy is made.
+
+### Changes in Phase A, with the witnesses each needs
+- scenarios/moba/panels.lua: alone branch in lobby_act, dispatch name in the ui whitelist, Play alone button and reason line in lobby_tree. Witnesses: the two rust tests above; scripts/witness/alone-probe.js.
+- scenarios/moba/moba_ui.json: TEXT.lobby.playAlone, TEXT.lobby.aloneReason, refusal host-set. Witness: alone-probe.js (text shown) and the rust test that asserts the refusal.
+- js/client/lobby_link.js: alone route. js/client/lobby-link-check.mjs: three alone cases, label 22 cases. Witness: node js/client/lobby-link-check.mjs.
+- scenarios/bota/ and scenarios/moba-acronyms/ regenerated with build-bota-pack.mjs --apply and gen-moba-acronym-pack.mjs --apply. Witnesses: build-bota-pack.mjs --check, check-bota-pack.mjs, gen-moba-acronym-pack.mjs --check.
+- scenarios/moba/tools/gen-moba-acronym-pack.mjs: .osdt removed from the asset list. Witness: gen-moba-acronym-pack.mjs --check; node scripts/check-moba-image.mjs.
+- scripts/check-moba-image.mjs: covers moba, moba-acronyms and bota. Witness: node scripts/check-moba-image.mjs (manual gate, listed in scripts/check-all.mjs).
+- scripts/witness/alone-probe.js (new): browser witness, not run in Phase A.
+
+Phase B records the results of each row here.
+
