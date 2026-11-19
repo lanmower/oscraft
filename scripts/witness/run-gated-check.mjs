@@ -19,16 +19,16 @@ frame() {
   echo "top - 22:10:00 up 1 day,  3:00,  1 user,  load average: 2.00, 1.80, 1.60"
   echo "  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND"
   if [ "$HANDSHAKE" = 1 ]; then if [ "$C" = 1 ]; then W="gm-core worker --handshake {}"; else W="gm-core"; fi; echo "1002562 user      20   0  760892 760892  1000 S 300.0   1.0  66:58.00 $W"; fi
-  [ "$HEAVY" = 1 ] && echo "1151565 user      20   0  388808 388808  1000 S 475.0   0.5   0:56.00 chromium --type=gpu-process"
+  [ "$HEAVY" = 1 ] && echo "1151565 user      20   0  388808 388808  1000 S $CPU   0.5   0:56.00 chromium --type=gpu-process"
   echo "  999 user      20   0    1000   1000   500 S   0.0   0.0   0:00.10 sleep"
 }
 frame
 frame
 `, { mode: 0o755 });
 
-const run = (si, so, heavy = 0, handshake = 0) => {
-  const marker = path.join(dir, `ran-${si}-${so}-${heavy}-${handshake}`);
-  const r = spawnSync("bash", [runner, "touch", marker], { env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, SI: String(si), SO: String(so), HEAVY: String(heavy), HANDSHAKE: String(handshake) }, encoding: "utf8" });
+const run = (si, so, heavy = 0, handshake = 0, cpu = "475.0") => {
+  const marker = path.join(dir, `ran-${si}-${so}-${heavy}-${handshake}-${cpu}`);
+  const r = spawnSync("bash", [runner, "touch", marker], { env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, SI: String(si), SO: String(so), HEAVY: String(heavy), HANDSHAKE: String(handshake), CPU: cpu }, encoding: "utf8" });
   return { rc: r.status, ran: fs.existsSync(marker), out: r.stdout };
 };
 
@@ -43,8 +43,12 @@ expect(/wall=\d+\.\d\ds rc=0/.test(open.out), "an open run prints its wall time"
 const busy = run(64, 0, 1, 0);
 expect(busy.rc === 4 && !busy.ran, `a heavy process (chromium 475%) must stop before the witness: rc ${busy.rc}, ran ${busy.ran}`);
 expect(busy.out.includes("HEAVY JOB RUNNING") && busy.out.includes("1151565") && busy.out.includes("chromium"), "a heavy stop names the process by pid and command");
+const low = run(64, 0, 1, 0, "10.0");
+expect(low.rc === 0 && low.ran, `a process at 10% CPU does not block: rc ${low.rc}, ran ${low.ran}`);
+const warm = run(64, 0, 1, 0, "25.0");
+expect(warm.rc === 4 && !warm.ran, `a non-handshake process at 25% CPU blocks: rc ${warm.rc}, ran ${warm.ran}`);
 const relay = run(64, 0, 0, 1);
 expect(relay.rc === 0 && relay.ran, `a gm-core handshake relay worker at 300% does not block: rc ${relay.rc}, ran ${relay.ran}`);
 
 fs.rmSync(dir, { recursive: true, force: true });
-console.log("run-gated ok (7 cases)");
+console.log("run-gated ok (9 cases)");

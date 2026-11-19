@@ -1589,3 +1589,10 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Witness: node scripts/witness/run-gated-check.mjs (7 cases): "run-gated ok (7 cases)".
 - Red: the runner without -c (top -b -n 2): rc 1, "a gm-core handshake relay worker at 300% does not block: rc 4, ran false". Restored from a copy: cmp SAME; the check is green again.
 - Live check not done: at the time of the change ps listed 16 handshake workers, but none was in the first top frame (they are idle, and the runner only needs busy ones). The full-command behavior is witnessed by the stub only.
+
+## 2026-11-20 Phase A: heavy-job threshold is 20% CPU (lanmower)
+
+- Owner rule: gm-core workers started with --handshake do not count; any other process above 20% CPU in top counts.
+- Change: scripts/witness/run-gated.sh counts a non-handshake process at 20% CPU or more (was 100%). The stub check in run-gated-check.mjs takes a CPU value; the new cases are a process at 10% (runs) and one at 25% (blocks, rc 4).
+- Witness: node scripts/witness/run-gated-check.mjs, 9 cases: "run-gated ok (9 cases)". The marker name includes the CPU value, so the 10% and 25% cases do not share a marker.
+- Red: the threshold back at 100%: rc 1, "a non-handshake process at 25% CPU blocks: rc 0, ran true". Restored from a copy: cmp SAME; the check is green again.
