@@ -1538,3 +1538,11 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Live finding before the fix (420f6e25): the first probe ended in #lobby, not a match room. The page chose its own announced default room. Fixed in d8167f13 (see the entry above).
 - Tabs: this run opened 2 pages and closed both; browser_tabs reports none in this run. The gate browser (pid 1013566) and the dev server (job serve8853, node pid 1001123) were stopped; port 8853 returns 000 afterwards.
 - Not run: the cargo tests. The change is node and JS only; the Rust witnesses are unchanged.
+
+## 2026-11-19 Phase A: witness runner stops on a closed gate (lanmower)
+
+- Cause: the Phase B node witnesses ran on a closed reading (si 2032 KB/s). The script read the gate and did not stop on it.
+- Change: scripts/witness/run-gated.sh reads the second vmstat sample; a non-numeric or closed reading (si or so 1000 KB/s or more) exits 3 with "GATE CLOSED: no witness started" before the command runs; an open run prints wall and rc. Witnesses run through it.
+- Witness: node scripts/witness/run-gated-check.mjs (4 cases, in check-all): closed si 2032 and closed so 21088 do not run the witness and exit 3; open si 64 runs it, exits 0, prints wall. Output "run-gated ok (4 cases)".
+- Red: the stop line (exit 3) replaced with true; the check fails at the closed-reading case. Restored from a copy; cmp SAME; the check passes again.
+- Pages copy (question from the last report): one fetch of https://lanmower.github.io/oscraft/js/client/room_match.js is byte-identical to 3614dd15 (sha 06d1fc8b). 4558c349 has no room_match.js, so the deployed copy matches 3614dd15. The earlier mismatch was a fetch taken before that deploy finished.
