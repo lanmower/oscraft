@@ -182,6 +182,13 @@ for (const rel of baselineFiles) {
       if (replacement !== stem) text = text.replace(new RegExp(`(?<![A-Za-z0-9_])${replacement}(?![A-Za-z0-9_])`, "g"), stem);
     }
   }
+  if (rel === "panels.lua") {
+    text = text
+      .replace('B("bot_bernard", s.bot_bernard == true)', 'B("bot", s.bot_bernard == true)')
+      .replace('"bot_bernard:"', '"bot:"')
+      .replace("a.bot_bernard == true", "a.bot == true")
+      .replace("bot_bernard = s.bot_bernard == true,", "bot_bernard = s.bot == true,");
+  }
   if (rel === "mines.lua") text = text.replace(/\bFOREVER\b/g, "UNLIMITED_LIFE");
   if (rel === "manifest.json") {
     const manifest = JSON.parse(fs.readFileSync(path.join(moba, rel), "utf8"));
