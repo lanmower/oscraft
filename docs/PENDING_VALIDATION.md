@@ -1476,6 +1476,29 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Mutation (Phase B, before restore): gui_flow.js line 156 "bot:" becomes "bot_". The witness must then fail (no enabled Join button). The file is restored from git afterwards; git diff must show no change to gui_flow.js.
 - Phase B: one pass run on the unmodified tree, then one mutation run, then restore. Results and wall times go in the Phase B entry.
 
+### Phase B: identifier runtime check (afac61dd), witnesses and mutations (lanmower)
+- Pass run on the tree (node scripts/check-identifier-regime-runtime.mjs under ulimit -S -t 30; swap si 492 so 0 at start): rc 0, wall 13.16 s, PASS lines printed; default 127 acronyms, bota 24 fullnames, historical moba.
+- Mutation 1, READY_TIMEOUT_MS = 1: rc 1, wall 0.21 s, "identifier-runtime: pack not served within 1 ms: launch wrapper has not printed a URL yet". Red. Restored by edit (restore true).
+- Mutation 2, the cleanup line removed: rc 0 (the check itself still passes), but the staged-site count rose from 106 to 107 after one run. Red under the count witness. Restored (restore true); git diff for the file is empty.
+- Leftover staged sites from earlier runs (107 directories .dev-site-identifier-runtime-*, gitignored): not deleted in this change; the fix stops new ones. Owner to decide on removal.
+
+### Item 4, steer snap_clear stop-short (movement.rs): not reproduced; left open
+- Witness that already exists: cargo test -p web --test pathing_probe bundle (four tests). Two runs: rc 0, 13.72 s and 13.94 s (CARGO_BUILD_JOBS=2, warm target). Results: chase_bundle 30 of 30 reached; bundle 40 of 40 arrived, stuck []; funnel 60 of 60 arrived, longest stall 1; spread 40 of 40 arrived, longest stall 37. No unit is stuck; no stop-short reproduced.
+- The branch: when the goal is within one step and a friendly footprint occupies it (or the order is not a move), the unit's target is set to its own position, and a move order becomes a stop. The repo does not state the intended outcome for an occupied goal, so a failing test would encode a guess. Reopen with an owner-stated expected outcome for an occupied goal, then write the test to that outcome.
+
+### Browser left behind (process check, this turn)
+- Chromium pid 644510 (parent gate 199538): no longer running at the check. Gate pid 199538 is also gone. Both are in the process table only as history; the check found neither.
+- The profile's SingletonLock now points to dev4-763368, a live browser of the current project gate pid 763326 (parent 188284, parent 2813, the gm worker of this run). That gate is this run's project gate and holds the lock. Stopping it would remove the browser every later witness of this run uses, so it is left running; no tab of this run is open in it (browser_tabs: unchanged, 0 in this run).
+
+### Ranked remaining work (reachable or held)
+1. Reachable: J6/J7 heap split (drawWorld3d); needs live frames that reach the podium branch.
+2. Reachable: lycan_wolf_form roster exclusion (acronym proxy); needs a sim or data flag, so a Rust build.
+3. Reachable: steer snap_clear stop-short; not reproduced (above); needs an owner-stated expected outcome for an occupied goal.
+4. Reachable: remove the 107 leftover .dev-site-identifier-runtime-* directories; needs the owner to confirm deletion.
+5. Held (owner): live playwriter requests to play.spawn.co; reopen with an owner decision.
+6. Held (owner): the Play alone default; reopen with an owner decision.
+7. Held (deploy): Pages freshness after a deploy; reopen after a deploy.
+
 
 ## 2026-11-19 Phase A: identifier runtime check, readiness bound and staged-site cleanup (lanmower)
 
