@@ -1462,3 +1462,11 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Swap readings for the attempts: 26100 and 2900 KB/s (refused, nothing launched), 408 to 720 KB/s on the runs that launched, 60 KB/s on the final run.
 - Load note: one load step of the final run printed "gm-browser-gone-before-body" for its own eval, and the steps used the probe state loaded in the previous run (same file text). The result above is from those steps; a fresh load would be needed to remove that caveat.
 
+
+## 2026-11-19 Phase A: bota bot seats are claimable in the DOM (scripts/witness/bota-join-button.js, lanmower)
+
+- Row: gui_flow.js claimable (line 156: !seat.owner or owner starts with "bot:") drives the "Join <team>" button (joinButton, flow-action). The bota identifier fix (3f137107) restored "bot:" for this check. The DOM effect was not witnessed (ledger 2026-11-19 bota pick grid: "Not witnessed").
+- File: scripts/witness/bota-join-button.js. Host (ap, claim slot 0, fill), then a joiner page on the same namespace. Pass: the joiner has at least one enabled "Join ..." button and nine bot seats visible.
+- Mutation (Phase B, before restore): gui_flow.js line 156 "bot:" becomes "bot_". The witness must then fail (no enabled Join button). The file is restored from git afterwards; git diff must show no change to gui_flow.js.
+- Phase B: one pass run on the unmodified tree, then one mutation run, then restore. Results and wall times go in the Phase B entry.
+
