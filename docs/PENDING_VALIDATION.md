@@ -1462,6 +1462,12 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Swap readings for the attempts: 26100 and 2900 KB/s (refused, nothing launched), 408 to 720 KB/s on the runs that launched, 60 KB/s on the final run.
 - Load note: one load step of the final run printed "gm-browser-gone-before-body" for its own eval, and the steps used the probe state loaded in the previous run (same file text). The result above is from those steps; a fresh load would be needed to remove that caveat.
 
+### Phase B: bota bot seats are claimable in the DOM, witness and mutation (lanmower)
+- Pass run, unmodified tree (scripts/witness/bota-join-button.js, dev server job on 8853, vmstat before launch si 16 KB/s, so 0 KB/s): joiner shows "Join The Sentinel" and "Join The Scourge", both enabled; nine bot seats visible; pass true; witness wall 21.98 s.
+- Mutation run (js/client/gui_flow.js line 156: "bot:" changed to "bot_", vmstat before the edit si 92, so 0 KB/s): both Join buttons disabled; nine bot seats still visible; pass false (red); wall 51.19 s. The file was restored in the same body (restored true); git diff for js/client/gui_flow.js is empty afterwards.
+- Tabs: the run's tab check reported "none in this run" after the mutation run's pages closed. The dev server job was stopped by gm job_stop; port 8853 has no listener.
+- Earlier swap readings for this item: 1068 KB/s (refused, before the mutation edit was applied); 92 KB/s (the mutation run).
+
 
 ## 2026-11-19 Phase A: bota bot seats are claimable in the DOM (scripts/witness/bota-join-button.js, lanmower)
 
