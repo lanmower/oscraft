@@ -1518,3 +1518,10 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Change: js/client/room_match.js (chooseRoom: the fullest open listed room below MAX_PLAYERS, ties by name, else a new match-<nonce> room; matchmakingTarget: null when the address names a room). play.js waits one announce interval (ROOM_ANNOUNCE_S, 15 s) for the room list, then sets the chosen hash and reloads. The explicit Play alone button is unchanged.
 - Witness: node js/client/room-match-check.mjs (8 cases; in check-all). Mutation: matchmakingTarget returns null when the address is empty (play alone as default) -> rc 1, "a page with no room starts a match room when none is open". Restored; the check is green again (rc 0).
 - Limit: pages announce only with a signed-in pubkey; two pages that open within the same interval can each create a match room. Not witnessed live (the live playwriter requests are owner-held).
+
+## 2026-11-19 Phase B finding and fix: matchmaking never picks the page's own default room (lanmower)
+
+- Live probe on the 420f6e25 code (playwriter, page play.html?ci=1&ns=mm-probe, no hash, 25 s wait): the page reloaded to #lobby, not to a match-<nonce> room. Cause: the page announces its own default room "lobby" with one player, the relay echoes that back, and chooseRoom picked it. So the default still landed every player in the shared lobby, and the change added no match.
+- Fix: matchmakingTarget drops DEFAULT_ROOM ("lobby") from the candidates. A page with no room now joins another listed match room or starts match-<nonce>.
+- Witness: node js/client/room-match-check.mjs, 9 cases (new case: a page never matches into its own default room). Green rc 0. Mutation (candidate filter removed): rc 1, "a page never matches into its own default room". Restored; green rc 0.
+- Live re-run of the probe on this code is in the Phase B entry below.

@@ -7,7 +7,9 @@ export function chooseRoom(rooms, maxPlayers, nonce) {
   return open[0].name;
 }
 
+export const DEFAULT_ROOM = "lobby";
+
 export function matchmakingTarget(hash, rooms, maxPlayers, nonce) {
   if (hash.length > 0) return null;
-  return chooseRoom(rooms, maxPlayers, nonce);
+  return chooseRoom(rooms.filter((room) => room.name !== DEFAULT_ROOM), maxPlayers, nonce);
 }
