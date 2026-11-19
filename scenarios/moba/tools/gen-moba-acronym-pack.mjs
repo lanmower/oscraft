@@ -8,7 +8,7 @@ const source = path.join(root, "scenarios", "moba");
 const out = path.join(root, "scenarios", "moba-acronyms");
 const check = process.argv.includes("--check");
 const apply = process.argv.includes("--apply");
-const fileExt = new Set([".lua", ".osd", ".json", ".txt", ".tsv", ".osdt", ".png", ".jpg", ".jpeg", ".webp", ".glb", ".gltf", ".bin", ".ogg", ".wav", ".ktx2"]);
+const fileExt = new Set([".lua", ".osd", ".json", ".txt", ".tsv", ".png", ".jpg", ".jpeg", ".webp", ".glb", ".gltf", ".bin", ".ogg", ".wav", ".ktx2"]);
 const textExt = new Set([".lua", ".osd", ".json", ".txt", ".tsv"]);
 const table = new Map([...fs.readFileSync(path.join(source, "hero_acronyms.lua"), "utf8").matchAll(/^\s*\["([^"]+)"\] = "([^"]*)",/gm)].map((m) => [m[1], m[2].toLowerCase()]));
 const units = fs.readFileSync(path.join(source, "units_heroes.osd"), "utf8");
