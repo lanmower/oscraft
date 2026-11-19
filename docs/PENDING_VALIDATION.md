@@ -1588,4 +1588,4 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Change: scripts/witness/run-gated.sh reads top -b -c (full command lines). The stub in run-gated-check.mjs now prints the full command only when -c is given, as top does, so the check covers the default name.
 - Witness: node scripts/witness/run-gated-check.mjs (7 cases): "run-gated ok (7 cases)".
 - Red: the runner without -c (top -b -n 2): rc 1, "a gm-core handshake relay worker at 300% does not block: rc 4, ran false". Restored from a copy: cmp SAME; the check is green again.
-- Real top check: top -b -c shows the full command for the relay worker (the grep lines are in the run output of this change).
+- Live check not done: at the time of the change ps listed 16 handshake workers, but none was in the first top frame (they are idle, and the runner only needs busy ones). The full-command behavior is witnessed by the stub only.
