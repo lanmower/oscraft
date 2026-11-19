@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fail = (message) => { console.error(`identifier-runtime: ${message}`); process.exit(1); };
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const READY_TIMEOUT_MS = 120000;
 const freePort = () => new Promise((resolve, reject) => {
   const server = net.createServer();
   server.once("error", reject);
@@ -31,9 +32,11 @@ async function fetchJson(url) {
   return JSON.parse(await response.text());
 }
 async function waitFor(fn) {
+  const end = Date.now() + READY_TIMEOUT_MS;
   for (;;) {
     try { return await fn(); } catch (error) {
       if (child.exitCode !== null) throw new Error(`launch wrapper exited with ${child.exitCode} before the pack was served: ${error.message}`);
+      if (Date.now() >= end) throw new Error(`pack not served within ${READY_TIMEOUT_MS} ms: ${error.message}`);
       await sleep(150);
     }
   }
@@ -80,4 +83,5 @@ try {
   fail(error.message);
 } finally {
   cleanup();
+  if (!process.env.IDENTIFIER_RUNTIME_SITE) fs.rmSync(site, { recursive: true, force: true });
 }

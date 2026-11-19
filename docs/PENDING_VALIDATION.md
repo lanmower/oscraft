@@ -1476,3 +1476,15 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Mutation (Phase B, before restore): gui_flow.js line 156 "bot:" becomes "bot_". The witness must then fail (no enabled Join button). The file is restored from git afterwards; git diff must show no change to gui_flow.js.
 - Phase B: one pass run on the unmodified tree, then one mutation run, then restore. Results and wall times go in the Phase B entry.
 
+
+## 2026-11-19 Phase A: identifier runtime check, readiness bound and staged-site cleanup (lanmower)
+
+- Row: scripts/check-identifier-regime-runtime.mjs. The 30 s wait the ledger listed as open was removed in ba5d0bc5 (the readiness wait had no bound after it). The current check had no bound on its readiness wait and never removed the site it stages (scripts/dev/serve-bota.sh stages into .dev-site-identifier-runtime-<pid>). 100 such directories were left in the repo root by runs of this gate.
+- Measured before the change (node run, same gate command with ulimit -S -t 30; host swap si 356, so 0 KB/s; nproc 12; job idrmeasure2): quiet runs wall 10.99, 12.38, 11.50 s; under 12 busy-loop processes (load1 up to 15.85) wall 19.05, 16.01, 15.96 s; all rc 0 (identifier-runtime PASS). The loaded maximum is 19.05 s; the bound is 120 s (6.3 times the loaded maximum). The gate's hang watchdog is 600 s.
+- Gate breach, recorded: the first measurement job (idrmeasure) started at swap-in 13548 KB/s because its body read the reading and did not gate on it. It finished (rc 0 on all six runs) before the stop reached it, and its runs carry no timings. Its results are not cited. The timed numbers above come from the second job (idrmeasure2), which gated on swap before every run.
+- The gate's CPU budget (ulimit -S -t 30) was not captured: bash times() does not count the children of a subshell. The CPU figure is not measured here.
+- Change 1: READY_TIMEOUT_MS = 120000 bounds waitFor; a readiness timeout throws "pack not served within ... ms" with the last error.
+- Change 2: the finally block removes the staged site when IDENTIFIER_RUNTIME_SITE is not set.
+- Witnesses: node scripts/check-identifier-regime-runtime.mjs must exit 0 (PASS line) on the tree. Mutation 1: READY_TIMEOUT_MS = 1 must exit 1 with "pack not served within 1 ms". Mutation 2: the rmSync line removed must leave one more .dev-site-identifier-runtime-* directory after one run (the count is taken before and after). Each mutation is restored before the next step; git diff must show the file as committed.
+- Load for the witness is the same bounded busy-loop job (kill by PID) used for the measurement; swap must be below 1000 KB/s before each launch.
+
