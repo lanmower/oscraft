@@ -1551,3 +1551,16 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 
 - Row: a second page with no hash joins the match room the first page made. Witness: scripts/witness/matchmaking-join-probe.js (playwriter; host page and joiner page in one namespace, 25 s each; joinedSameRoom when both hashes are the same #match-…). Not run yet; the Phase B run is the browser witness.
 - Red for the decision it depends on: js/client/room-match-check.mjs with chooseRoom made to always start a new room (the open-room branch removed): rc 1 at the join case. Restored; cmp SAME; room match ok (9 cases).
+
+## 2026-11-19 Phase B: gate hard stop and matchmaking join probe (lanmower)
+
+- Gate window: 21:43:00 si 184 so 0 with heavy [1260706 106.9% MainThread, 1260591 100% zig] (not mine, left alone); 21:43:32 si 176 so 0 heavy none: CLEAR.
+- Runner readings (second sample, before each witness): run-gated-check si 32; room-match si 108; lobby-link si 84; identifier si 268; alone-probe si 916; join probe si 500. All so 0.
+- Witnesses, each once, wall time:
+  - scripts/witness/run-gated-check.mjs: run-gated ok (4 cases), wall 0.13 s, rc 0.
+  - js/client/room-match-check.mjs: room match ok (9 cases), wall 0.06 s, rc 0.
+  - js/client/lobby-link-check.mjs: lobby link ok (22 cases), wall 0.03 s, rc 0.
+  - scripts/check-identifier-regime-runtime.mjs: PASS default 127 acronyms, bota 24 fullnames, historical moba; wall 16.02 s, rc 0.
+  - scripts/witness/alone-probe.js (playwriter, localhost): claim -> waiting text; Play alone -> alone button gone, Fill with bots enabled; Fill -> 9 bots. Wall 24 s. Pass.
+  - scripts/witness/matchmaking-join-probe.js (playwriter, localhost, ns mm-join-mwo325jg): host #match-6hze71hz; joiner #match-6hze71hz; joinedSameRoom true. Wall 53 s. Pass.
+- Teardown: dev server job serve8853c (node pid 1267153) stopped, port 8853 returns 000; playwriter gate pid 1268292 (started this turn) stopped by PID; its browser exited; both probe pages closed by the probes; browser_tabs none in this run.
