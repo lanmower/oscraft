@@ -19,6 +19,7 @@ const GATE_CHECKS = [
   "js/client/lobby-link-check.mjs",
   "js/client/room-match-check.mjs",
   "scripts/witness/run-gated-check.mjs",
+  "scripts/witness/leg-clock-check.mjs",
   "js/client/lobby-mirror-check.mjs",
   "js/client/lobby-replay-check.mjs",
   "js/client/world-ready-check.mjs",

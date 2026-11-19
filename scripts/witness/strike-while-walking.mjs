@@ -10,6 +10,7 @@ export const LEGS = [
 
 export const CONFIG = {
   legTicks: 640,
+  legCapFactor: 3,
   sampleTicks: 2,
   sampleFloor: 288,
   legReruns: 2,
@@ -247,7 +248,8 @@ export async function strikeWhileWalkingLeg(config) {
 
   const legTick0 = tickNow();
   const probeStart = walkProbeNow();
-  while (aborted === null && tickNow() - legTick0 < config.legTicks) {
+  const clock = window.legClock.create(legTick0, config.legTicks, config.legTicks * config.legCapFactor);
+  while (aborted === null && clock.advance(tickNow(), pick === null && creep !== null && window.__ciHp(creep.id) > replaceHp)) {
     const h = heroUnit();
     if (!h) {
       aborted = "hero dead";
@@ -497,6 +499,7 @@ export function verdict(legs) {
 export async function runWitness(page, config = CONFIG) {
   const lockButton = page.locator("#hero-lock");
   await page.addScriptTag({ path: fileURLToPath(new URL("./clear-target.js", import.meta.url)) });
+  await page.addScriptTag({ path: fileURLToPath(new URL("./leg-clock.js", import.meta.url)) });
   await page.evaluate(() => {
     window.__ciWitnessUsed = [];
   });
