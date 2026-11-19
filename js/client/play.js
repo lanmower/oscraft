@@ -7,6 +7,7 @@ import * as xstate from "xstate";
 import { createAmbientFx, AMBIENT_KINDS } from "./ambient_fx.js";
 import { encodeFrame, decodeFrame, frameTypeName, FRAME, MAX_PLAYERS, TEAM_SIZE, SPECTATOR } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
+import { matchmakingTarget } from "./room_match.js";
 import { assetJson, assetRel, assetUrl, fetchRetrying, loadLuaBundle, manifest, manifestOf, moduleClosure, moduleTextReader, modulePaths, packBytes, packJson, packText, packUrl, readPackFile, stashPack, UI } from "./pack_load.js";
 import { applyFrame, createSeating, createStateEncoder, startFrame } from "./delta.js";
 import { createFrameRecovery } from "./net_recovery.js";
@@ -2562,6 +2563,13 @@ const whenIdle = globalThis.requestIdleCallback ?? ((f) => setTimeout(f, 0));
 whenIdle(announceRoom);
 setInterval(announceRoom, ROOM_ANNOUNCE_S * 1000);
 setInterval(pruneRooms, ROOM_PRUNE_MS);
+setTimeout(() => {
+  const rooms = [...announcedRooms].map(([name, a]) => ({ name, players: a.players }));
+  const target = matchmakingTarget(location.hash.slice(1), rooms, MAX_PLAYERS, Math.random().toString(36).slice(2, 10));
+  if (target === null) return;
+  location.hash = target;
+  location.reload();
+}, ROOM_ANNOUNCE_S * 1000);
 const iceConfig = (() => {
   try {
     return iceServersFrom(params.get("ice"));

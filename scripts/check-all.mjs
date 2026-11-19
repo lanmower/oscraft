@@ -17,6 +17,7 @@ const GATE_CHECKS = [
   "scripts/check-doc-claims.mjs",
   "scripts/check-design-record.mjs",
   "js/client/lobby-link-check.mjs",
+  "js/client/room-match-check.mjs",
   "js/client/lobby-mirror-check.mjs",
   "js/client/lobby-replay-check.mjs",
   "js/client/world-ready-check.mjs",

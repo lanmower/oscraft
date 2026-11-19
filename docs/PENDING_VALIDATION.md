@@ -1511,3 +1511,10 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Witnesses: node scripts/check-identifier-regime-runtime.mjs must exit 0 (PASS line) on the tree. Mutation 1: READY_TIMEOUT_MS = 1 must exit 1 with "pack not served within 1 ms". Mutation 2: the rmSync line removed must leave one more .dev-site-identifier-runtime-* directory after one run (the count is taken before and after). Each mutation is restored before the next step; git diff must show the file as committed.
 - Load for the witness is the same bounded busy-loop job (kill by PID) used for the measurement; swap must be below 1000 KB/s before each launch.
 
+
+## 2026-11-19 Phase A: matchmaking is the default for a page with no room (lanmower)
+
+- Owner decision: a player who opens the game with no room in the address is put into a multiplayer match; Play alone stays an explicit lobby button. The repo had no matchmaking; the default was the shared room "lobby" and the Play alone button in the lobby tree.
+- Change: js/client/room_match.js (chooseRoom: the fullest open listed room below MAX_PLAYERS, ties by name, else a new match-<nonce> room; matchmakingTarget: null when the address names a room). play.js waits one announce interval (ROOM_ANNOUNCE_S, 15 s) for the room list, then sets the chosen hash and reloads. The explicit Play alone button is unchanged.
+- Witness: node js/client/room-match-check.mjs (8 cases; in check-all). Mutation: matchmakingTarget returns null when the address is empty (play alone as default) -> rc 1, "a page with no room starts a match room when none is open". Restored; the check is green again (rc 0).
+- Limit: pages announce only with a signed-in pubkey; two pages that open within the same interval can each create a match room. Not witnessed live (the live playwriter requests are owner-held).
