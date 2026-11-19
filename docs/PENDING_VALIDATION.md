@@ -1581,3 +1581,11 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Witness: node scripts/witness/leg-clock-check.mjs (3 cases): a live creep the whole time ends at legTicks; a 100-tick re-pick extends the leg by 100 ticks; no live creep stops at the cap. Output "leg clock ok (3 cases)". Before the change the file did not exist and the check failed on the read. The strike-while-walking verdict check still passes (14 cases).
 - Red: the mutation counts pending re-pick ticks as budget (if (tick > last) without the counts test): rc 1, "a re-pick of 100 ticks extends the leg by that much: ended after 640 ticks". Restored from a copy: cmp SAME; the check is green again.
 - Not verified in a browser: the live effect on the flake. That is the Phase B run of scripts/witness/strike-while-walking.mjs (lock on, off, on) through the runner.
+
+## 2026-11-20 Phase A: the runner's heavy check could not see --handshake (lanmower)
+
+- Found in the Phase B window (2026-11-20 23:14): the runner refused lobby-link on gm-core worker 1002562 at 100%. The runner excluded handshake workers by matching "handshake" in the top command column, but top -b shows only the process name (gm-core), so the exclusion never matched.
+- Change: scripts/witness/run-gated.sh reads top -b -c (full command lines). The stub in run-gated-check.mjs now prints the full command only when -c is given, as top does, so the check covers the default name.
+- Witness: node scripts/witness/run-gated-check.mjs (7 cases): "run-gated ok (7 cases)".
+- Red: the runner without -c (top -b -n 2): rc 1, "a gm-core handshake relay worker at 300% does not block: rc 4, ran false". Restored from a copy: cmp SAME; the check is green again.
+- Real top check: top -b -c shows the full command for the relay worker (the grep lines are in the run output of this change).

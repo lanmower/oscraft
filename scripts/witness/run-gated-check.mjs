@@ -14,10 +14,11 @@ echo " r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id
 echo " 3  0 3695972 3423628   2844 4986764 $SI $SO 47940 23481 56181 18 32 8 55 5 0 0"
 `, { mode: 0o755 });
 fs.writeFileSync(path.join(bin, "top"), `#!/bin/sh
+case " $* " in *" -c "*) C=1;; *) C=0;; esac
 frame() {
   echo "top - 22:10:00 up 1 day,  3:00,  1 user,  load average: 2.00, 1.80, 1.60"
   echo "  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND"
-  [ "$HANDSHAKE" = 1 ] && echo "1002562 user      20   0  760892 760892  1000 S 300.0   1.0  66:58.00 gm-core worker --handshake {}"
+  if [ "$HANDSHAKE" = 1 ]; then if [ "$C" = 1 ]; then W="gm-core worker --handshake {}"; else W="gm-core"; fi; echo "1002562 user      20   0  760892 760892  1000 S 300.0   1.0  66:58.00 $W"; fi
   [ "$HEAVY" = 1 ] && echo "1151565 user      20   0  388808 388808  1000 S 475.0   0.5   0:56.00 chromium --type=gpu-process"
   echo "  999 user      20   0    1000   1000   500 S   0.0   0.0   0:00.10 sleep"
 }

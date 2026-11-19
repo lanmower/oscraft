@@ -8,7 +8,7 @@ if ! [[ "$si" =~ ^[0-9]+$ && "$so" =~ ^[0-9]+$ ]] || [ "$si" -ge 1000 ] || [ "$s
   echo "GATE CLOSED: no witness started"
   exit 3
 fi
-heavy=$(top -b -n 2 -d 1 | awk '/PID USER/{f++} f==2 && $9+0>=100 && $0 !~ /handshake/ {printf "%s(%s%% %s) ", $1, $9, $12}')
+heavy=$(top -b -c -n 2 -d 1 | awk '/PID USER/{f++} f==2 && $9+0>=100 && $0 !~ /handshake/ {printf "%s(%s%% %s) ", $1, $9, $12}')
 echo "heavy (top current CPU, gm-core handshake workers excluded): [$heavy]"
 if [ -n "$heavy" ]; then
   echo "HEAVY JOB RUNNING: no witness started: $heavy"
