@@ -1525,3 +1525,16 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Fix: matchmakingTarget drops DEFAULT_ROOM ("lobby") from the candidates. A page with no room now joins another listed match room or starts match-<nonce>.
 - Witness: node js/client/room-match-check.mjs, 9 cases (new case: a page never matches into its own default room). Green rc 0. Mutation (candidate filter removed): rc 1, "a page never matches into its own default room". Restored; green rc 0.
 - Live re-run of the probe on this code is in the Phase B entry below.
+
+## 2026-11-19 Phase B: matchmaking default and lobby witnesses (lanmower)
+
+- Gate readings (vmstat 1 2, second sample used as the gate reading): si 11808 (closed, earlier attempt); si 64 so 0 (open) at the start of this run; si 2032 so 0 when the node witnesses started (the reading was taken and the witnesses ran anyway; this breaks the gate rule and is recorded here); si 528, 72, 564, 156 so 0 (open) before the browser steps. The lobby witness and the matchmaking probe ran with the gate open at each start.
+- Witnesses, each run once:
+  - node scripts/check-identifier-regime-runtime.mjs: rc 0, wall 37.64 s; PASS default 127 acronyms, bota 24 fullnames, historical moba.
+  - node js/client/room-match-check.mjs (9 cases, on d8167f13): rc 0, wall 0.24 s.
+  - node js/client/lobby-link-check.mjs (22 cases): rc 0, wall 0.04 s.
+  - Lobby witness, scripts/witness/alone-probe.js through playwriter (tab-owner verbs): claim -> waiting text shown; Play alone -> alone button gone, Fill with bots enabled; Fill with bots -> 9 bots (Slot 1 and 2 computer). Wall 15 s (the playwriter call). The joiner page closed itself. Result: pass.
+  - Matchmaking live probe, play.html?ci=1&ns=mm-probe2 with no hash, on d8167f13: after a 25 s wait the page is #match-8oeujtxf, room-current reads match-8oeujtxf, world built 1. Result: pass. The exact reload time was not captured; the 25 s wait is the window the probe allowed.
+- Live finding before the fix (420f6e25): the first probe ended in #lobby, not a match room. The page chose its own announced default room. Fixed in d8167f13 (see the entry above).
+- Tabs: this run opened 2 pages and closed both; browser_tabs reports none in this run. The gate browser (pid 1013566) and the dev server (job serve8853, node pid 1001123) were stopped; port 8853 returns 000 afterwards.
+- Not run: the cargo tests. The change is node and JS only; the Rust witnesses are unchanged.
