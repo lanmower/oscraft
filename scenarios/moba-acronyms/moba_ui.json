@@ -659,6 +659,8 @@
       "startMatch": "Start match",
       "loadingWorld": "loading world assets",
       "joinerNoHost": "waiting for a host to claim a seat",
+      "playAlone": "Play alone",
+      "aloneReason": "No host has claimed a seat. Play alone starts a local match on this page.",
       "joinerLoadingWorld": "waiting for the host's world to load",
       "joinerNotReady": "waiting for every seat to be ready",
       "joinerStart": "waiting for the host to start",
@@ -719,7 +721,8 @@
         "match-started": "the match has already started",
         "nothing-to-fill": "every seat already has a player or a bot",
         "no-roster": "no heroes are available to fill the seats",
-        "negotiate-first": "negotiate the lobby first"
+        "negotiate-first": "negotiate the lobby first",
+        "host-set": "a host has already claimed a seat"
       }
     },
     "refusals": {

@@ -11,6 +11,11 @@ expect(queued.broadcast === false, "a solo lobby click is not broadcast");
 expect(lobbyInputRoute({ ...solo, call: "world_ready" }).queue === false, "world_ready is never queued");
 expect(lobbyInputRoute({ ...solo, settled: true }).queue === false, "settle stops queuing");
 expect(lobbyInputRoute({ ...solo, phase: "live" }).queue === false, "live clicks are never queued");
+
+const alone = { netState: null, hosting: false, peers: 2, settled: false, name: "ui", call: "alone", phase: "lobby" };
+expect(lobbyInputRoute(alone).apply === true, "play alone must be applied on the page");
+expect(lobbyInputRoute(alone).broadcast === false, "play alone must not be broadcast");
+expect(lobbyInputRoute(alone).queue === false, "play alone must not wait for host replay");
 expect(lobbyInputRoute({ ...solo, name: "pointer" }).queue === false, "non-ui input is never queued");
 expect(lobbyInputRoute({ ...solo, netState: { tick: 1 } }).broadcast === true, "a net guest broadcasts");
 expect(lobbyInputRoute({ ...solo, peers: 2 }).broadcast === true, "a peer page broadcasts");
@@ -29,4 +34,4 @@ expect(localApplyArgs({ name: "ui", args: claim, hosting: true }) === claim, "a 
 expect(localApplyArgs({ name: "ui", args: { call: "mode", args: { code: "ap" } }, hosting: false }).args.preview === undefined, "only claims are previews");
 expect(localApplyArgs({ name: "pointer", args: claim, hosting: false }) === claim, "non-ui input is never a preview");
 
-console.log("lobby link ok (19 cases)");
+console.log("lobby link ok (22 cases)");

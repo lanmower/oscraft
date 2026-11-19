@@ -1445,6 +1445,11 @@ local function lobby_act(call, a)
     L.worldReady = true
     return
   end
+  if call == "alone" then
+    if L.host ~= nil then L.error = "host-set" return end
+    L.host = owner
+    return
+  end
   if call == "start" then
     if L.host ~= owner then L.error = "not-host" return end
     if not L.worldReady then L.error = "world-loading" return end
@@ -1990,6 +1995,10 @@ local function lobby_tree()
   }
   if not any_open() then actions[#actions + 1] = label(TEXT.lobby.refusals["nothing-to-fill"], "muted") end
   actions[#actions + 1] = button(start_label(host), "start", "{}", not (host and all_ready() and LOBBY.worldReady))
+  if LOBBY.host == nil then
+    actions[#actions + 1] = label(TEXT.lobby.aloneReason, "muted")
+    actions[#actions + 1] = button(TEXT.lobby.playAlone, "alone", "{}", false)
+  end
   return panel(TEXT.lobby.title, {
     mode_row(host),
     box(actions, "row"),
@@ -2270,7 +2279,7 @@ local function ui_call(who, call, a)
   elseif call == "draft_clock" then
     LOBBY.error = draft.clock(a.pubkey or OWNER, a.ticks) or ""
     pcall(refresh_lobby)
-  elseif call == "claim" or call == "release" or call == "remove" or call == "pick" or call == "ready" or call == "fill" or call == "start" or call == "world_ready" or call == "mode" or call == "seat" then
+  elseif call == "claim" or call == "release" or call == "remove" or call == "pick" or call == "ready" or call == "fill" or call == "start" or call == "world_ready" or call == "mode" or call == "seat" or call == "alone" then
     lobby_act(call, a)
     if call ~= "start" then lobby_seats_event() end
     if call == "world_ready" then emit("lobby", "modal", lobby_tree()) end

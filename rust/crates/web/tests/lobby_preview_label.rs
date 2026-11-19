@@ -141,3 +141,29 @@ fn a_preview_claim_followed_by_world_ready_still_leaves_host_empty() {
     println!("probe world_ready host=\"{}\" seat{SEAT}=\"{}\"", host_of(&ready), seat_owner(&ready, SEAT));
     assert_eq!(host_of(&ready), "", "world_ready set the host label after a preview claim");
 }
+
+#[test]
+fn play_alone_after_a_preview_claim_makes_the_page_host_and_fills_the_seats() {
+    let dir = scenario_dir();
+    let mut game = fresh_game(&dir);
+    setup_lobby(&mut game, &read_ui(&dir));
+
+    ui_as(&mut game, JOINER, "claim", json!({ "slot": SEAT, "preview": true }));
+    let alone = ui_as(&mut game, JOINER, "alone", json!({}));
+    println!("probe alone host=\"{}\"", host_of(&alone));
+    assert_eq!(host_of(&alone), JOINER, "play alone did not make the page the host");
+    let filled = ui_as(&mut game, JOINER, "fill", json!({}));
+    assert!(seat_owner(&filled, 0).starts_with("bot:"), "fill after play alone left seat 0 open");
+}
+
+#[test]
+fn play_alone_is_refused_once_a_host_holds_the_lobby() {
+    let dir = scenario_dir();
+    let mut game = fresh_game(&dir);
+    setup_lobby(&mut game, &read_ui(&dir));
+
+    ui_as(&mut game, HOST, "claim", json!({ "slot": 0 }));
+    let refused = ui_as(&mut game, JOINER, "alone", json!({}));
+    println!("probe alone_refused host=\"{}\"", host_of(&refused));
+    assert_eq!(host_of(&refused), HOST, "play alone replaced a host that already held the lobby");
+}
