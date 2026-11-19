@@ -27,3 +27,8 @@ export function relaysUiEvent(ev) {
 export function mirrorsHostLobby({ hosting, relayed, kind, started }) {
   return !hosting && relayed === true && kind === "lobby" && !started;
 }
+
+export function localApplyArgs({ name, args, hosting }) {
+  if (hosting || name !== "ui" || !args || args.call !== "claim") return args;
+  return { ...args, args: { ...args.args, preview: true } };
+}

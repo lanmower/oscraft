@@ -44,7 +44,7 @@ import { createDraftClock } from "./draft_clock.js";
 import { chainFrame } from "./frame_chain.js";
 import { readItem, writeItem, removeItem } from "./safe_storage.js";
 import { keyNameOf } from "./key_names.js";
-import { LOBBY_LINK_WAIT_MS, lobbyInputRoute, heldCallsAfterSettle, replayHeldCalls, relaysUiEvent, mirrorsHostLobby, worldReadyRoute } from "./lobby_link.js";
+import { LOBBY_LINK_WAIT_MS, lobbyInputRoute, heldCallsAfterSettle, replayHeldCalls, relaysUiEvent, mirrorsHostLobby, worldReadyRoute, localApplyArgs } from "./lobby_link.js";
 import { createGuiFlow, packMenuBackdrop } from "./gui_flow.js";
 import { createPodium, podiumScene, podiumCameraStep, podiumPlinthTransforms } from "./podium.js";
 import { saveReplayFile } from "./replay_save.js";
@@ -315,7 +315,7 @@ function sendInput(name, args) {
     return;
   }
   if (route.queue) heldLobbyCalls.push({ name, args });
-  if (route.apply) applyLocalInput(name, args);
+  if (route.apply) applyLocalInput(name, localApplyArgs({ name, args, hosting }));
 }
 
 function applyLocalInput(name, args) {
@@ -1196,17 +1196,13 @@ function drawGround3d() {
   }
 }
 
-let deadPropKey = new Uint32Array(0);
-function sameDeadProps(a, b) {
-  if (b === null || a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-  return true;
-}
+let deadPropKey = "";
 function syncDeadProps() {
   if (!localGame || typeof localGame.dead_props !== "function" || placedProps.length === 0) return;
   const dead = localGame.dead_props();
-  if (sameDeadProps(dead, deadPropKey)) return;
-  deadPropKey = dead;
+  const key = dead.join(",");
+  if (key === deadPropKey) return;
+  deadPropKey = key;
   const gone = new Set(dead);
   propBatches = batchByMesh(placedProps.filter((d) => !gone.has(d.id)));
 }

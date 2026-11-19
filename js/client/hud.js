@@ -248,7 +248,6 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
     if (value && url.endsWith("/ui_minimap.js")) minimap = value;
   });
 
-  const maxHpById = new Map();
   function gameMaxHps() {
     if (!game) return null;
     let ids = null;
@@ -266,8 +265,7 @@ export function createHud({ game, minimapEl, barCanvas, mapSize, grid, units, se
       ids = game.unit_ids();
       maxes = game.unit_max_hps();
     }
-    maxHpById.clear();
-    const byId = maxHpById;
+    const byId = new Map();
     for (let i = 0; i < ids.length; i++) byId.set(ids[i], maxes[i]);
     return byId;
   }

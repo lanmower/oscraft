@@ -1511,7 +1511,7 @@ local function lobby_act(call, a)
     s.owner = owner
     s.bot = false
     s.hero, s.ready = nil, false
-    if L.host == nil then L.host = owner end
+    if L.host == nil and a.preview ~= true then L.host = owner end
   elseif call == "release" then
     if s.owner ~= owner then L.error = "not-owner" return end
     s.owner, s.hero, s.ready, s.bot = nil, nil, false, false

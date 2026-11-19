@@ -1,4 +1,4 @@
-import { LOBBY_LINK_WAIT_MS, lobbyInputRoute, heldCallsAfterSettle } from "./lobby_link.js";
+import { LOBBY_LINK_WAIT_MS, lobbyInputRoute, heldCallsAfterSettle, localApplyArgs } from "./lobby_link.js";
 
 const expect = (cond, what) => { if (!cond) throw new Error(what); };
 const solo = { netState: null, hosting: false, peers: 0, settled: false, name: "ui", call: "mode", phase: "lobby" };
@@ -20,4 +20,13 @@ expect(heldCallsAfterSettle({ peers: 0 }) === "clear", "a solo page discards its
 expect(heldCallsAfterSettle({ peers: 2 }) === "keep", "a peer page keeps the queue for ROSTER");
 expect(Number.isFinite(LOBBY_LINK_WAIT_MS) && LOBBY_LINK_WAIT_MS >= 0, "the settle deadline is bounded");
 
-console.log("lobby link ok (12 cases)");
+const claim = { call: "claim", args: { slot: 5 } };
+const tagged = localApplyArgs({ name: "ui", args: claim, hosting: false });
+expect(tagged.args.preview === true, "a joiner's local claim is applied as a preview");
+expect(tagged.args.slot === 5 && tagged.call === "claim", "the preview keeps the claim's call and seat");
+expect(claim.args.preview === undefined, "the sent copy is never tagged");
+expect(localApplyArgs({ name: "ui", args: claim, hosting: true }) === claim, "a host's claim is applied as sent");
+expect(localApplyArgs({ name: "ui", args: { call: "mode", args: { code: "ap" } }, hosting: false }).args.preview === undefined, "only claims are previews");
+expect(localApplyArgs({ name: "pointer", args: claim, hosting: false }) === claim, "non-ui input is never a preview");
+
+console.log("lobby link ok (19 cases)");

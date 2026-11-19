@@ -1344,3 +1344,46 @@ Incidents in this run, recorded:
 - Witnesses for Phase B: the five JS gates named by the 2026-11-09 audit (camera-target-audit-check, hero-trajectory-check, movement-sequence-check, lock-engage-order-check, hud-canvas-check), the two heap runs, check-all.
 - Item 2, the pre-sync guest label window (panels.lua claim branch, `if L.host == nil then L.host = owner end`). Mechanism from the code: a joiner page with no peers applies a lobby ui call locally and queues it for the host (lobby_link.js `lobbyInputRoute`: `apply` with `queue` while not settled). A claim made before any host exists therefore sets the joiner's own host label locally; "Fill with bots" becomes enabled on that page (lobby_tree, `host = LOBBY.host == OWNER`). The mirror corrects it when the host's lobby_mirror arrives. `scripts/witness/label-window-probe.js` reproduces that order: joiner first (solo claim), then the host, then samples of the joiner's "Fill with bots" enabled state and seats until the window closes. Result, and the decision on semantics, are recorded in Phase B; no fix is made before the probe runs.
 - Not run in Phase A: no build, test, gate, witness, browser step or node --check.
+
+## 2026-11-19 Phase B: heap counts for the J edits, and the label-window item (lanmower)
+
+### Heap counts (scripts/witness/heap-600-frames.js, 600 rAF frames after a 120-frame warm-up, live moba-acronyms match, CDP allocation sampling at 256 bytes)
+- Baseline: HEAD with the bcf40b01 J hunks reversed (scripts/witness/heap-before.sh). Six valid runs (hp-before-r1, r2, f4, g5, g6, g7). One baseline run (hp-before-r3) failed with "Target page … closed" and is excluded.
+- Final tree: three runs (hp-after-h1..h3), after the J1 and J14 reverts below. Medians of bytes per window (ranges in brackets):
+
+| Edit | Function | Baseline median (range) | Final median (range) | Verdict |
+|---|---|---|---|---|
+| J1 play.js syncDeadProps | syncDeadProps | 10,640 (9,320–14,100) | 11,980 (11,700–11,980) | identical code to baseline now; no reduction measured; reverted |
+| J6, J7 play.js drawWorld3d | drawWorld3d | 37,130 (33,416–44,168) | 19,128 (17,820–20,964) | within budget, −49% |
+| J12 hud.js viewRect | viewRect | 167,032 (147,888–235,008) | 46,608 (38,616–50,448) | within budget, −72% |
+| J14 hud.js gameMaxHps | gameMaxHps | 0 (0, 0, 10,076, 0, 0, 0) | 0 (0, 0, 0) | held-Map variant measured 26,904 median (30,388, 25,460, 26,904) against 0: over budget; reverted to new Map |
+
+- Budget (set before the measurement, Phase A): an edit is within budget when its function's median bytes per window do not rise above the baseline median.
+- Caveats: the profile attributes by function, so J6 (shadow branch) and J7 (podium plinth) are not separated; the podium path may not run in these live frames (not checked). J1's wasm `dead_props()` Vec lives in wasm memory and is not in the JS profile. Frame time varies between runs (11 to 49 s per 600 frames), so bytes per frame moves with it; the comparison is per window.
+- Corrections to the Phase A claims: J14's held Map cleared with `clear()` still allocated in this build (the measured held-Map variant was above baseline; reverted). J1's join of an empty array allocates nothing, so the join removal saved nothing in the common case; the measured median difference between the variant and baseline was inside run-to-run noise.
+- Harness fixes made during the run: the lobby needed `fill` before `ready` (bots are unready otherwise) and a random pick for the human seat (`pick {slot:0}`); a failing run left an unhandled rejection that dropped the playwriter relay, so the witness now wraps its body in try/catch and stores errors by namespace. The relay also restarted between calls twice; sessions were recreated and no run was lost after that.
+- The wasm was stale (eight sim or web commits after the 2026-11-09 build); rebuilt with wasm-pack (28 s) before measuring.
+
+### Label-window item (panels.lua claim branch, `if L.host == nil then L.host = owner end`)
+- Probe: scripts/witness/label-window-probe.js. A joiner page claims a seat before any host, then the host page opens with host=1; the probe samples the joiner's "Fill with bots" enabled state (true only on the host's page) until the mirror corrects it.
+- Pre-fix result (reproduced): the joiner's solo claim enabled "Fill with bots" on the joiner (host label set locally). After the host's seat appeared, the joiner kept the host controls for 6 samples: 1,241 ms (run lw-probe) and 1,140 ms (run lw-fixed); mirror then corrected it (fill disabled, seat "Slot 1: player").
+- Mechanism: the joiner's claim was applied as an ordinary local claim after the link settled (8 s, `LOBBY_LINK_WAIT_MS`; the world build takes about 7 s here, so the claim usually lands after settle). The Lua claim sets `L.host` to the claimant when no host is known. Confirmed by the page's own dispatch log: the claim went out untagged.
+- A first fix that tagged only claims before settle did not cover this (probe lw-fixed: 6 samples still); it was not kept.
+- Decision (taken from the design, not a new owner choice): a page without `?host=1` is a joiner and never becomes host. The lobby already shows "waiting for a host to claim a seat" for that state (moba panels.lua joinerNoHost). Changes:
+  - js/client/lobby_link.js `localApplyArgs({ name, args, hosting })`: a claim applied locally by a non-hosting page carries `preview: true`; the copy sent or queued to the host is unchanged. js/client/play.js sendInput applies the tagged copy.
+  - scenarios/moba/panels.lua claim: `if L.host == nil and a.preview ~= true then L.host = owner end`. The seat still shows locally; the host label does not.
+  - scenarios/bota/panels.lua regenerated (`build-bota-pack.mjs --apply`, `--check` ok); scenarios/moba-acronyms/panels.lua regenerated (`gen-moba-acronym-pack.mjs --apply`, `--check` ok). The generator also wrote moba-acronyms/moba.osdt, which broke the page (rules text refused, `assist_gold_radius_milli` missing), so that image is restored to HEAD; the generator's image differs from the committed one and this is open (see the moba-acronyms image commit 929f2d8e).
+  - Rejected: promoting a page to host at settle (it would give the same window to a host that connects after 8 s).
+- Consequence for the owner to confirm: a lone page without `?host=1` can no longer fill or start a local match. The old path did that only by accident of the claim label; it is reversible (remove the `preview` check).
+- Post-fix probe (lw-final3): solo claim `fillEnabled` false; labelWindowSamples 0; labelWindowMs 0; reproduced false; after the host seat appears, the joiner's fill stays disabled and its seat reads "Slot 1: player".
+- Lone-joiner probe (scripts/witness/solo-waiting-probe.js, lw-waiting, 12 s): fill enabled at no sample; the "waiting for a host to claim a seat" text on every sample after the 8 s settle.
+
+### Witnesses and gates (Phase B, wall times)
+- rust/crates/web/tests/lobby_preview_label.rs (new, four tests: a preview claim seats the joiner without the host label; a plain claim still sets host; a page-shaped preview leaves host empty; preview then world_ready leaves host empty): `cargo test -p web --test lobby_preview_label` 4 passed, 23.7 s.
+- rust/crates/web/tests/lobby_refresh_probe.rs: 3 passed, 23.9 s.
+- js/client/lobby-link-check.mjs: `lobby link ok (19 cases)`. The label had said 12 cases for 13 checks before; the count is now the real one.
+- js/client/camera-target-audit-check.mjs 417 ms; hero-trajectory-check.mjs 134 ms; movement-sequence-check.mjs 138 ms; lock-engage-order-check.mjs 111 ms; hud-canvas-check.mjs 117 ms (all rc 0, each with its negative control).
+- scenarios/bota `build-bota-pack.mjs --check` ok (190 files); `check-bota-pack.mjs` ok; `gen-moba-acronym-pack.mjs --check` ok.
+- `node scripts/check-all.mjs`: `RESULT gates=83 ok=83 failed=0 drift=0 skipped=6 strict=false`, exit 0, wall 175 s.
+- Not witnessed: the lone-joiner's later host promotion (no longer exists by design), and the DOM Join flow on a bota page.
+- Left alone: scenarios/bota/cross-contract-snapshot.json (owner's, unstaged).

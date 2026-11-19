@@ -1,5 +1,5 @@
 (async () => {
-  const OPTS = { ns: "lw-probe", port: 8853, afterHostMs: 25000, interval: 200 };
+  const OPTS = { ns: "lw-final3", port: 8853, afterHostMs: 25000, interval: 200 };
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const url = `http://127.0.0.1:${OPTS.port}/js/client/play.html?ci=1&ns=${OPTS.ns}`;
   const built = () => document.body.dataset.worldBuilt === "1" && typeof window.oscraft?.lobby === "function";
