@@ -1564,3 +1564,11 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
   - scripts/witness/alone-probe.js (playwriter, localhost): claim -> waiting text; Play alone -> alone button gone, Fill with bots enabled; Fill -> 9 bots. Wall 24 s. Pass.
   - scripts/witness/matchmaking-join-probe.js (playwriter, localhost, ns mm-join-mwo325jg): host #match-6hze71hz; joiner #match-6hze71hz; joinedSameRoom true. Wall 53 s. Pass.
 - Teardown: dev server job serve8853c (node pid 1267153) stopped, port 8853 returns 000; playwriter gate pid 1268292 (started this turn) stopped by PID; its browser exited; both probe pages closed by the probes; browser_tabs none in this run.
+
+## 2026-11-20 Phase A: witness runner also stops on a heavy job (lanmower)
+
+- Gap: scripts/witness/run-gated.sh checked swap only. The Phase B rule also needs the heavy-job check (top current CPU, gm-core --handshake relay workers excluded), so a busy browser could start a witness.
+- Change: the runner reads top -b -n 2 -d 1 (second frame) and exits 4 with "HEAVY JOB RUNNING: no witness started: <pid(cpu% command)>" when any process is at 100% CPU or more and is not a handshake worker. The swap stop (exit 3) comes first.
+- Witness: node scripts/witness/run-gated-check.mjs (7 cases, stub vmstat and top): closed swap stops (exit 3); open swap runs and prints wall; a chromium at 475% with open swap stops (exit 4) and names pid 1151565 and chromium; a gm-core handshake worker at 300% does not block. Output: run-gated ok (7 cases).
+- Red: the heavy stop (exit 4) replaced with true: rc 1, "a heavy process (chromium 475%) must stop before the witness: rc 0, ran true". Restored from a copy: cmp SAME; the check is green again.
+- Not witnessed in a browser or a live window: the Phase B window that uses this runner is still to run.
