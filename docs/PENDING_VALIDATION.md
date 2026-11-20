@@ -1987,3 +1987,18 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
   - The five run-start browsers (92948, 97956, 100720, 103768, 105806) were already gone when checked at 14:12.
   - Not touched: gm worker 2525; pre-window gate 2441 and its launcher chain (started 12:16 UTC).
 - Tally: 58 of 58 completed witness runs on the same witness code, with 53 before this window and five here. This is a sample, not a rate.
+
+## 2026-11-20 repo-side guard: runWitness writes an incomplete trace when it throws (lanmower)
+
+- Change, scripts/witness/strike-while-walking.mjs:
+  - The leg loop moved unchanged into runLegs, which returns the legs.
+  - runWitness wraps it in one try/catch. On success it writes the verdict trace. On a throw it sets verdict.incomplete to the error message, writes the trace, and rethrows, so the driver still sees the failure.
+  - writeTrace names the file incomplete when verdict.incomplete is set (ok, incomplete or red).
+  - Removed: the traceFile field and writeTrace's return value (nothing read either; checked by grep over the code files). Merged: the result assembly into runWitness, with one writeTrace call on each path.
+- Witness, scripts/witness/strike-while-walking-check.mjs (appended block, same file, no new helper): a fake page whose evaluate returns "live" on the phase check and then throws "Target page, context or browser has been closed" in the leg. It asserts that runWitness rejects with that message, that exactly one file ending -incomplete.json is written to a temp traceDir, and that the trace has verdict.ok false, verdict.incomplete equal to the message, and an empty legs list. The check still passes its 14 verdict cases.
+- Red check (run in this window):
+  - Mutation: sed deleted the one catch-branch line "    writeTrace(result, config);" (the grep count after the mutation was 0).
+  - Witness on the mutant: node scripts/witness/strike-while-walking-check.mjs exits 1 (assert: expected 1 file, got 0). The guard's trace is missing, so the witness is red.
+  - Restore: cp from the saved copy; cmp reports the restored file identical to the saved good copy.
+  - Witness after restore: "strike-while-walking verdict checks ok (14 cases, leg timing in sim ticks)", rc 0.
+  - git status after restore: scenarios/bota/cross-contract-snapshot.json (unstaged, not ours), scripts/witness/strike-while-walking-check.mjs and scripts/witness/strike-while-walking.mjs modified, core.155932 untracked.

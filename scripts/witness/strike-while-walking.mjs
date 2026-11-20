@@ -496,7 +496,7 @@ export function verdict(legs) {
   return { ok: reasons.length === 0, reasons };
 }
 
-export async function runWitness(page, config = CONFIG) {
+async function runLegs(page, config) {
   const lockButton = page.locator("#hero-lock");
   const phase = await page.evaluate(() => document.body.dataset.phase ?? "");
   if (phase !== "live") throw new Error("strike witness refused: the page is in phase \"" + phase + "\", not a live match");
@@ -525,15 +525,26 @@ export async function runWitness(page, config = CONFIG) {
     }
     legs.push({ label: leg.label, lock, reruns, ...measured });
   }
-  const result = { legs, verdict: verdict(legs) };
-  result.traceFile = writeTrace(result, config);
+  return legs;
+}
+
+export async function runWitness(page, config = CONFIG) {
+  const result = { legs: [], verdict: { ok: false, reasons: [] } };
+  try {
+    result.legs = await runLegs(page, config);
+    result.verdict = verdict(result.legs);
+  } catch (error) {
+    result.verdict.incomplete = String(error.message ?? error);
+    writeTrace(result, config);
+    throw error;
+  }
+  writeTrace(result, config);
   return result;
 }
 
 function writeTrace(result, config) {
   mkdirSync(config.traceDir, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const file = join(config.traceDir, "d1-" + stamp + "-" + (result.verdict.ok ? "ok" : "red") + ".json");
-  writeFileSync(file, JSON.stringify({ config, verdict: result.verdict, legs: result.legs }, null, 1));
-  return file;
+  const status = result.verdict.ok ? "ok" : result.verdict.incomplete ? "incomplete" : "red";
+  writeFileSync(join(config.traceDir, "d1-" + stamp + "-" + status + ".json"), JSON.stringify({ config, verdict: result.verdict, legs: result.legs }, null, 1));
 }

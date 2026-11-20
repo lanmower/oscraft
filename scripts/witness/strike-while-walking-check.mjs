@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
-import { CONFIG, strikeWhileWalkingLeg, verdict } from "./strike-while-walking.mjs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { CONFIG, runWitness, strikeWhileWalkingLeg, verdict } from "./strike-while-walking.mjs";
 
 const leg = (overrides) => ({
   label: "leg",
@@ -53,5 +56,31 @@ assert.equal(CONFIG.legTicks, 40 * 16, "a leg is 40 s of sim ticks at 16 ticks p
 const legSource = strikeWhileWalkingLeg.toString();
 assert.doesNotMatch(legSource, /Date\.now\(/, "a leg is measured in sim ticks, not wall-clock");
 assert.match(legSource, /__ciTicks\(\)/, "a leg reads the sim tick counter");
+
+const tmp = mkdtempSync(join(tmpdir(), "strike-guard-"));
+try {
+  let calls = 0;
+  const page = {
+    locator: () => ({ getAttribute: async () => "true", click: async () => {} }),
+    addScriptTag: async () => {},
+    waitForTimeout: async () => {},
+    evaluate: async () => {
+      calls += 1;
+      if (calls === 1) return "live";
+      if (calls === 2) return undefined;
+      throw new Error("Target page, context or browser has been closed");
+    },
+  };
+  await assert.rejects(runWitness(page, { ...CONFIG, traceDir: tmp }), /Target page, context or browser has been closed/);
+  const files = readdirSync(tmp);
+  assert.equal(files.length, 1);
+  assert.match(files[0], /-incomplete\.json$/);
+  const trace = JSON.parse(readFileSync(join(tmp, files[0]), "utf8"));
+  assert.equal(trace.verdict.ok, false);
+  assert.equal(trace.verdict.incomplete, "Target page, context or browser has been closed");
+  assert.deepEqual(trace.legs, []);
+} finally {
+  rmSync(tmp, { recursive: true, force: true });
+}
 
 console.log(`strike-while-walking verdict checks ok (${cases.length} cases, leg timing in sim ticks)`);
