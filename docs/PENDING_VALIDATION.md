@@ -1720,3 +1720,20 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Rule note: the last run started at 05:50:36, which is 2 min 37 s before the 05:53:09 window end counted from the 05:33:09 server start. The loop's cutoff was anchored to its own start (05:37:13), so the four-minute rule was not applied to the window's clock. The witness passed; the pass count stands.
 - Pass tally across windows on HEAD 11e41422 and c4500fc0 (same code): 5 passes before this window (04:32 and four in 04:57 to 05:11), plus six here: 11 of 11. This is a sample of 11, not a measured rate.
 - Cleanup: server job phb12serve stopped (job_stop, PID 2243877 window's server ended); browser 2292646 (gate restarted after the last close) and wrapper 2292643 stopped by PID; port 8853 returns 000; bevy browser 2089696 untouched.
+
+## 2026-11-20 Phase B window, 06:15 to 06:37 UTC (lanmower): four more live strike runs, all passed; code unchanged since 11e41422
+
+- Readings: the first readings job (06:13 to 06:15) ran a checker path that did not exist (/tmp/hj-check/heavy-jobs.cjs); those readings are invalid and excluded. The fixed job phb13rd ran from 06:19:26 to 06:36:40 (33 valid readings, scripts/witness/heavy-jobs.cjs, byte-identical to bevy 495fff6). It was stopped by PID-owned job_stop at 06:37, about 1.5 minutes past the window end. One reading was open (06:35:03, si 196, so 0, checker clear); the other 32 were closed, mostly by heavy-jobs busy (this window's own browser renderers, zig builds, a peer grep and a claude session).
+- Runs (scripts/witness/strike-live-setup.mjs, then strike-while-walking runWitness on the same page, same config, playwriter timeout 280000). Each starts on a clear run-gated.sh sample (vmstat, then heavy-jobs.cjs exit 0). Wall time is setup plus witness, then close:
+  - start 06:22:10, wall 155.4 s, trace 06-24-47
+  - start 06:24:51, wall 150.8 s, trace 06-27-24
+  - start 06:27:24, wall 153.4 s, trace 06-30-00
+  - start 06:30:00, wall 155.3 s, trace 06-32-37
+- Verdicts (trace files): all four ok: true, reasons [].
+  - 06-24-47: lock on 345 / 692 (1 pick, 0 launches while moving); lock off 316 / 641; lock on again 383 / 793 (3 picks).
+  - 06-27-24: lock on 344 / 692 (1 pick, 1 launch while moving); lock off 314 / 640; lock on again 325 / 668 (1 pick).
+  - 06-30-00: lock on 339 / 690 (1 pick); lock off 306 / 641; lock on again 371 / 762 (1 pick).
+  - 06-32-37: lock on 344 / 692 (1 pick); lock off 310 / 641; lock on again 327 / 667 (1 pick).
+- Budget: every leg met the 288-sample floor. Lock-off legs counted 640 to 641 ticks against the 640 budget; the on legs ran longer only by pick ticks, which the budget excludes. No reruns, no aborts, nothing near the 1920-tick cap.
+- Cleanup: job phb13serve (server, port 8853) stopped by job_stop; port 8853 returns 000. The gate restarted a project browser after the last close (2319455, wrapper 2319452); both stopped by PID. Bevy's browser 2089696 untouched.
+- Pass tally on the same witness code: 11 of 11 before this window, 15 of 15 with these four. Still a sample, not a rate.
