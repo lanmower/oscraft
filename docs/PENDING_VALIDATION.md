@@ -1610,3 +1610,10 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Witnesses: node scripts/witness/heavy-jobs-check.cjs prints "heavy-jobs ok (7 cases)" (the fixture covers a C++ compiler at 3% CPU, a renderer over 1 GB at 2%, a renderer under 1 GB, a handshake worker at 100%, a 25% and a 20% process). node scripts/witness/run-gated-check.mjs prints "run-gated ok (10 cases)".
 - Red, mutation 1 (COMPILERS emptied): heavy-jobs-check FAILED on the compiler case; run-gated-check "a C++ compiler at 3% CPU blocks as a compile: rc 0". Mutation 2 (renderer threshold 1e12 KiB): heavy-jobs-check FAILED on the renderer case; run-gated-check "a Chromium renderer over 1 GB at 2% CPU blocks: rc 0". Each file restored from a copy, cmp same, and both checks green again.
 - Earlier 10% and 25% cases and the 20% limit remain in both checkers.
+
+## 2026-11-20 Phase B window, 01:09 to 01:19 UTC (lanmower): REPORT open, browser steps not started
+
+- Readings: 20 at 30 s, the second vmstat sample is the gate, heavy from scripts/witness/heavy-jobs.cjs (bevy 495fff6 rule). Open, both directions below 1000 KB/s and the checker clear: 01:11:32 (si 212, so 0), 01:13:09 (si 100, so 0), 01:15:19 (si 28, so 0), 01:19:37 (si 56, so 0).
+- Passed on an open reading, through scripts/witness/run-gated.sh: run-gated-check.mjs at 01:13:01 ("run-gated ok (10 cases)", wall 0.68 s); room-match-check.mjs at 01:13:35 ("room match ok (9 cases)", wall 0.05 s).
+- Not run in this window: lobby-link-check.mjs, leg-clock-check.mjs, strike-while-walking-check.mjs, check-identifier-regime-runtime.mjs (refused on busy or closed gates until the window ended at 01:17:28); alone-probe.js, matchmaking-join-probe.js and the live strike-while-walking.mjs run (not started: no clear reading left in the window).
+- Server: node scripts/dev/serve.mjs on port 8853 (PID 1923791) stopped by PID; port 8853 returns 000 afterwards. No browser tab was opened in this window.
