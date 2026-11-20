@@ -2063,3 +2063,9 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - scripts/check-all.mjs GATE_CHECKS: scripts/witness/matchmaking-race-check.mjs added after js/client/room-match-check.mjs. The module matchmaking-race.mjs is not gated: it has no entry point, so a gate on it would run nothing and always pass. The witness is the check file.
 - Witness: node scripts/check-all.mjs --list shows "gate scripts/witness/matchmaking-race-check.mjs" and "LIST gates=89 drift=0 external=6".
 - Red check: sed changed "if (rooms.length > 1)" to "if (rooms.length > 99)" in scripts/witness/matchmaking-race.mjs. The gate argv (node scripts/witness/matchmaking-race-check.mjs, timeout 120) failed with rc 1 ("AssertionError: a split room is red"). Restored from a saved copy: cmp identical; the gate argv returned rc 0 ("matchmaking race checks ok (5 verdict cases, relay forwards a matching event)").
+
+## 2026-11-20 Phase A: DESIGN.md figures match the tree (lanmower)
+
+- DESIGN.md "Current tree figures" line: gates 83 to 89 and gate path refs 69 to 74. The new numbers are computed from the tree: gates from node scripts/check-all.mjs --list ("LIST gates=89"), refs from the quoted js/scripts/scenarios .mjs paths in scripts/check-all.mjs (74). The check that the figures equal what check-all computes is scripts/check-design-record.mjs (a gate in check-all).
+- Witness: node scripts/check-design-record.mjs, rc 0: "design record ok: gates=89, gate path refs=74 with 0 missing, camera writes=24 with 0 unclassified (matches DESIGN.md)".
+- Red check: sed changed "gates=89, gate path refs=74 with" to "gates=90, ..." in DESIGN.md (one match). The check failed, rc 1: "DESIGN.md four-repo figures drifted from the tree: gates record=90 tree=89". Restored from a saved copy: cmp identical; the check returned rc 0 again.
