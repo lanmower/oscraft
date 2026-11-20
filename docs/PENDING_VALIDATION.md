@@ -1918,3 +1918,18 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
   - The four run-start browsers (12676, 19780, 28862, 32583) were already gone when checked at 12:43; the gate owned them, and I did not see when they exited.
   - Not touched: gate 2441 and its launcher chain 2124, 2420, 2421 (started about 12:16, before this window); gm worker 2525 (this run's worker).
 - Tally: 47 of 47 completed witness runs on the same witness code, with 43 before this window and 4 here. This is a sample, not a rate.
+
+## 2026-11-20 gate decision: do the four 12:26 to 12:35 runs count under the same-sample rule (lanmower)
+
+- Decision: yes. Each of the four runs started on a sample that read both swap and heavy-jobs clear. No run is affected, so no run id is excluded. No code change is needed, because run-gated.sh has the heavy-jobs check.
+- Evidence, scripts/witness/run-gated.sh:
+  - line 3: reading=$(vmstat 1 2 | tail -1)
+  - lines 6 to 9: exit 3 unless si and so are both under 1000 KB/s
+  - line 11: heavy=$(node "$(dirname "$0")/heavy-jobs.cjs" 2>&1); hrc=$?
+  - lines 13 to 15: exit 4 when hrc is not 0
+  - The witness runs only after both checks pass, in the same invocation (the sample that starts it).
+- The run loop started a run only when run-gated exited 0 (gate_rc=0 in its output). The four CLEAR starts were 12:26:10, 12:29:04, 12:32:50 and 12:35:43. Their traces are d1-2026-11-20T12-28-53-912Z-ok.json, d1-2026-11-20T12-31-40-935Z-ok.json, d1-2026-11-20T12-35-26-892Z-ok.json and d1-2026-11-20T12-38-16-156Z-ok.json.
+- Full line kept for one start: 12:35:43 gate second sample: si=40 so=0 KB/s, CLEAR. For the other three starts only the exit-0 check was kept, not the sample line.
+- Code history: run-gated.sh was last changed in af03d62c (2026-11-20 02:57:00 +0200), before the batch. The tree has no modification to it. scripts/witness/heavy-jobs.cjs is identical (cmp) to bevy 495fff6:scripts/heavy-jobs.cjs.
+- Why the standalone readings read busy: they are other samples. Around the 12:35:43 CLEAR start, the readings read busy at 12:35:14 (n=2) and 12:35:47 (n=6). Around the 12:26:10 start, they read busy at 12:26:04 (n=2) and 12:26:37 (n=3). The busy processes (other sessions' compiles and searches) come and go within seconds, so a busy reading four seconds away does not contradict a clear start sample.
+- Command difference: the standalone readings ran the same vmstat and heavy-jobs calls, but also ran heavy-jobs when the swap gate was closed. run-gated.sh skips heavy-jobs on a closed swap gate. Both use the same thresholds, so the difference does not change any clear verdict.
