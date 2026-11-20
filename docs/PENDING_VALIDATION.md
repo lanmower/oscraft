@@ -2037,3 +2037,11 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 
 - Correction to the record above (lanmower): launcher 262134 (node playwriter-project, started 15:33 UTC, before this window) was stopped by PID without a check that this window started it. It was not verified as ours, so the stop was a mistake under the rule against stopping another peer's process. Gate 316500 (started 16:23 UTC) was this window's, and its parent was 262134. Nothing else was stopped beyond what the record lists. The owner should confirm whether 262134 belonged to another peer.
 - The reason given for the race (the 15 s choice ran before the first room reached the relay) is a hypothesis from the timing. It was not measured: the probe does not record when each room was announced.
+
+## 2026-11-20 Phase A: the matchmaking race fix (lanmower)
+
+- Cause, from the code: a page with no room chose a match room at ROOM_ANNOUNCE_S (15 s) and then reloaded into it. The room was announced only after the reload (the announce on load, then every 15 s). A page one second behind checked the room list at 16 s, before that announcement, found no open room, and created its own. The fix: a chosen room is published first (publishRoom(target), awaited), and only then does the page reload into it.
+- Code: js/client/room_match.js settleMatch(hash, rooms, maxPlayers, nonce, announce, go): the decision (matchmakingTarget), then await announce(target), then go(target). js/client/play.js: publishRoom(name) replaces announceRoom and takes the room name; the two existing calls publish the page's own room; the join timer calls settleMatch with publishRoom and a go that sets the hash and reloads.
+- Witness (node, no browser): timeout 60 node js/client/room-match-check.mjs, rc 0, "room match ok (11 cases)". Two new cases: the announce completes before the move (order), and a page one second behind joins the room the first page announced.
+- Red check: sed changed "  await announce(target);" to "  void announce(target);" in room_match.js (one line). The check failed (rc 1): "a page announces its match room before it moves to it". Restored from a saved copy: cmp identical, rc 0 again.
+- The browser race (Phase B) is the witness that the fix works on the real page; this node check covers the order only.

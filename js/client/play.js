@@ -7,7 +7,7 @@ import * as xstate from "xstate";
 import { createAmbientFx, AMBIENT_KINDS } from "./ambient_fx.js";
 import { encodeFrame, decodeFrame, frameTypeName, FRAME, MAX_PLAYERS, TEAM_SIZE, SPECTATOR } from "./wire/frame.js";
 import { iceServersFrom } from "./ice.js";
-import { matchmakingTarget } from "./room_match.js";
+import { settleMatch } from "./room_match.js";
 import { assetJson, assetRel, assetUrl, fetchRetrying, loadLuaBundle, manifest, manifestOf, moduleClosure, moduleTextReader, modulePaths, packBytes, packJson, packText, packUrl, readPackFile, stashPack, UI } from "./pack_load.js";
 import { applyFrame, createSeating, createStateEncoder, startFrame } from "./delta.js";
 import { createFrameRecovery } from "./net_recovery.js";
@@ -2526,14 +2526,14 @@ const ROOM_PRUNE_MS = 5000;
 const announcedRooms = new Map();
 let shownRooms = "";
 
-function announceRoom() {
-  if (!auth.pubkey) return;
-  auth.sign({
+function publishRoom(name) {
+  if (!auth.pubkey) return Promise.resolve(false);
+  return auth.sign({
     kind: ROOM_KIND,
     created_at: Math.floor(Date.now() / 1000),
-    tags: [["d", `oscraft-room:${namespace}:${room}`], ["t", ROOM_TAG], ["ns", namespace], ["room", room], ["players", String(Math.min(MAX_PLAYERS, hosting ? seating.size() + 1 : peers.size + 1))]],
+    tags: [["d", `oscraft-room:${namespace}:${name}`], ["t", ROOM_TAG], ["ns", namespace], ["room", name], ["players", String(Math.min(MAX_PLAYERS, hosting ? seating.size() + 1 : peers.size + 1))]],
     content: "",
-  }).then((signed) => relayPool.publish(signed)).catch(() => {});
+  }).then((signed) => relayPool.publish(signed)).catch(() => false);
 }
 
 function showRooms() {
@@ -2560,15 +2560,15 @@ relayPool.subscribe("oscraft-rooms", [{ kinds: [ROOM_KIND], "#t": [ROOM_TAG] }],
   pruneRooms();
 });
 const whenIdle = globalThis.requestIdleCallback ?? ((f) => setTimeout(f, 0));
-whenIdle(announceRoom);
-setInterval(announceRoom, ROOM_ANNOUNCE_S * 1000);
+whenIdle(() => publishRoom(room));
+setInterval(() => publishRoom(room), ROOM_ANNOUNCE_S * 1000);
 setInterval(pruneRooms, ROOM_PRUNE_MS);
 setTimeout(() => {
   const rooms = [...announcedRooms].map(([name, a]) => ({ name, players: a.players }));
-  const target = matchmakingTarget(location.hash.slice(1), rooms, MAX_PLAYERS, Math.random().toString(36).slice(2, 10));
-  if (target === null) return;
-  location.hash = target;
-  location.reload();
+  settleMatch(location.hash.slice(1), rooms, MAX_PLAYERS, Math.random().toString(36).slice(2, 10), publishRoom, (target) => {
+    location.hash = target;
+    location.reload();
+  });
 }, ROOM_ANNOUNCE_S * 1000);
 const iceConfig = (() => {
   try {
