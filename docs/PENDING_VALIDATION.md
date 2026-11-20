@@ -1632,3 +1632,10 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - scripts/witness/strike-while-walking.mjs (lock on, off, on): not run. Its live setup (mode ap, claim seat 0, Fill with bots, hero PUD, Ready, Start match) was gated at 02:01:50 and refused (si 212 so 0, but a Claude session at 22% CPU, PID 755372, counted as heavy). Clear samples later in the window (02:08:14, 02:08:46, 02:09:18, 02:11:28, 02:12:00, 02:12:32) were not used because the setup was not started before the window ended at 02:12:34. No leg ran, so no leg ended on the budget and no leg verdict exists; the red legs at docs/PENDING_VALIDATION.md:662 are unchanged, and the flake fix in adfd59b4 is still unverified in a browser.
 - Open readings in the window (si and so below 1000, checker clear): 01:53:09, 01:53:41, 01:54:13, 01:54:46, 01:55:50, 01:56:23 and onward, plus the samples above.
 - Server: node scripts/dev/serve.mjs on port 8853 (PID 2051734) stopped by PID. The playwriter browser was closed with the run-scoped close verb.
+
+## 2026-11-20 Phase B window, 02:23 to 02:44 UTC (lanmower): live strike step failed, no leg ran
+
+- Clear sample at 02:30:13 (si 404, so 0, checker clear). The strike setup started on it (wall 15.8 s): mode ap true, claim seat 0 true, hero PUD true, Ready true; Fill with bots did not click (the button was not enabled), and Start match was absent or disabled, so no live match started. scripts/witness/strike-while-walking.mjs (runWitness) then ran against the lobby page and returned nothing in the 300 s playwriter timeout (wall 300.0 s).
+- Legs: none ran (no leg result, no verdict), so no leg ended on the budget. The red legs at docs/PENDING_VALIDATION.md:662 remain the only evidence, and the leg-clock fix in adfd59b4 is still unverified in a browser.
+- Server (job phb7serve2, PID 2086434) stopped by job_stop; port 8853 returns 000. My strike page was closed before the server was stopped.
+- Not pushed: the push waits on a strike verdict that does not exist.
