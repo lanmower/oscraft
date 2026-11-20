@@ -2057,3 +2057,9 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Push: not done. Rule: push only if the matchmaking witness and every existing witness pass; check-all did not pass. origin main stays 4a0b48f9.
 - Matchmaking-race-check is not in check-all's GATE_CHECKS list; it was run on its own. Adding it there is a separate change.
 - Cleanup, each stopped by PID after its command line was checked: serve wrapper 370035 and node 370040; playwriter launcher 370109 (started 17:04 UTC by this window's race call), gate 370118, and its browser tree 374579 with children (374582, 374604, 374605, 374627, 374630, 374636, 374658, 374667). Both relays closed in-process; ports 37339 and 44345 have no listeners; port 8853 returns 000. Not touched: gm worker 2525; browser 369607 (owner none, profile /tmp/verify).
+
+## 2026-11-20 Phase A: the race witness is a check-all gate (lanmower)
+
+- scripts/check-all.mjs GATE_CHECKS: scripts/witness/matchmaking-race-check.mjs added after js/client/room-match-check.mjs. The module matchmaking-race.mjs is not gated: it has no entry point, so a gate on it would run nothing and always pass. The witness is the check file.
+- Witness: node scripts/check-all.mjs --list shows "gate scripts/witness/matchmaking-race-check.mjs" and "LIST gates=89 drift=0 external=6".
+- Red check: sed changed "if (rooms.length > 1)" to "if (rooms.length > 99)" in scripts/witness/matchmaking-race.mjs. The gate argv (node scripts/witness/matchmaking-race-check.mjs, timeout 120) failed with rc 1 ("AssertionError: a split room is red"). Restored from a saved copy: cmp identical; the gate argv returned rc 0 ("matchmaking race checks ok (5 verdict cases, relay forwards a matching event)").

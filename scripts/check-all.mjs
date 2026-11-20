@@ -18,6 +18,7 @@ const GATE_CHECKS = [
   "scripts/check-design-record.mjs",
   "js/client/lobby-link-check.mjs",
   "js/client/room-match-check.mjs",
+  "scripts/witness/matchmaking-race-check.mjs",
   "scripts/witness/run-gated-check.mjs",
   "scripts/witness/heavy-jobs-check.cjs",
   "scripts/witness/strike-live-gate-check.mjs",
