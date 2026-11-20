@@ -1704,3 +1704,19 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Harness note: the loop's own witnessOk flag read false on all four runs because it matched "ok: true" in the returned text, which the return value does not print. The verdicts above come from the trace files, not from that flag.
 - Cleanup: strike pages closed by the loop after each run; browser 2258767 (gate restarted it after the last close) stopped by PID with its wrapper 2258764; server job phb11serve stopped (PID 2243877); port 8853 returns 000; bevy browser 2089696 untouched.
 - Push: none. No code change in this window, so no push, as the request asked.
+
+## 2026-11-20 Phase B window, 05:33 to 05:54 UTC (lanmower): six more live strike runs, all passed; HEAD c4500fc0 unchanged code
+
+- Readings: 40 from 05:33:09 to 05:54:09 (vmstat second sample plus scripts/witness/heavy-jobs.cjs, byte-identical to bevy 495fff6). Every recorded reading was heavy-jobs busy (checker rc 1): the window's own project browser renderers, peer grep, check-etc2 and find jobs, and a gm-core worker. No recorded reading was clear, so the runs rest on the loop's gate samples below, which run scripts/witness/run-gated.sh (vmstat, then heavy-jobs.cjs), not on the 30 s readings. No ledger line for closed readings.
+- Six runs started on clear gate samples (run-gated.sh exit 0): 05:37:13, 05:39:54, 05:42:41, 05:45:16, 05:47:52, 05:50:36. Each run's wall time is setup plus witness, then close: 155.5 s, 164.7 s, 152.5 s, 154.2 s, 154.1 s, 178.1 s. The loop did not time setup and witness separately.
+- Verdicts (trace files, not the loop's return text): all six d1-2026-11-20 traces are ok: true, reasons []:
+  - 05:39:50 trace: lock on 343 samples / 690 ticks (1 pick); lock off 313 / 642; lock on again 351 / 717 (2 picks).
+  - 05:42:30 trace: lock on 342 / 692 (1 pick); lock off 308 / 640; lock on again 320 / 668 (1 pick).
+  - 05:45:15 trace: lock on 342 / 690 (1 pick); lock off 312 / 640; lock on again 358 / 738 (1 pick).
+  - 05:47:52 trace: lock on 341 / 693 (1 pick); lock off 315 / 641; lock on again 362 / 742 (2 picks).
+  - 05:50:28 trace: lock on 343 / 690 (1 pick); lock off 312 / 642; lock on again 335 / 690 (1 pick).
+  - 05:53:36 trace: lock on 342 / 692 (1 pick); lock off 313 / 642; lock on again 386 / 791 (2 picks).
+- Budget: every leg met the 288-sample floor. Lock-off legs counted 640 to 642 ticks against the 640 budget; the on legs ran longer only by pick ticks, which the budget does not count. No reruns, no aborts, no leg near the 1920-tick cap.
+- Rule note: the last run started at 05:50:36, which is 2 min 37 s before the 05:53:09 window end counted from the 05:33:09 server start. The loop's cutoff was anchored to its own start (05:37:13), so the four-minute rule was not applied to the window's clock. The witness passed; the pass count stands.
+- Pass tally across windows on HEAD 11e41422 and c4500fc0 (same code): 5 passes before this window (04:32 and four in 04:57 to 05:11), plus six here: 11 of 11. This is a sample of 11, not a measured rate.
+- Cleanup: server job phb12serve stopped (job_stop, PID 2243877 window's server ended); browser 2292646 (gate restarted after the last close) and wrapper 2292643 stopped by PID; port 8853 returns 000; bevy browser 2089696 untouched.
