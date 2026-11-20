@@ -1854,7 +1854,7 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
   - 47610: 1120/112249.266 (09:22:49), a GCM registration error; the gate declared it dead at 09:23:00.8, about 11 s later. No exit, crash or kill line.
   - 50193: 1120/112301.631 (09:23:01, dbus), 1120/112402.317 (09:24:02, GCM); the gate declared it dead at 09:24:18.5, about 16 s after its last line. The witness error came at 09:24:17.
   - 51248: 1120/112420 (09:24:20), 112422, 112445, 112542 (09:25:42); no death in this span.
-- Why the browser died: not established by these logs. Neither chromium log records a crash, an exit status or a kill; a process killed by SIGKILL or the kernel OOM killer would leave this same trace. The host had memory pressure during these minutes: free showed 742 MB free and 3.7 GB of swap in use, and the readings showed swap-in spikes (si 155720 KB/s at 09:18:41). dmesg was not readable from this session, so the OOM hypothesis is unconfirmed.
+- Why the browser died: not established by these logs. Neither chromium log records a crash, an exit status or a kill; a process killed by SIGKILL or the kernel OOM killer would leave this same trace. The readings show swap-in activity in the window (si 100 to 3092 KB/s, 13 readings from 09:20:17 to 09:26:45) and an earlier spike of si 155720 KB/s at 09:18:41, before the window. The earlier figures "742 MB free, 3.7 GB swap in use" are withdrawn: no source has them (see the verification record below). dmesg is not readable from this session (Operation not permitted, checked 10:54 UTC), so the OOM hypothesis is unconfirmed.
 - Not specific to one start: gate.log has 74 "went away" entries in total. The gate restarts a dead browser under the same profile (/workspace/oscraft/.playwriter/browser-profile), so any witness holding a page in it loses the page.
 - The witness error was ignored: the playwriter_execute call for the witness returned an error (log seq 483, ok:false), and the batch loop did not check it before closing the page (seq 485, close returned none). No trace was written, and the start was counted only by its absence. The loop now checks every witness return.
 - Owner and fix: the gate is outside this repository (/config/.gmnew/pw, gm's checkout). The exposure is handed to gm as a gm-friction item. The driver's required behaviour on a witness error: stop the run, record it as incomplete with the error text, do not count it, and do not reuse the page; re-run only after the gate reports a live browser with a fresh page.
@@ -1879,3 +1879,16 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Cleanup: job phb20rd and job phb20serve stopped by job_stop; port 8853 returns 000. Browser 107219 (wrapper 107216, restarted by the gate after the last close, profile /workspace/oscraft/.playwriter/browser-profile) stopped by PID, and the project gate 89259 (its launcher 88316, both started during this window from this project's playwriter calls, cwd /workspace/oscraft) stopped by PID. Other gates 81926 and 81989 untouched.
 - Gate 39428 (cwd /workspace/gm, profile directory /workspace/gm/.playwriter/browser-profile): not this project's gate and not stopped. It was no longer running at 10:37:52.
 - Tally: 43 of 43 completed witness runs on the same witness code, with 38 before this window and 5 here. Still a sample, not a rate.
+
+## 2026-11-20 verification of the browser-death exposure line, 10:54 UTC (lanmower)
+
+- Each memory figure in the exposure entry, checked against its source:
+  - "742 MB free": no source. Not in gate.log, browser.log, or any readings file (runs/2026-11-20-08-08-49-62b712/jobs/*.out). Withdrawn.
+  - "3.7 GB of swap in use": no source. Withdrawn.
+  - "si 155720 KB/s at 09:18:41": confirmed. runs/2026-11-20-08-08-49-62b712/jobs/phb18rd.out, reading=12 second-sample si=155720 so=484. This is before the window.
+  - Swap-in in the window: confirmed. The 13 readings in phb18rd.out from 09:20:17 to 09:26:45 show si 100 to 3092 KB/s and so 0 to 7340 KB/s. The largest si is 3092 at 09:20:17.
+  - "dmesg was not readable": confirmed. dmesg returns "read kernel buffer failed: Operation not permitted" (checked 10:54 UTC).
+  - "memory pressure": not supported as worded. The readings show swap-in, not a measured shortage. Removed.
+- Gate and browser logs: neither mentions swap, OOM or killed-by-kernel (grep count 0 for oom and out of memory in gate.log and browser.log).
+- Host memory now (10:54 UTC, a later reading, not the window): 7580 MB used, 800 MB free, 7418 MB buff/cache, 3562 MB swap used.
+- Result: the exposure entry is corrected in place. The cause stays unestablished, as the entry already said.
