@@ -15,7 +15,7 @@ export async function livePhase(page) {
 
 export async function setupLiveMatch(page, ns, { port = 8853, timeout = 180000 } = {}) {
   const steps = {};
-  await page.goto("http://127.0.0.1:" + port + "/js/client/play.html?ci=1&ns=" + ns + "#match-" + ns, { waitUntil: "domcontentloaded", timeout: 50000 });
+  await page.goto("http://127.0.0.1:" + port + "/js/client/play.html?ci=1&host=1&ns=" + ns + "#match-" + ns, { waitUntil: "domcontentloaded", timeout: 50000 });
   await page.waitForFunction(() => document.body.dataset.worldBuilt === "1" && typeof window.oscraft?.lobby === "function", null, { timeout });
   steps.mode = await page.evaluate(() => window.oscraft.lobby("mode", { code: "ap" }));
   steps.claim = await page.evaluate(() => window.oscraft.lobby("claim", { slot: 0 }));

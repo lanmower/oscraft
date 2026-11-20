@@ -1671,3 +1671,11 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Node witnesses through scripts/witness/run-gated.sh, open readings: lobby-link-check at 04:06:12 ("lobby link ok (22 cases)", wall 0.03 s); leg-clock-check at 04:06:14 ("leg clock ok (3 cases)", wall 0.04 s); strike-while-walking-check at 04:06:17 ("14 cases", wall 0.08 s); check-identifier-regime-runtime at 04:06:19 (PASS, default 127 acronyms, bota 24 fullnames, historical moba; wall 14.31 s).
 - Readings: the checker was run from scripts/witness/heavy-jobs.cjs (the byte-identical copy of bevy 495fff6). My first reading job pointed at scripts/heavy-jobs.cjs, which does not exist; its first readings (03:54 to 03:57) are invalid and were stopped. The valid job ran from 03:57 to 04:12. Open readings: 03:59:56, 04:08:02, 04:09:06.
 - Cleanup: the setup page was closed; browser 2181972 (and 2192727, which the gate restarted) were stopped by PID. The server (job phb9serve) was stopped by PID; port 8853 returns 000. The gate 2088748 is left running; bevy's browser 2089696 belongs to another project and was left alone.
+
+## 2026-11-20 Phase A: the strike setup loads as host (lanmower)
+
+- Cause, from the 04:0x window: the setup page was not the host, so Fill with bots and Start match never rendered. js/client/play.js line 3619 starts hosting only with host=1 in the query, and js/client/gui_flow.js lines 287 to 297 render those buttons only for state.host === me(). The setup URL had no host=1.
+- Change: scripts/witness/strike-live-setup.mjs loads play.html?ci=1&host=1&ns=<ns>#match-<ns>. The fake-page check (scripts/witness/strike-live-gate-check.mjs) now also asserts the entry URL carries host=1.
+- Witness: node scripts/witness/strike-live-gate-check.mjs prints "strike live gate ok (4 cases)".
+- Red: host=1 removed from the setup URL; the check fails with "setup must load as host (host=1), or Fill with bots and Start match never render". Restored from a copy, cmp same, check green again.
+- Not verified in a browser yet: the setup to a live match. The next Phase B window verifies it.
