@@ -1837,3 +1837,25 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Cause and fix: the 09:22:57 start is recorded above (commit 6477b7d4). No repo code changed. The driver now checks every witness return.
 - Cleanup: job phb19rd and job phb19serve stopped by job_stop; port 8853 returns 000. Browsers started in this window were stopped by PID: 75481 (wrapper) and 75484 (gate-started after the rerun's page closed). No browser was running at window start. Thebird's browser 77094 untouched.
 - Tally: the completed-run count is 38 of 38 with this rerun; the earlier incomplete start is counted as incomplete, not as a pass.
+
+## 2026-11-20 browser-death exposure for the witness driver: evidence 09:20 to 09:26 UTC (lanmower)
+
+- Exposure: a strike witness holds a page in a project browser. When that browser process dies, the witness fails with an error (runWitness at scripts/witness/strike-while-walking.mjs:515: page.evaluate, "Target page, context or browser has been closed"), and the driver must not treat that as anything but an incomplete run.
+- gate.log (.playwriter/gate.log, UTC):
+  - 09:20:03.450 browser went away after 3 failed probes; pid 44149 is dead
+  - 09:20:24.628 browser started pid=47607 (wrapper of chromium 47610)
+  - 09:22:58.460 probe failed 1/3; 09:22:59.833 probe failed 2/3
+  - 09:23:00.834 browser went away after 3 failed probes; pid 47610 is dead
+  - 09:23:01.267 browser started pid=50190 (wrapper of chromium 50193)
+  - 09:24:17.319 probe failed 1/3; 09:24:18.323 probe failed 2/3
+  - 09:24:18.461 browser went away after 3 failed probes; pid 50193 is dead (the browser under the 09:22:57 start's witness)
+  - 09:24:20.011 browser started pid=51245 (chromium 51248)
+- browser.log (.playwriter/browser.log, local time is UTC+2, so 1120/112249 is 09:22:49 UTC): the last lines per chromium pid:
+  - 47610: 1120/112249.266 (09:22:49), a GCM registration error; the gate declared it dead at 09:23:00.8, about 11 s later. No exit, crash or kill line.
+  - 50193: 1120/112301.631 (09:23:01, dbus), 1120/112402.317 (09:24:02, GCM); the gate declared it dead at 09:24:18.5, about 16 s after its last line. The witness error came at 09:24:17.
+  - 51248: 1120/112420 (09:24:20), 112422, 112445, 112542 (09:25:42); no death in this span.
+- Why the browser died: not established by these logs. Neither chromium log records a crash, an exit status or a kill; a process killed by SIGKILL or the kernel OOM killer would leave this same trace. The host had memory pressure during these minutes: free showed 742 MB free and 3.7 GB of swap in use, and the readings showed swap-in spikes (si 155720 KB/s at 09:18:41). dmesg was not readable from this session, so the OOM hypothesis is unconfirmed.
+- Not specific to one start: gate.log has 74 "went away" entries in total. The gate restarts a dead browser under the same profile (/workspace/oscraft/.playwriter/browser-profile), so any witness holding a page in it loses the page.
+- The witness error was ignored: the playwriter_execute call for the witness returned an error (log seq 483, ok:false), and the batch loop did not check it before closing the page (seq 485, close returned none). No trace was written, and the start was counted only by its absence. The loop now checks every witness return.
+- Owner and fix: the gate is outside this repository (/config/.gmnew/pw, gm's checkout). The exposure is handed to gm as a gm-friction item. The driver's required behaviour on a witness error: stop the run, record it as incomplete with the error text, do not count it, and do not reuse the page; re-run only after the gate reports a live browser with a fresh page.
+- Witness of this entry: the lines above are copied from .playwriter/gate.log and .playwriter/browser.log at the stated times, and from runs/2026-11-20-08-08-49-62b712/log.jsonl seq 483 and 485. Commit 6477b7d4 holds the earlier cause record.
