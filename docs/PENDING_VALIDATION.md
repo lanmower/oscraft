@@ -1757,3 +1757,24 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Budget: every leg met the 288-sample floor. Lock-off legs counted 640 to 642 ticks against the 640 budget; on-legs ran longer only by pick ticks, which the budget excludes. No reruns, no aborts, nothing near the 1920-tick cap.
 - Cleanup: job phb15serve (server, port 8853) stopped by job_stop; port 8853 returns 000. Project browser 2358789 (wrapper 2358786, restarted by the gate after the last close) stopped by PID. Bevy's browser 2089696 untouched.
 - Tally on the same witness code: 15 of 15 before this stretch, 20 of 20 with these five. Still a sample, not a rate.
+
+## 2026-11-20 Phase B window, 08:13 to 08:34 UTC (lanmower): six more live strike runs, all passed; code unchanged since 11e41422
+
+- Readings: 40 from 08:13:20 to 08:34:21 (vmstat second sample plus scripts/witness/heavy-jobs.cjs, byte-identical to bevy 495fff6). Open readings inside the window: 08:13:20 (si 0, so 0, checker clear) and 08:25:11 (si 0, so 0, checker clear). Open reading 08:33:48 came after the window end; the readings ran about a minute past it. The other readings were closed by busy processes (this project's browser renderers, peers' builds and greps, a gm-core worker).
+- Runs (scripts/witness/strike-live-setup.mjs, then strike-while-walking runWitness on the same page, same config, playwriter timeout 280000). Each started on a clear run-gated.sh sample (vmstat, then heavy-jobs.cjs exit 0). Wall = setup plus witness, then close:
+  - start 08:14:20, wall 152.2 s, trace 08-16-54
+  - start 08:16:54, wall 155.1 s, trace 08-19-31
+  - start 08:19:36, wall 153.5 s, trace 08-22-12
+  - start 08:22:12, wall 175.9 s, trace 08-25-10
+  - start 08:25:10, wall 154.4 s, trace 08-27-46
+  - start 08:27:47, wall 150.6 s, trace 08-30-19
+- Verdicts (trace files): all six ok: true, reasons [].
+  - 08-16-54: lock on 340 / 693 (1 pick, 4 strikes while moving); lock off 305 / 640; lock on again 311 / 671 (1 pick).
+  - 08-19-31: lock on 340 / 690 (1 pick); lock off 306 / 642; lock on again 323 / 718 (1 pick).
+  - 08-22-12: lock on 337 / 690 (1 pick, 8 strikes while moving); lock off 305 / 640; lock on again 317 / 693 (1 pick).
+  - 08-25-10: lock on 345 / 693 (1 pick, 5 strikes while moving); lock off 315 / 640; lock on again 339 / 717 (1 pick).
+  - 08-27-46: lock on 344 / 693 (1 pick, 7 strikes while moving); lock off 313 / 640; lock on again 371 / 771 (3 picks).
+  - 08-30-19: lock on 342 / 693 (1 pick, 8 strikes while moving); lock off 309 / 641; lock on again 323 / 667 (1 pick).
+- Budget: every leg met the 288-sample floor. Lock-off legs counted 640 to 642 ticks against the 640 budget; on-legs ran longer only by pick ticks, which the budget excludes. No reruns, no aborts, nothing near the 1920-tick cap.
+- Cleanup: job phb16serve (server, port 8853) stopped by job_stop; port 8853 returns 000. Project browser 13799 (wrapper 13796, restarted by the gate after the last close, profile /workspace/oscraft/.playwriter/browser-profile) stopped by PID. Other projects' browsers (thebird 6522, hyperagent 16075) untouched.
+- Tally on the same witness code: 20 of 20 before this window, 26 of 26 with these six. Still a sample, not a rate.
