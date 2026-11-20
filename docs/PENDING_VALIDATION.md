@@ -1679,3 +1679,15 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Witness: node scripts/witness/strike-live-gate-check.mjs prints "strike live gate ok (4 cases)".
 - Red: host=1 removed from the setup URL; the check fails with "setup must load as host (host=1), or Fill with bots and Start match never render". Restored from a copy, cmp same, check green again.
 - Not verified in a browser yet: the setup to a live match. The next Phase B window verifies it.
+
+## 2026-11-20 Phase B window, 04:28 to 04:42 UTC (lanmower): the strike setup reaches a live match; the live strike verdict holds
+
+- Setup at the 04:29:35 gate sample (si 656, so 0, scripts/witness/heavy-jobs.cjs clear; the owner's path scripts/heavy-jobs.cjs does not exist here, and the witness copy is byte-identical to bevy 495fff6). scripts/witness/strike-live-setup.mjs loaded play.html?ci=1&host=1&ns=strike-live-mwohcoix#match-strike-live-mwohcoix, claimed seat 0, picked PUD, clicked Fill with bots, Ready and Start match, and reached body phase live: wall 9.3 s.
+- Witness scripts/witness/strike-while-walking.mjs (runWitness), wall 141.9 s: verdict {"ok":true,"reasons":[]}, trace .gm/witness-traces/d1-2026-11-20T04-32-09-143Z-ok.json.
+- Legs (samples, ticks, picks, walking strikes):
+  - lock on: 340 samples over 693 ticks; 1 pick (tick 56 to 104, below replace hp); 4 strike samples while moving; 0 launches while moving; melee_hit 28; no rerun.
+  - lock off: 304 samples over 640 ticks; 0 picks; 0 strikes while moving; no rerun.
+  - lock on again: 335 samples over 718 ticks; 1 pick; 2 strike samples while moving; 1 launch while moving; melee_hit 25; no rerun.
+- Budget: no leg reached the 1920-tick cap (legTicks 640 times legCapFactor 3). Each leg ended when its 640 counted live-creep ticks were spent, which is the leg budget. The pick ticks (about 53 on lock on, about 78 on lock on again) sit outside that count, which is the fix in adfd59b4.
+- Against the flake's red legs (docs/PENDING_VALIDATION.md around line 662, passes 38 and 43): those showed "lock on again: the hero was never in reach while moving" and "lock on again: no strike while moving". This run's lock on again had both in-reach moving samples and a walking launch, so it is not red. This is one pass, not a rate; the old budget was red in 2 of 9 passes, so the flake is not yet shown to be fixed.
+- Cleanup: my strike page closed; browsers 2212284 and 2235006 (the gate restarted one after my close) stopped by PID; the server (job phb10serve) and the readings job stopped by PID; port 8853 returns 000. Readings: 27 from 04:28:08 to 04:42:09; none open after the start sample (the 04:42:09 reading had si 4936).
