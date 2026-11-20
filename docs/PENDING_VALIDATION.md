@@ -2002,3 +2002,13 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
   - Restore: cp from the saved copy; cmp reports the restored file identical to the saved good copy.
   - Witness after restore: "strike-while-walking verdict checks ok (14 cases, leg timing in sim ticks)", rc 0.
   - git status after restore: scenarios/bota/cross-contract-snapshot.json (unstaged, not ours), scripts/witness/strike-while-walking-check.mjs and scripts/witness/strike-while-walking.mjs modified, core.155932 untracked.
+
+## 2026-11-20 Phase B window, 15:19:44 to 15:39:44 UTC (lanmower): guard check and one live run after the runWitness change
+
+- Readings: first vmstat 1 2 at 15:19:44, second sample si 192, so 0 KB/s (swap clear; heavy-jobs not read at this sample).
+- Gate: run-gated.sh at 15:19:49, second sample si 64, so 0 KB/s, "HEAVY_JOBS clear", gate_rc 0. This is the sample that started the run. The run started on this sample.
+- Live run (localhost play.html, port 8853; setup via strike-live-setup.mjs, witness via strike-while-walking runWitness, under a 280 s playwriter timeout): wall about 160 s. Trace d1-2026-11-20T15-22-28-981Z-ok.json: ok true, reasons [], incomplete null. Legs: lock on 341 / 690 (1 pick); lock off 312 / 640; lock on again 347 / 717 (1 pick). Every leg met the 288-sample floor; lock-off legs counted 640 against the 640 budget. The witness returned no error.
+- Guard witness, rerun in this window: timeout 120 node scripts/witness/strike-while-walking-check.mjs, PID 252403, exit 0, output "strike-while-walking verdict checks ok (14 cases, leg timing in sim ticks)". The incomplete-trace case is in the same run.
+- Cleanup, by PID, each checked by command line first: browser wrapper 249524 and its tree (9 processes) stopped; gate launcher 247260 and gate 247269 (started 15:19:51, this window) stopped; server wrapper 247175 and node 247178 stopped. Port 8853 returns 000.
+- Not touched: the chain under 116445 (started 14:00 UTC, parent not this run's worker) and gm worker 2525.
+- Tally: 59 of 59 completed witness runs on the same witness code, with 58 before this window and the one live run here. The guard change is in the witness code, so the tally counts runs after the change separately: one live run after the change, ok.
