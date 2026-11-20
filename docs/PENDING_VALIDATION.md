@@ -1649,3 +1649,8 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Witness: node scripts/witness/strike-live-gate-check.mjs prints "strike live gate ok (4 cases)": runWitness refuses on fake pages in phases lobby, loading and empty without loading scripts or clicking, and setupLiveMatch throws "did not reach a live match" when the page stays in lobby.
 - Red: the phase guard disabled (if (false) throw): the check fails with 'runWitness must refuse in phase "lobby": null'. Restored from a copy, cmp same, check green again.
 - Not verified in a browser yet: the setup's button and hero steps. Phase B runs them; a live match or the step that failed is recorded in the next ledger line.
+
+## 2026-11-20 setup fix: the strike setup enters a named room (lanmower)
+
+- First Phase B try (03:12:14, gate si 460 so 0, checker clear): the setup reached http://127.0.0.1:8853/js/client/play.html?ci=1&ns=strike-live-mwoel8it with no hash. js/client/play.js (line 2568 to 2571) sets location.hash to a matchmaking room and reloads 15 s after load when the hash is empty, which wiped the mode and claim. The setup then waited 30 s for Fill with bots and failed (waitForFunction timeout). Nothing was pushed.
+- Fix: scripts/witness/strike-live-setup.mjs loads the page with a named room, "#match-" + ns, so matchmaking does not replace it. Witness: node scripts/witness/strike-live-gate-check.mjs prints "strike live gate ok (4 cases)", and the setup case asserts the goto carries a #match- hash. Red: the hash removed, check fails with "setup must enter a named room (a hash), or matchmaking reloads the page at 15 s". Restored from a copy, cmp same, green again.

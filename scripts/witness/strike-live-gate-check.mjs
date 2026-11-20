@@ -13,7 +13,7 @@ const fakePage = (phase, calls) => ({
   locator: () => ({ getAttribute: async () => "false", click: async () => { calls.push("click"); } }),
   waitForTimeout: async () => {},
   waitForFunction: async () => { calls.push("waitForFunction"); },
-  goto: async () => { calls.push("goto"); },
+  goto: async (url) => { calls.push("goto " + url); },
 });
 
 for (const phase of ["lobby", "loading", ""]) {
@@ -30,6 +30,7 @@ for (const phase of ["lobby", "loading", ""]) {
   let failed = null;
   try { await setupLiveMatch(fakePage("lobby", calls), "gate-check"); } catch (err) { failed = err.message; }
   expect(failed !== null && failed.includes("did not reach a live match") && failed.includes("lobby"), "setup must fail when the page never reaches live: " + failed);
+  expect(calls.some((c) => c.startsWith("goto ") && c.includes("#match-gate-check")), "setup must enter a named room (a hash), or matchmaking reloads the page at 15 s: " + calls.join(", "));
 }
 
 console.log("strike live gate ok (4 cases)");
