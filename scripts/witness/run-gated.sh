@@ -8,17 +8,10 @@ if ! [[ "$si" =~ ^[0-9]+$ && "$so" =~ ^[0-9]+$ ]] || [ "$si" -ge 1000 ] || [ "$s
   echo "GATE CLOSED: no witness started"
   exit 3
 fi
-top_out=$(top -b -n 2 -d 1)
-heavy=""
-while read -r pid cpu; do
-  [ -z "$pid" ] && continue
-  args=$(ps -o args= -p "$pid" 2>/dev/null | cut -c1-120)
-  case "$args" in *--handshake*) continue ;; esac
-  heavy="$heavy$pid($cpu% $args) "
-done < <(echo "$top_out" | awk '/PID USER/{f++} f==2 && $9+0>=20 {print $1, $9}')
-echo "heavy (top current CPU at or above 20%, gm-core --handshake workers excluded by full ps args): [$heavy]"
-if [ -n "$heavy" ]; then
-  echo "HEAVY JOB RUNNING: no witness started: $heavy"
+heavy=$(node "$(dirname "$0")/heavy-jobs.cjs" 2>&1); hrc=$?
+echo "$heavy"
+if [ $hrc -ne 0 ]; then
+  echo "HEAVY JOB RUNNING: no witness started (heavy-jobs.cjs rc=$hrc)"
   exit 4
 fi
 s=$(date +%s.%N)

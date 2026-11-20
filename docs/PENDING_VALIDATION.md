@@ -1603,3 +1603,10 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Change: scripts/witness/run-gated.sh takes each non-handshake PID at or above 20% CPU from the second top frame, then reads its full command with ps -o args= and skips it when the args contain --handshake. The heavy list names PID, CPU and the command.
 - Witness: node scripts/witness/run-gated-check.mjs (9 cases; stub vmstat, top and ps): "run-gated ok (9 cases)". The relay case is a handshake worker at 300% whose top name is only gm-core: it runs.
 - Red: the handshake exclusion removed (matched on a string that never occurs): rc 4, "a gm-core handshake relay worker at 300% does not block (full ps args, not the top name): rc 4, ran false". Restored from a copy: cmp SAME; the check is green again.
+
+## 2026-11-20 Phase A: the heavy reading is bevy's committed rule (lanmower)
+
+- The runner's heavy reading now calls scripts/witness/heavy-jobs.cjs, which is byte-identical to bevy's scripts/heavy-jobs.cjs and scripts/lib/heavy-jobs.cjs at 495fff6 (diff checked). It counts a process as heavy when top shows it above 20% CPU, a compiler (cc1plus, cc1, rustc, cargo test/check/nextest and build, zig, cmake, ninja, collect2, clang, lld, mold, sccache) at any CPU, or a Chromium renderer above 1 GB RSS; gm-core workers with --handshake are excluded from the full ps args.
+- Witnesses: node scripts/witness/heavy-jobs-check.cjs prints "heavy-jobs ok (7 cases)" (the fixture covers a C++ compiler at 3% CPU, a renderer over 1 GB at 2%, a renderer under 1 GB, a handshake worker at 100%, a 25% and a 20% process). node scripts/witness/run-gated-check.mjs prints "run-gated ok (10 cases)".
+- Red, mutation 1 (COMPILERS emptied): heavy-jobs-check FAILED on the compiler case; run-gated-check "a C++ compiler at 3% CPU blocks as a compile: rc 0". Mutation 2 (renderer threshold 1e12 KiB): heavy-jobs-check FAILED on the renderer case; run-gated-check "a Chromium renderer over 1 GB at 2% CPU blocks: rc 0". Each file restored from a copy, cmp same, and both checks green again.
+- Earlier 10% and 25% cases and the 20% limit remain in both checkers.
