@@ -1737,3 +1737,23 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Budget: every leg met the 288-sample floor. Lock-off legs counted 640 to 641 ticks against the 640 budget; the on legs ran longer only by pick ticks, which the budget excludes. No reruns, no aborts, nothing near the 1920-tick cap.
 - Cleanup: job phb13serve (server, port 8853) stopped by job_stop; port 8853 returns 000. The gate restarted a project browser after the last close (2319455, wrapper 2319452); both stopped by PID. Bevy's browser 2089696 untouched.
 - Pass tally on the same witness code: 11 of 11 before this window, 15 of 15 with these four. Still a sample, not a rate.
+
+## 2026-11-20 Phase B windows after the network drop (lanmower): five more live strike runs, all passed; code unchanged since 11e41422
+
+- Journal at resume: the 06:53 window (phb14) started readings and a server only; no strike loop had started, so no run was in progress when the network dropped at about 07:02. Its server was stopped by PID at 07:27 and no witness trace was written from it. Its readings (06:53:26 to 07:23:37, 40 valid, scripts/witness/heavy-jobs.cjs) are recorded in the job output, and no run was counted from them.
+- Window phb15: server and readings from 07:27:47; readings 07:27:51 to 07:48:51 (40, scripts/witness/heavy-jobs.cjs, byte-identical to bevy 495fff6). Readings 1 to 36 (to 07:46:42) had no open reading; open readings at 07:47:14, 07:48:19 and 07:48:51 came after the window end, and the readings ran about a minute past it.
+- Runs (scripts/witness/strike-live-setup.mjs, then strike-while-walking runWitness on the same page, same config, playwriter timeout 280000). Each started on a clear run-gated.sh sample (vmstat, then heavy-jobs.cjs exit 0). Wall = setup plus witness, then close:
+  - start 07:30:58, wall 150.8 s, trace 07-33-31
+  - start 07:33:35, wall 153.5 s, trace 07-36-10
+  - start 07:36:21, wall 157.5 s, trace 07-39-01
+  - start 07:39:01, wall 176.0 s, trace 07-41-59
+  - start 07:41:59, wall 154.8 s, trace 07-44-36
+- Verdicts (trace files): all five ok: true, reasons [].
+  - 07-33-31: lock on 343 / 690 (1 pick); lock off 317 / 641; lock on again 362 / 739 (1 pick).
+  - 07-36-10: lock on 343 / 692 (1 pick, 4 strikes while moving); lock off 313 / 641; lock on again 334 / 691 (1 pick).
+  - 07-39-01: lock on 345 / 690 (1 pick); lock off 314 / 642; lock on again 386 / 795 (3 picks).
+  - 07-41-59: lock on 344 / 692 (1 pick, 1 launch while moving); lock off 311 / 640; lock on again 364 / 743 (2 picks).
+  - 07-44-36: lock on 345 / 692 (1 pick, 9 strikes while moving); lock off 313 / 640; lock on again 359 / 743 (3 picks).
+- Budget: every leg met the 288-sample floor. Lock-off legs counted 640 to 642 ticks against the 640 budget; on-legs ran longer only by pick ticks, which the budget excludes. No reruns, no aborts, nothing near the 1920-tick cap.
+- Cleanup: job phb15serve (server, port 8853) stopped by job_stop; port 8853 returns 000. Project browser 2358789 (wrapper 2358786, restarted by the gate after the last close) stopped by PID. Bevy's browser 2089696 untouched.
+- Tally on the same witness code: 15 of 15 before this stretch, 20 of 20 with these five. Still a sample, not a rate.
