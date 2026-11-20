@@ -2069,3 +2069,27 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - DESIGN.md "Current tree figures" line: gates 83 to 89 and gate path refs 69 to 74. The new numbers are computed from the tree: gates from node scripts/check-all.mjs --list ("LIST gates=89"), refs from the quoted js/scripts/scenarios .mjs paths in scripts/check-all.mjs (74). The check that the figures equal what check-all computes is scripts/check-design-record.mjs (a gate in check-all).
 - Witness: node scripts/check-design-record.mjs, rc 0: "design record ok: gates=89, gate path refs=74 with 0 missing, camera writes=24 with 0 unclassified (matches DESIGN.md)".
 - Red check: sed changed "gates=89, gate path refs=74 with" to "gates=90, ..." in DESIGN.md (one match). The check failed, rc 1: "DESIGN.md four-repo figures drifted from the tree: gates record=90 tree=89". Restored from a saved copy: cmp identical; the check returned rc 0 again.
+
+## 2026-11-20 Phase B: check-all all ok, six race runs one room each, pushed (lanmower)
+
+- vmstat 1 2 readings (all recorded; each run started only after run-gated.sh printed HEAVY_JOBS clear in its own sample):
+  - 17:44:57 UTC: sample 1 si 4060 so 4948; sample 2 si 636 so 0.
+  - 18:08:09 UTC: sample 1 si 4039 so 4863; sample 2 si 60 so 0.
+  - 18:25:38 UTC: sample 1 si 3974 so 4802; sample 2 si 3828 so 48 (closed; the gate loop waited).
+- Gate samples (second sample from run-gated.sh, HEAVY_JOBS clear, rc 0) for the runs in the final set: 1 s run 1 si 132 so 0; 20 s run 1 si 180 so 0; 1 s run 2 si 132 so 0; 20 s run 2 si 116 so 0; 1 s run 3 si 72 so 0; 20 s run 3 si 132 so 0.
+- Race runs, one gap each, three pages, a localhost relay per run (ns mm3-*), each run with one room (ok true):
+  - 1 s gap, run 1: #match-pw8fm7me; relay port 45157; gate 467665 stopped.
+  - 20 s gap, run 1: #match-6q4fcu1x; relay port 38855; gate 469623 stopped.
+  - 1 s gap, run 2: #match-8gfg2kod; relay port 38191; gate 476694 stopped.
+  - 20 s gap, run 2: #match-azrddcfb; relay port 33057; gate 480001 stopped.
+  - 1 s gap, run 3: #match-gb7ke2cd; relay port 35607; gate 481332 stopped.
+  - 20 s gap, run 3: #match-4fisy2oq; relay port 41013; gate 482459 stopped.
+  - Each relay closed in-process; the relay ports have no listeners afterward. Each serve (node scripts/dev/serve.mjs on 8853) was stopped by PID; port 8853 returned 000 after each run.
+- An earlier set of six race runs in this window had one playwriter gate (440133) persisting across runs. It was stopped by PID (its start was inside the window) before the final set. Those six runs also gave one room each (#match-v25ot2rv, #match-ez78xjbn, #match-478e3hnc, #match-i40z3vqg, #match-46d47e9x, #match-nhrf1p9a).
+- After the final run the gm worker (pid 2525) started a new gate (483422) with its browser tree at 18:38:16 UTC, after no playwriter call of this window. That gate tree was stopped by PID at 18:4x UTC; afterward no process with the oscraft browser profile or the gm playwriter gate was left.
+- Witnesses, each under run-gated.sh with timeout and PID captured in the log:
+  - node scripts/check-all.mjs (pid 431870): RESULT gates=89 ok=89 failed=0 drift=0 skipped=6 strict=false. Gate sample si 84 so 0.
+  - node scripts/witness/matchmaking-race-check.mjs (pid 434900): rc 0, "matchmaking race checks ok (5 verdict cases, relay forwards a matching event)". Gate sample si 28 so 0.
+  - node js/client/room-match-check.mjs (pid 435571): rc 0, "room match ok (11 cases)". Gate sample si 32 so 0.
+  - node scripts/witness/strike-while-walking-check.mjs (pid 440081): rc 0, "strike-while-walking verdict checks ok (14 cases, leg timing in sim ticks)". Gate sample si 72 so 0.
+- Push: origin main was 4a0b48f9; this window's commits were pushed after every witness above passed.
