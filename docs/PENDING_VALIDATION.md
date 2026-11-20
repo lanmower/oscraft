@@ -1639,3 +1639,13 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Legs: none ran (no leg result, no verdict), so no leg ended on the budget. The red legs at docs/PENDING_VALIDATION.md:662 remain the only evidence, and the leg-clock fix in adfd59b4 is still unverified in a browser.
 - Server (job phb7serve2, PID 2086434) stopped by job_stop; port 8853 returns 000. My strike page was closed before the server was stopped.
 - Not pushed: the push waits on a strike verdict that does not exist.
+
+## 2026-11-20 Phase A: the strike witness refuses outside a live match; the setup waits for the served buttons (lanmower)
+
+- Read from js/client/gui_flow.js (not guessed): the lobby buttons are button.flow-action. Fill with bots is rendered for the host and disabled once every seat has an owner (fill.disabled = seats.every(owner)). Start match is disabled until state.worldReady and every seat is owned and ready. Ready is Ready or Unready. Hero cards are picked from the served page; the setup finds them by data-acro PUD. The buttons send the same ui call as window.oscraft.lobby(call, args).
+- Live marker: js/client/play.js sets document.body.dataset.phase = gate.phase, and load_gate.js PHASE.LIVE is "live". This is the marker the witness checks.
+- scripts/witness/strike-while-walking.mjs runWitness now reads body.dataset.phase first and throws "strike witness refused: the page is in phase ..., not a live match" before any script is loaded or any click is made.
+- scripts/witness/strike-live-setup.mjs (new): setupLiveMatch(page, ns) opens play.html on localhost, claims seat 0, waits until Fill with bots is enabled and clicks it, picks PUD, waits for Ready and clicks it, waits until Start match is enabled and clicks it, then waits for body.dataset.phase === "live". It throws with the step it failed on when the page is not live.
+- Witness: node scripts/witness/strike-live-gate-check.mjs prints "strike live gate ok (4 cases)": runWitness refuses on fake pages in phases lobby, loading and empty without loading scripts or clicking, and setupLiveMatch throws "did not reach a live match" when the page stays in lobby.
+- Red: the phase guard disabled (if (false) throw): the check fails with 'runWitness must refuse in phase "lobby": null'. Restored from a copy, cmp same, check green again.
+- Not verified in a browser yet: the setup's button and hero steps. Phase B runs them; a live match or the step that failed is recorded in the next ledger line.

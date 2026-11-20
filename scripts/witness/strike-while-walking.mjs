@@ -498,6 +498,8 @@ export function verdict(legs) {
 
 export async function runWitness(page, config = CONFIG) {
   const lockButton = page.locator("#hero-lock");
+  const phase = await page.evaluate(() => document.body.dataset.phase ?? "");
+  if (phase !== "live") throw new Error("strike witness refused: the page is in phase \"" + phase + "\", not a live match");
   await page.addScriptTag({ path: fileURLToPath(new URL("./clear-target.js", import.meta.url)) });
   await page.addScriptTag({ path: fileURLToPath(new URL("./leg-clock.js", import.meta.url)) });
   await page.evaluate(() => {
