@@ -1617,3 +1617,9 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Passed on an open reading, through scripts/witness/run-gated.sh: run-gated-check.mjs at 01:13:01 ("run-gated ok (10 cases)", wall 0.68 s); room-match-check.mjs at 01:13:35 ("room match ok (9 cases)", wall 0.05 s).
 - Not run in this window: lobby-link-check.mjs, leg-clock-check.mjs, strike-while-walking-check.mjs, check-identifier-regime-runtime.mjs (refused on busy or closed gates until the window ended at 01:17:28); alone-probe.js, matchmaking-join-probe.js and the live strike-while-walking.mjs run (not started: no clear reading left in the window).
 - Server: node scripts/dev/serve.mjs on port 8853 (PID 1923791) stopped by PID; port 8853 returns 000 afterwards. No browser tab was opened in this window.
+
+## 2026-11-20 Phase B window, 01:33 to 01:43 UTC (lanmower): REPORT open, browser steps not started
+
+- Readings: 20 at 30 s from 01:33:25 (the second vmstat sample is the gate, heavy from scripts/witness/heavy-jobs.cjs). Open, both directions below 1000 KB/s and the checker clear: 01:40:25 (si 636, so 0), 01:41:30 (si 48, so 0), 01:43:39 (si 304, so 0). The other readings were closed by other peers' gm and fx builds (cmake, ninja, cc1plus, collect2, ld, fx) and a 100% gm-core worker without --handshake.
+- A gate check at 01:45:32, after the window, read si 3148 so 0 (closed); no browser step was started.
+- Not run: alone-probe.js, matchmaking-join-probe.js, the live strike-while-walking.mjs run. The server (PID 1961585) was stopped by PID; port 8853 is free.
