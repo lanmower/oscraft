@@ -2012,3 +2012,14 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Cleanup, by PID, each checked by command line first: browser wrapper 249524 and its tree (9 processes) stopped; gate launcher 247260 and gate 247269 (started 15:19:51, this window) stopped; server wrapper 247175 and node 247178 stopped. Port 8853 returns 000.
 - Not touched: the chain under 116445 (started 14:00 UTC, parent not this run's worker) and gm worker 2525.
 - Tally: 59 of 59 completed witness runs on the same witness code, with 58 before this window and the one live run here. The guard change is in the witness code, so the tally counts runs after the change separately: one live run after the change, ok.
+
+## 2026-11-20 Phase A: matchmaking race witness (localhost relay, three pages) (lanmower)
+
+- Item 7 of the ranked list: a page with no room waits ROOM_ANNOUNCE_S (15 s) for the room list, then chooses (js/client/play.js around 2567 to 2572). Rooms are announced over relays. The default list (js/client/vendor/wireweave/src/relay-pool.js) is public (wss://relay.primal.net, nos.lol and others), so the race must not run on those. A ?relay= list points the page at a localhost relay instead.
+- Localhost relay: EphemeralRelay from the vendored wireweave submodule (js/client/vendor/wireweave/src/ephemeral-relay.js) with ws (js/client/vendor/wireweave/node_modules/ws/wrapper.mjs). The submodule is not tracked by this repo; it is checked out in this working tree, as the page loads it.
+- New files:
+  - scripts/witness/matchmaking-race.mjs: raceVerdict(hashes) (pure: every page must be on #match-…, and all on one room), startRelay(port) (the EphemeralRelay on localhost), runRace(context, {relayUrl, ns, pages 3, gapMs 1000, settleMs 30000}) (opens pages on localhost port 8853 with ?ci=1&ice=[]&relay=…&ns=…, staggered by gapMs, waits settleMs, reads each page's hash, closes the pages). ice=[] sends no STUN servers, so the probe makes no live request.
+  - scripts/witness/matchmaking-race-check.mjs: the verdict cases (five) and a relay forwarding check (a REQ subscriber receives an EVENT published by a second client, after EOSE).
+- Witness, run in Phase A: timeout 120 node scripts/witness/matchmaking-race-check.mjs, rc 0, "matchmaking race checks ok (5 verdict cases, relay forwards a matching event)". No browser run.
+- Red check: mutation sed changed "if (rooms.length > 1)" to "if (rooms.length > 99)" in matchmaking-race.mjs (one match before the mutation). The check then failed at "a split room is red" (AssertionError, true !== false). Restored from a saved copy: cmp identical, and the check returned rc 0 again.
+- Not run in Phase A: the three-page browser run (runRace). It is Phase B.
