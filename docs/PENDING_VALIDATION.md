@@ -1799,3 +1799,24 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Budget: every leg met the 288-sample floor. Lock-off legs counted 640 ticks against the 640 budget. On-legs ran longer only by pick ticks, which the budget excludes; the 08-48-39 lock-on-again leg ran 912 ticks because of one 266-tick pick, still under the 1920 cap. No reruns, no aborts.
 - Cleanup: job phb17rd (readings) and job phb17serve (server, port 8853) stopped by job_stop; port 8853 returns 000. Project browser 29772 (wrapper 29769, restarted by the gate after the last close, profile /workspace/oscraft/.playwriter/browser-profile) stopped by PID. Other projects' browsers (thebird 6522, hyperagent 16075) untouched.
 - Tally on the same witness code: 26 of 26 before this window, 32 of 32 with these six. Still a sample, not a rate.
+
+## 2026-11-20 Phase B window, 09:12 to 09:34 UTC (lanmower): six live strike runs started; five passed, one incomplete; push withheld
+
+- Readings: 40 from 09:12:45 to 09:33:46 (vmstat second sample plus scripts/witness/heavy-jobs.cjs, byte-identical to bevy 495fff6). The window was 09:12:43 to 09:32:43; readings 39 and 40 ran about a minute past it. Open readings inside the window: 09:22:59 only (si 896, so 0, checker clear).
+- Runs (scripts/witness/strike-live-setup.mjs, then strike-while-walking runWitness on the same page, same config, playwriter timeout 280000). Each started on a clear run-gated.sh sample. Wall = setup plus witness, then close:
+  - start 09:14:30, wall 154.1 s, trace 09-17-06: ok, reasons [].
+  - start 09:17:16, wall 153.5 s, trace 09-19-51: ok, reasons [].
+  - start 09:20:21, wall 153.5 s, trace 09-22-57: ok, reasons [].
+  - start 09:22:57, wall 80.7 s, INCOMPLETE: no trace written, close returned none (the strike page was gone before close). Not counted as a pass, and the cause is not established from the output; the loop did not capture the witness return for this run.
+  - start 09:25:15, wall 153.2 s, trace 09-27-50: ok, reasons [].
+  - start 09:27:50, wall 187.9 s, trace 09-30-50: ok, reasons [].
+- Verdicts (trace files; the trace stamp is the witness end):
+  - 09-17-06: lock on 341 / 690 (1 pick, 8 strikes while moving); lock off 310 / 640; lock on again 373 / 768 (3 picks).
+  - 09-19-51: lock on 343 / 692 (1 pick, 1 launch while moving); lock off 308 / 640; lock on again 340 / 715 (1 pick).
+  - 09-22-57: lock on 344 / 692 (1 pick); lock off 314 / 640; lock on again 356 / 743 (3 picks).
+  - 09-27-50: lock on 341 / 692 (1 pick); lock off 311 / 640; lock on again 337 / 691 (1 pick).
+  - 09-30-50: lock on 341 / 690 (1 pick); lock off 309 / 640; lock on again 358 / 743 (2 picks).
+- Budget: every counted leg met the 288-sample floor. Lock-off legs counted 640 ticks against the 640 budget. On-legs ran longer only by pick ticks, which the budget excludes. No reruns, no aborts, nothing near the 1920-tick cap.
+- Browser: the pre-window project browser 39040 (owner this project's gate) was gone by the time of the last ps check. It was not stopped by a PID of mine, and the gate appears to have started a new project browser after each run's page close. Browser 55180 (wrapper 55177), started at 09:31 UTC inside this window, was stopped by PID.
+- Cleanup: job phb18rd (readings) exited on its own after 40 readings; job phb18serve (server, port 8853) stopped by job_stop; port 8853 returns 000.
+- Tally: 32 before this window; the five completed passes make 37 of 37 completed witness runs, and the 09:22:57 start is recorded as incomplete and not counted.
