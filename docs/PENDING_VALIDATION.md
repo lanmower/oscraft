@@ -1859,3 +1859,23 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - The witness error was ignored: the playwriter_execute call for the witness returned an error (log seq 483, ok:false), and the batch loop did not check it before closing the page (seq 485, close returned none). No trace was written, and the start was counted only by its absence. The loop now checks every witness return.
 - Owner and fix: the gate is outside this repository (/config/.gmnew/pw, gm's checkout). The exposure is handed to gm as a gm-friction item. The driver's required behaviour on a witness error: stop the run, record it as incomplete with the error text, do not count it, and do not reuse the page; re-run only after the gate reports a live browser with a fresh page.
 - Witness of this entry: the lines above are copied from .playwriter/gate.log and .playwriter/browser.log at the stated times, and from runs/2026-11-20-08-08-49-62b712/log.jsonl seq 483 and 485. Commit 6477b7d4 holds the earlier cause record.
+
+## 2026-11-20 Phase B window, 10:17 to 10:37 UTC (lanmower): five more live strike runs, all passed; code unchanged
+
+- Readings: 39 from 10:17:22 to 10:37:50 (vmstat second sample plus scripts/witness/heavy-jobs.cjs, byte-identical to bevy 495fff6; checker rc 0 clear, rc 1 busy). The job was stopped at 10:37:52 by job_stop, 33 s past the window end of 10:37:19. Open readings: 10:36:13 (si 88, so 0), 10:36:45 (si 236, so 0) and 10:37:18 (si 236, so 0); the other 36 were closed by busy processes. The last run started at 10:31:39, leaving 5 min 40 s of the window.
+- Runs (scripts/witness/strike-live-setup.mjs, then strike-while-walking runWitness, same config; the witness return is now checked, and none reported an error). Each started on a clear run-gated.sh sample. Wall = setup plus witness, then close:
+  - start 10:19:21, wall 165.6 s, trace 10-22-09: ok, reasons [].
+  - start 10:22:21, wall 167.7 s, trace 10-25-01: ok, reasons [].
+  - start 10:25:40, wall 182.6 s, trace 10-28-45: ok, reasons [].
+  - start 10:28:48, wall 164.4 s, trace 10-31-24: ok, reasons [].
+  - start 10:31:39, wall 152.5 s, trace 10-34-14: ok, reasons [].
+- Legs (samples / ticks, picks):
+  - 10-22-09: lock on 343 / 690 (1 pick); lock off 309 / 641; lock on again 392 / 811 (1 pick).
+  - 10-25-01: lock on 341 / 692 (1 pick); lock off 309 / 640; lock on again 356 / 740 (1 pick).
+  - 10-28-45: lock on 342 / 692 (1 pick); lock off 314 / 641; lock on again 512 / 1060 (3 picks, 2 launches while moving; the 1060 ticks include pick ticks outside the counted budget, under the 1920 cap).
+  - 10-31-24: lock on 341 / 691 (1 pick); lock off 308 / 641; lock on again 337 / 715 (1 pick).
+  - 10-34-14: lock on 342 / 692 (1 pick); lock off 313 / 640; lock on again 337 / 691 (1 pick).
+- Budget: every leg met the 288-sample floor. Lock-off legs counted 640 to 641 ticks against the 640 budget. On-legs ran longer only by pick ticks, which the budget excludes. No reruns, no aborts.
+- Cleanup: job phb20rd and job phb20serve stopped by job_stop; port 8853 returns 000. Browser 107219 (wrapper 107216, restarted by the gate after the last close, profile /workspace/oscraft/.playwriter/browser-profile) stopped by PID, and the project gate 89259 (its launcher 88316, both started during this window from this project's playwriter calls, cwd /workspace/oscraft) stopped by PID. Other gates 81926 and 81989 untouched.
+- Gate 39428 (cwd /workspace/gm, profile directory /workspace/gm/.playwriter/browser-profile): not this project's gate and not stopped. It was no longer running at 10:37:52.
+- Tally: 43 of 43 completed witness runs on the same witness code, with 38 before this window and 5 here. Still a sample, not a rate.
