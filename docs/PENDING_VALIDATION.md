@@ -1961,3 +1961,29 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
   - The six run-start browsers (61398, 62790, 65499, 67577, 70045, 71589) were already gone when checked at 13:20.
   - Not touched: gate 2441 and its launcher chain 2124, 2420, 2421 (started at 12:16 UTC, before this window); gm worker 2525; pid 68657, a Chromium with cwd /workspace/signal, which is another project's.
 - Tally: 53 of 53 completed witness runs on the same witness code, with 47 before this window and six here. This is a sample, not a rate.
+
+## 2026-11-20 Phase B window, 13:35:38 to 13:55:38 UTC (lanmower): five more live strike runs, all passed; code unchanged
+
+- Rule applied (decided in 24b7bf39): a run counts only if the same run-gated.sh invocation that starts it prints "HEAVY_JOBS clear" and exits 0 (swap under 1000 KB/s both directions, and heavy-jobs rc 0).
+- Gate samples (run-gated.sh, every sample kept in the loop output): 54. Five are CLEAR, each with its full line and each starting a run:
+  - 13:37:51 si 8 so 0, "HEAVY_JOBS clear", gate_rc 0
+  - 13:40:25 si 484 so 0, "HEAVY_JOBS clear", gate_rc 0
+  - 13:43:05 si 4 so 0, "HEAVY_JOBS clear", gate_rc 0
+  - 13:47:03 si 128 so 0, "HEAVY_JOBS clear", gate_rc 0
+  - 13:49:37 si 60 so 0, "HEAVY_JOBS clear", gate_rc 0
+  The other 49 are closed: swap over 1000 KB/s (exit 3) or heavy-jobs busy (exit 4).
+- Standalone readings (vmstat second sample plus heavy-jobs.cjs, job phb24rd): 40 readings from 13:35:41 to 13:56:41. Readings 37 (13:55:04, si 8, so 0) and 38 (13:55:37, si 144, so 0) were clear, rc 0. The other 38 were busy, rc 1. Readings 39 (13:56:09) and 40 (13:56:41) fell after the window end. No run started after 13:49:37, so the two clear readings at 13:55 started nothing (the last start was before the 13:51:38 cutoff).
+- Runs (scripts/witness/strike-live-setup.mjs, then strike-while-walking runWitness; each under a 280 s playwriter timeout; each witness return checked, none reported an error). Each trace was checked: ok true, reasons []:
+  - start 13:37:51, wall 151.6 s, trace d1-2026-11-20T13-40-24-560Z-ok.json, browser pid 92948. Legs: lock on 342 / 693 (1 pick); lock off 311 / 641; lock on again 341 / 719 (3 picks).
+  - start 13:40:25, wall 157.3 s, trace d1-2026-11-20T13-43-04-715Z-ok.json, browser pid 97956. Legs: lock on 345 / 693 (1); lock off 313 / 640; lock on again 364 / 747 (3).
+  - start 13:43:05, wall 160.3 s, trace d1-2026-11-20T13-45-47-367Z-ok.json, browser pid 100720. Legs: lock on 344 / 690 (1); lock off 316 / 641; lock on again 400 / 812 (1).
+  - start 13:47:03, wall 152.0 s, trace d1-2026-11-20T13-49-37-136Z-ok.json, browser pid 103768. Legs: lock on 343 / 691 (1); lock off 309 / 640; lock on again 345 / 717 (1).
+  - start 13:49:37, wall 179.5 s, trace d1-2026-11-20T13-52-38-838Z-ok.json, browser pid 105806. Legs: lock on 345 / 693 (1); lock off 312 / 641; lock on again 380 / 793 (2).
+  - Every leg met the 288-sample floor. Lock-off legs counted 640 to 641 ticks against the 640 budget. No reruns and no aborts.
+- Cleanup, by PID, each checked by command line first:
+  - Server: wrapper 94233 (gm job) and node 94240 (serve.mjs, port 8853) stopped. Port 8853 returns 000.
+  - Browser tree of the browser the gate restarted after the last close (wrapper 108124, started 13:52:41, and its nine Chromium processes) stopped.
+  - Project gate 92907 (cwd /workspace/oscraft, --gate) stopped. It started at 13:33:08, the same second as the check run that preceded this batch, so I took it as this run's gate. It had exited by 14:12.
+  - The five run-start browsers (92948, 97956, 100720, 103768, 105806) were already gone when checked at 14:12.
+  - Not touched: gm worker 2525; pre-window gate 2441 and its launcher chain (started 12:16 UTC).
+- Tally: 58 of 58 completed witness runs on the same witness code, with 53 before this window and five here. This is a sample, not a rate.
