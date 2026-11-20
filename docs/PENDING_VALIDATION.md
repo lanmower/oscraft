@@ -1892,3 +1892,29 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Gate and browser logs: neither mentions swap, OOM or killed-by-kernel (grep count 0 for oom and out of memory in gate.log and browser.log).
 - Host memory now (10:54 UTC, a later reading, not the window): 7580 MB used, 800 MB free, 7418 MB buff/cache, 3562 MB swap used.
 - Result: the exposure entry is corrected in place. The cause stays unestablished, as the entry already said.
+
+## 2026-11-20 Phase B window, 12:21:42 to 12:41:42 UTC (lanmower): four more live strike runs, all passed; code unchanged
+
+- Checkout at 12:18 UTC after the reboot: HEAD 277c5cb6, one commit ahead of origin 2f92ac25 (the verification record). The one dirty entry is scenarios/bota/cross-contract-snapshot.json, not staged. An untracked core.155932 was present and was not touched.
+- Window-start reading (vmstat 1 2, second sample at 12:21:42): si 1404, so 0 KB/s, so the gate was closed. The free column of that sample was 527500 KB and swpd 1517672 KB.
+- Readings (scripts/witness/heavy-jobs.cjs plus the vmstat second sample), job phb22rd: 40 readings from 12:21:46 to 12:42:47 UTC. Every reading has checker rc 1 (busy); 0 readings were open. The busy processes were other sessions' zig and cmake compiles, a grep over /workspace, and gm worker and Chromium renderer processes. The job ended by itself at 40 readings, one minute after the window end.
+- Gate samples in the run loop (vmstat plus heavy-jobs, scripts/witness/run-gated.sh): 90 samples. Four were CLEAR, and each one started a run: 12:26:10 (si not kept), 12:29:04, 12:32:50, 12:35:43 (si 40, so 0). The other 86 closed samples were not kept in the output, so this record does not list them. The last four lines of the loop output were 12:35:31 closed (si 4), 12:35:35 closed (si 136), 12:35:40 closed (si 1056), 12:35:43 CLEAR (si 40).
+- Runs (scripts/witness/strike-live-setup.mjs, then strike-while-walking runWitness, same config; each run under a playwriter timeout of 280 s; each witness return checked for errors, none reported one):
+  - start 12:26:10, wall 171.2 s, trace d1-2026-11-20T12-28-53-912Z-ok.json, browser pid 12676. ok true, reasons [].
+  - start 12:29:04, wall 155.0 s, trace d1-2026-11-20T12-31-40-935Z-ok.json, browser pid 19780. ok true, reasons [].
+  - start 12:32:50, wall 154.6 s, trace d1-2026-11-20T12-35-26-892Z-ok.json, browser pid 28862. ok true, reasons [].
+  - start 12:35:43, wall 154.2 s, trace d1-2026-11-20T12-38-16-156Z-ok.json, browser pid 32583. ok true, reasons [].
+- Legs (samples / ticks, picks):
+  - 12-28-53: lock on 338 / 693 (1 pick); lock off 301 / 640; lock on again 316 / 666 (1 pick).
+  - 12-31-40: lock on 343 / 692 (1 pick); lock off 311 / 641; lock on again 369 / 769 (3 picks).
+  - 12-35-26: lock on 344 / 692 (1 pick); lock off 309 / 640; lock on again 328 / 670 (1 pick).
+  - 12-38-16: lock on 344 / 690 (1 pick); lock off 312 / 640; lock on again 338 / 718 (1 pick).
+  - Every leg met the 288-sample floor. Lock-off legs counted 640 to 641 ticks against the 640 budget. No reruns, no aborts.
+- Cleanup, by PID, each checked by command line first:
+  - Readings job ended by itself at 40 readings.
+  - Server: wrapper 7290 and node 7293 (serve.mjs, port 8853) stopped; port 8853 returns 000.
+  - Browser tree of the browser the gate started after the last run: wrapper 34822 and its Chromium children (34825, 34854, 34855, 34880, 34885, 34896, 34927, 34934) stopped.
+  - Project gate 12586 and its launcher 12535, both started during this window (12586 at about 12:26), stopped.
+  - The four run-start browsers (12676, 19780, 28862, 32583) were already gone when checked at 12:43; the gate owned them, and I did not see when they exited.
+  - Not touched: gate 2441 and its launcher chain 2124, 2420, 2421 (started about 12:16, before this window); gm worker 2525 (this run's worker).
+- Tally: 47 of 47 completed witness runs on the same witness code, with 43 before this window and 4 here. This is a sample, not a rate.
