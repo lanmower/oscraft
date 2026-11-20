@@ -1596,3 +1596,10 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Change: scripts/witness/run-gated.sh counts a non-handshake process at 20% CPU or more (was 100%). The stub check in run-gated-check.mjs takes a CPU value; the new cases are a process at 10% (runs) and one at 25% (blocks, rc 4).
 - Witness: node scripts/witness/run-gated-check.mjs, 9 cases: "run-gated ok (9 cases)". The marker name includes the CPU value, so the 10% and 25% cases do not share a marker.
 - Red: the threshold back at 100%: rc 1, "a non-handshake process at 25% CPU blocks: rc 0, ran true". Restored from a copy: cmp SAME; the check is green again.
+
+## 2026-11-20 Phase A: the heavy check reads full command lines with ps (lanmower)
+
+- Found in the Phase B window (2026-11-20 23:55 to 00:06): the runner refused on gm-core relay workers (PID 1002562, 1002936) that are persistent --handshake workers. top -b truncates the command column ("/config+"), so the handshake exclusion on the top line never matched.
+- Change: scripts/witness/run-gated.sh takes each non-handshake PID at or above 20% CPU from the second top frame, then reads its full command with ps -o args= and skips it when the args contain --handshake. The heavy list names PID, CPU and the command.
+- Witness: node scripts/witness/run-gated-check.mjs (9 cases; stub vmstat, top and ps): "run-gated ok (9 cases)". The relay case is a handshake worker at 300% whose top name is only gm-core: it runs.
+- Red: the handshake exclusion removed (matched on a string that never occurs): rc 4, "a gm-core handshake relay worker at 300% does not block (full ps args, not the top name): rc 4, ran false". Restored from a copy: cmp SAME; the check is green again.
