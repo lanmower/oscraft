@@ -1933,3 +1933,31 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Code history: run-gated.sh was last changed in af03d62c (2026-11-20 02:57:00 +0200), before the batch. The tree has no modification to it. scripts/witness/heavy-jobs.cjs is identical (cmp) to bevy 495fff6:scripts/heavy-jobs.cjs.
 - Why the standalone readings read busy: they are other samples. Around the 12:35:43 CLEAR start, the readings read busy at 12:35:14 (n=2) and 12:35:47 (n=6). Around the 12:26:10 start, they read busy at 12:26:04 (n=2) and 12:26:37 (n=3). The busy processes (other sessions' compiles and searches) come and go within seconds, so a busy reading four seconds away does not contradict a clear start sample.
 - Command difference: the standalone readings ran the same vmstat and heavy-jobs calls, but also ran heavy-jobs when the swap gate was closed. run-gated.sh skips heavy-jobs on a closed swap gate. Both use the same thresholds, so the difference does not change any clear verdict.
+
+## 2026-11-20 Phase B window, 12:55:25 to 13:15:25 UTC (lanmower): six more live strike runs, all passed; code unchanged
+
+- Rule applied (decided in 24b7bf39): a run counts only if the same run-gated.sh invocation that starts it reads clear on both the swap gate and heavy-jobs. run-gated.sh runs vmstat, then heavy-jobs.cjs, and starts the witness only if both pass.
+- Gate samples (run-gated.sh, every sample kept): 32 in the loop. Six are CLEAR, each with its full line in the output and each starting a run:
+  - 12:55:29 si 96 so 0, "HEAVY_JOBS clear", gate_rc 0
+  - 12:58:13 si 24 so 0, "HEAVY_JOBS clear", gate_rc 0
+  - 13:01:50 si 492 so 0, "HEAVY_JOBS clear", gate_rc 0
+  - 13:04:32 si 64 so 0, "HEAVY_JOBS clear", gate_rc 0
+  - 13:07:10 si 60 so 0, "HEAVY_JOBS clear", gate_rc 0
+  - 13:10:13 si 992 so 0, "HEAVY_JOBS clear", gate_rc 0
+  The other 26 samples are closed: swap over 1000 KB/s (exit 3) or heavy-jobs busy (exit 4).
+- Standalone readings (vmstat second sample plus heavy-jobs.cjs, same commands, job phb23rd): 40 readings from 12:55:28 to 13:16:29. Reading 1 (12:55:28, si 12, so 0) was clear, rc 0. Readings 2 to 40 were busy, rc 1. Readings 39 (13:15:56) and 40 (13:16:29) fell after the window end.
+- Runs (scripts/witness/strike-live-setup.mjs, then strike-while-walking runWitness; each under a 280 s playwriter timeout; each witness return checked, none reported an error). Each trace was checked: ok true, reasons []:
+  - start 12:55:29, wall 158.7 s, trace d1-2026-11-20T12-58-10-438Z-ok.json, browser pid 61398. Legs: lock on 342 / 693 (1 pick); lock off 314 / 641; lock on again 351 / 718 (2 picks).
+  - start 12:58:13, wall 152.4 s, trace d1-2026-11-20T13-00-48-233Z-ok.json, browser pid 62790. Legs: lock on 346 / 692 (1); lock off 313 / 640; lock on again 359 / 740 (1).
+  - start 13:01:50, wall 159.9 s, trace d1-2026-11-20T13-04-31-987Z-ok.json, browser pid 65499. Legs: lock on 344 / 691 (1); lock off 313 / 640; lock on again 326 / 666 (1).
+  - start 13:04:32, wall 152.6 s, trace d1-2026-11-20T13-07-06-854Z-ok.json, browser pid 67577. Legs: lock on 342 / 691 (1); lock off 313 / 640; lock on again 350 / 718 (2).
+  - start 13:07:10, wall 150.8 s, trace d1-2026-11-20T13-09-43-070Z-ok.json, browser pid 70045. Legs: lock on 342 / 692 (1); lock off 315 / 641; lock on again 346 / 715 (1).
+  - start 13:10:13, wall 162.4 s, trace d1-2026-11-20T13-12-58-011Z-ok.json, browser pid 71589. Legs: lock on 343 / 693 (1); lock off 307 / 640; lock on again 315 / 667 (1).
+  - Every leg met the 288-sample floor. Lock-off legs counted 640 to 641 ticks against the 640 budget. No reruns and no aborts. The last start (13:10:13) was before the 13:11:25 cutoff.
+- Cleanup, by PID, each checked by command line first:
+  - Server: wrapper 61276 and node 61283 (serve.mjs, port 8853) stopped. Port 8853 returns 000.
+  - Project gate 61370 and its launcher 61361 (both started at 12:55:31 UTC) stopped.
+  - Browser 73958 and its wrapper 73955 (the gate started it at 13:13 after the last close) stopped.
+  - The six run-start browsers (61398, 62790, 65499, 67577, 70045, 71589) were already gone when checked at 13:20.
+  - Not touched: gate 2441 and its launcher chain 2124, 2420, 2421 (started at 12:16 UTC, before this window); gm worker 2525; pid 68657, a Chromium with cwd /workspace/signal, which is another project's.
+- Tally: 53 of 53 completed witness runs on the same witness code, with 47 before this window and six here. This is a sample, not a rate.
