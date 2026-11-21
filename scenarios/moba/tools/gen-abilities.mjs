@@ -219,7 +219,6 @@ function emitAbility(name, def, spec, talents) {
 
   const unmodelled = Object.keys(def.AbilityValues ?? {}).filter((k) => !ctx.used.has(k) && !(spec.ignore ?? []).includes(k) && !META.has(k));
   if (unmodelled.length) lines.unshift(`# ${name} unmodelled reference keys: ${unmodelled.join(", ")}`);
-  if (spec.note) lines.unshift(`# ${name}: ${spec.note}`);
   lines.forEach(emit);
 }
 
@@ -269,7 +268,6 @@ function emitTalents(hero, talents) {
     }
   });
   if (!effs.length) return null;
-  emit(`# ${name}: generic talents of ${hero} (reference special_bonus_* values) as stat modifiers; unique talents are modifiers on the abilities they change.`);
   emit(`ability(${q(name)}, 100000, 0, "none", [${effs.join(", ")}])`);
   emit(`ability_ext(${q(name)}, passive=True)`);
   mods.forEach(emit);
@@ -307,8 +305,7 @@ for (const [hero, slots] of Object.entries(HEROES)) {
 }
 assigned.forEach(emit);
 if (notes.length) {
-  emit("# Modifiers the engine cannot carry:");
-  [...new Set(notes)].forEach((n) => emit(`#   ${n}`));
+  [...new Set(notes)].forEach((n) => console.log(n));
 }
 const summonsText = [...SUMMON_UNITS, ""].join("\n");
 const rulesetText = out.join("\n") + "\n";

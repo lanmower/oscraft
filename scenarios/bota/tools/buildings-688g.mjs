@@ -141,25 +141,25 @@ export function buildingPlan(script) {
 const m2 = (u) => toMilli(u.wx, u.wy).join(", ");
 const TIER_KIND = { 1: "tower", 2: "tower_t2", 3: "tower_t3", 4: "tower_t4" };
 
-const entry = (line, note) => ({ line, note });
+const entry = (line) => ({ line });
 
 export function buildingEntries(plan) {
   const out = [];
-  plan.starts.forEach((s, i) => out.push(entry(`start(${s.k}, ${toMilli(s.wx, s.wy).join(", ")}, team=${s.side})`, i === 0 ? "Hero starts: every Sentinel seat (even player index) takes the centre of the script's Bn rect and every Scourge seat the centre of Xn (jU in war3map.j), spread by SLOT_OFFSET inside the rect because the script stacks all five heroes on the centre." : null)));
-  const spawn = (kind, side, u, note) => out.push(entry(`spawn("${kind}", ${side}, ${m2(u)})`, note));
-  plan.base.forEach((b, i) => spawn("base", b.side, b, `${i === 0 ? "Buildings from the literal CreateUnit calls of main(); lane order top, mid, bot. Do not edit by hand: scenarios/moba/tools/buildings-688g.mjs. " : ""}ancient ${b.code} at ${b.wx},${b.wy} from the source script`));
+  plan.starts.forEach((s, i) => out.push(entry(`start(${s.k}, ${toMilli(s.wx, s.wy).join(", ")}, team=${s.side})`)));
+  const spawn = (kind, side, u) => out.push(entry(`spawn("${kind}", ${side}, ${m2(u)})`));
+  plan.base.forEach((b, i) => spawn("base", b.side, b));
   for (const side of [0, 1]) {
     for (const tier of [1, 2, 3, 4]) {
-      for (const t of plan.towers.filter((x) => x.side === side && x.tier === tier)) spawn(TIER_KIND[tier], side, t, `${t.code} tier ${tier} ${tier === 4 ? `no. ${t.lane + 1}` : LANES[t.lane]} at ${t.wx},${t.wy}`);
+      for (const t of plan.towers.filter((x) => x.side === side && x.tier === tier)) spawn(TIER_KIND[tier], side, t);
     }
   }
   for (const side of [0, 1]) {
     for (let lane = 0; lane < 3; lane++) {
-      for (const r of plan.rax.filter((x) => x.side === side && x.lane === lane).sort((a, b) => (a.kind < b.kind ? -1 : 1))) spawn(r.kind, side, r, `${r.code} ${LANES[lane]} at ${r.wx},${r.wy}`);
+      for (const r of plan.rax.filter((x) => x.side === side && x.lane === lane).sort((a, b) => (a.kind < b.kind ? -1 : 1))) spawn(r.kind, side, r);
     }
   }
-  for (const f of plan.fountains) spawn("fountain", f.side, f, `fountain ${f.code} at ${f.wx},${f.wy}`);
-  for (const o of plan.outbuildings) spawn(o.kind, o.side, o, `${o.code} at ${o.wx},${o.wy}`);
+  for (const f of plan.fountains) spawn("fountain", f.side, f);
+  for (const o of plan.outbuildings) spawn(o.kind, o.side, o);
   return out;
 }
 
@@ -169,7 +169,7 @@ export const SHOP_ID_BASE = 5;
 export function shopEntries(plan) {
   const out = [];
   let id = SHOP_ID_BASE;
-  const put = (kind, list) => { for (const s of list) out.push(entry(`prop(${id++}, "${kind}", ${m2(s)})`, `shop ${s.code} at ${s.wx},${s.wy}`)); };
+  const put = (kind, list) => { for (const s of list) out.push(entry(`prop(${id++}, "${kind}", ${m2(s)})`)); };
   put("depot", [...plan.shops.home].sort((a, b) => a.side - b.side || a.line - b.line));
   put("side_depot", [...plan.shops.side].sort((a, b) => a.line - b.line));
   put("secret_depot", [...plan.shops.secret].sort((a, b) => a.line - b.line));
