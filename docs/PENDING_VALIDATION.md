@@ -2093,3 +2093,11 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
   - node js/client/room-match-check.mjs (pid 435571): rc 0, "room match ok (11 cases)". Gate sample si 32 so 0.
   - node scripts/witness/strike-while-walking-check.mjs (pid 440081): rc 0, "strike-while-walking verdict checks ok (14 cases, leg timing in sim ticks)". Gate sample si 72 so 0.
 - Push: origin main was 4a0b48f9; this window's commits were pushed after every witness above passed.
+
+## 2026-11-21 Phase A: dead-code removal 1, witness probes and dev tools (lanmower)
+
+- Removed, 14 files, 719 lines removed, 0 added: scripts/witness/alone-probe.js (41), bota-join-button.js (23), bota-join-probe.js (43), bota-pick-grid.js (44), heap-600-frames.js (60), heap-before.sh (11), heap-before-j.patch (105), label-window-probe.js (49), matchmaking-join-probe.js (20), solo-waiting-probe.js (31); scripts/dev/mirror-live.mjs (35), scripts/observe/live.mjs (60), scripts/audio/import-voices.mjs (128), scripts/pack-latest.mjs (67).
+- Proof that no call site uses them (a deletion no gate can see): for each basename, git grep over tracked files, excluding this ledger and the file itself, returns no match. The probes and heap files reference only each other or themselves; check-all names none of them.
+- Not removed: scripts/witness/lib/heavy-jobs.cjs (41 lines). It is required by scripts/witness/heavy-jobs.cjs and heavy-jobs-check.cjs with require('./lib/heavy-jobs.cjs'). A first attempt staged its deletion; it was restored from HEAD before any commit (the tree is unchanged for it).
+- Witness, after the removal: check-all RESULT gates=89 ok=89 failed=0 drift=0 skipped=6 strict=false; matchmaking-race-check rc 0 (5 verdict cases); room-match-check rc 0 (11 cases); strike-while-walking-check rc 0 (14 cases). Each ran under run-gated.sh with HEAVY_JOBS clear in its own sample.
+- Red check: not applicable, no gate was removed; the grep proof above stands in for it.
