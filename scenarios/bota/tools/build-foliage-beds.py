@@ -10,7 +10,7 @@ import scipy.signal as ss
 import soundfile as sf
 
 ROOT = Path(__file__).resolve().parents[3]
-SOUNDS = ROOT / "scenarios" / "moba" / "assets" / "sounds"
+SOUNDS = ROOT / "scenarios" / "bota" / "assets" / "sounds"
 RATE = 22050
 BED_N = RATE * 6
 XFADE_N = round(0.040 * RATE)

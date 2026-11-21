@@ -13,7 +13,7 @@ const opt = (name, fallback) => {
   const hit = args.find((a) => a.startsWith(`--${name}=`));
   return hit ? hit.slice(name.length + 3) : fallback;
 };
-const out = opt("out", "scenarios/moba");
+const out = opt("out", "scenarios/bota");
 const dir = opt("src", path.join(os.tmpdir(), "ref-heroes-src"));
 fs.mkdirSync(dir, { recursive: true });
 
