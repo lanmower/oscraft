@@ -14,7 +14,6 @@ rm -f "$out/js/client/pkg/.gitignore"
 vendor="$out/js/client/vendor"
 rm -rf "$vendor/wireweave/node_modules" "$vendor/wireweave/site" "$vendor/wireweave"/.[a-z]* "$vendor/wireweave"/scratch-verify-*.mjs
 rm -f "$vendor/wireweave"/*.md "$vendor/wireweave"/package*.json "$vendor/wireweave/flatspace.config.mjs"
-rm -f "$vendor"/three/three.*.js
 cp -r scenarios "$out/scenarios"
 rm -rf "$out"/scenarios/*/tools
 mkdir -p "$out/scenarios/moba/assets/models"
