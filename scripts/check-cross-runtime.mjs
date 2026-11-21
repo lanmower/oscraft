@@ -7,8 +7,10 @@ import { fileURLToPath } from "node:url";
 import { contractPaths, comparableSha256 } from "./cross-contract-inputs.mjs";
 import { extractionEvidence } from "./runtime-peer-evidence.mjs";
 import { freePort, startGroup, waitUntil } from "./lib/host.mjs";
+import { isolateSnapshot } from "./lib/snapshot-scratch.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+isolateSnapshot(root);
 const paths = contractPaths(root);
 const evidenceFile = path.join(root, "scenarios", "bota", "runtime-evidence.json");
 const fail = (message) => { console.error(`check:cross-runtime: ${message}`); process.exit(1); };

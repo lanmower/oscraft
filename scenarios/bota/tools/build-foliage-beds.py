@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import sys
+import tempfile
 from fractions import Fraction
 from pathlib import Path
 
@@ -27,7 +28,7 @@ BIRD_NAME = "birds-isaiah658_0.ogg"
 def parse_args(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", required=True)
-    parser.add_argument("--out", default=str(SOUNDS))
+    parser.add_argument("--out", default=str(Path(tempfile.gettempdir()) / "oscraft-bota-foliage"))
     parser.add_argument("--bird", default=BIRD_NAME)
     parser.add_argument(
         "--reference",

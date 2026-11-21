@@ -5,8 +5,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { freePort, waitUntil } from "./lib/host.mjs";
+import { isolateSnapshot } from "./lib/snapshot-scratch.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+isolateSnapshot(root);
 const fail = (message) => { console.error(`check:integrated-cold-start: ${message}`); process.exit(1); };
 const port = await freePort();
 const site = path.join(root, `.dev-site-integrated-check-${process.pid}`);
