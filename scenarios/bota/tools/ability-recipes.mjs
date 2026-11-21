@@ -88,8 +88,6 @@ export const HELPERS = {
 };
 
 export const SUMMON_UNITS = [
-  "# Summoned units of the hero abilities. juggernaut_healing_ward is 6.88g o00C (unit.ini:323284, parent ohwd): spd 420 (unit.ini:323391) = 410 milli per tick.",
-  "# Bounty: the script pays only its UUR table (war3map.j 91684-92300), which has no row for o00C or ohwd, so a kill pays 0 gold and 0 xp; an allied kill halves the table xp for any unit (W_R 93567), so deny_xp_pct is 50.",
   'unit("juggernaut_healing_ward", 1, 410, 250, abilities=["juggernaut_healing_ward_aura"], filters=["ground", "light"], sight_milli=9375, model="pillar-obelisk", deny_pct=50)',
   'unit_extra("juggernaut_healing_ward", reward=0, xp_reward=0, deny_xp_pct=50)',
   'unit("necronomicon_archer_1", 700, 322, 375, abilities=["necronomicon_mana_burn_1", "necronomicon_endurance_aura_1", "necronomicon_spell_damage_reduction"], filters=["ground", "light", "army"], weapon_damage=60, weapon_range_milli=5469, weapon_period=16, sight_milli=20312, defense=4, health_regen=312, model="ranged-creep-skinned", deny_pct=50)',
