@@ -1,32 +1,19 @@
 #!/usr/bin/env node
-import { sleep } from "./lib/sleep.mjs";
-import { spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
-import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { contractPaths, comparableSha256 } from "./cross-contract-inputs.mjs";
 import { extractionEvidence } from "./runtime-peer-evidence.mjs";
+import { freePort, startGroup, waitUntil } from "./lib/host.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const paths = contractPaths(root);
 const evidenceFile = path.join(root, "scenarios", "bota", "runtime-evidence.json");
 const fail = (message) => { console.error(`check:cross-runtime: ${message}`); process.exit(1); };
 const sha256 = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
-const freePort = () => new Promise((resolve, reject) => {
-  const server = net.createServer();
-  server.once("error", reject);
-  server.listen(0, "127.0.0.1", () => { const port = server.address().port; server.close(() => resolve(port)); });
-});
-async function waitFor(fn, timeoutMs = 30000) {
-  const end = Date.now() + timeoutMs;
-  let last;
-  while (Date.now() < end) {
-    try { return await fn(); } catch (error) { last = error; await sleep(150); }
-  }
-  throw last ?? new Error("timeout");
-}
+const waitFor = (fn) => waitUntil(fn, 30000);
 const runNode = (file, args = []) => spawnSync(process.execPath, [file, ...args], { cwd: root, encoding: "utf8", maxBuffer: 8 * 1024 * 1024 });
 let snapshotBytes = fs.existsSync(paths.snapshot) ? fs.readFileSync(paths.snapshot) : null;
 if (!snapshotBytes) fail("cross-contract snapshot is missing; run npm run cross:autoheal -- --once");
@@ -66,14 +53,7 @@ const port = await freePort();
 const site = process.env.CROSS_RUNTIME_SITE ?? path.join(root, `.dev-site-cross-runtime-${process.pid}`);
 const command = path.join(root, "scripts", "dev", "serve-bota.sh");
 const env = { ...process.env, BOTA_PORT: String(port), BOTA_SITE: site, WASM: process.env.WASM ?? "0" };
-const child = spawn(command, [`--port=${port}`], { cwd: root, env, stdio: ["ignore", "pipe", "pipe"], detached: true });
-let output = "";
-child.stdout.on("data", (chunk) => { output += chunk.toString(); });
-child.stderr.on("data", (chunk) => { output += chunk.toString(); });
-const cleanup = () => { try { process.kill(-child.pid, "SIGTERM"); } catch {} };
-process.on("exit", cleanup);
-process.on("SIGINT", () => { cleanup(); process.exit(130); });
-process.on("SIGTERM", () => { cleanup(); process.exit(143); });
+const group = startGroup({ command, args: [`--port=${port}`], env, cwd: root });
 async function fetchOk(url) {
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) throw new Error(`${url} HTTP ${response.status}`);
@@ -99,7 +79,7 @@ try {
     heroGlb: `${base}/scenarios/bota/assets/models/neckbeard-skinned.glb`,
   };
   await waitFor(async () => {
-    if (!output.includes("BOTA URL:")) throw new Error("launch wrapper has not printed a URL");
+    if (!group.output.includes("BOTA URL:")) throw new Error("launch wrapper has not printed a URL");
     const response = await fetch(urls.defaultManifest, { cache: "no-store" });
     if (!response.ok) throw new Error(`default manifest HTTP ${response.status}`);
   });
@@ -177,8 +157,8 @@ try {
   console.log(`cross-runtime PASS: snapshot not stale, optionalPresent=${optionalPresent} optionalMissing=${optionalMissing} extraPresent=${extraPresent} extraMissing=${extraMissing} hash-bearing rows=${hashRows}`);
   for (const row of evidence.extractionSummaries) console.log(`extraction evidence ${row.peer}: present=${row.present} classes=${row.classes ?? "?"} complete=${row.complete ?? "?"} blocked=${row.blocked ?? "?"} informational=true`);
 } catch (error) {
-  console.error(output.trim());
+  console.error(group.output.trim());
   fail(error.message);
 } finally {
-  cleanup();
+  group.cleanup();
 }

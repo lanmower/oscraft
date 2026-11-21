@@ -1,19 +1,13 @@
 #!/usr/bin/env node
-import { sleep } from "./lib/sleep.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
-import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { freePort, waitUntil } from "./lib/host.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fail = (message) => { console.error(`check:integrated-cold-start: ${message}`); process.exit(1); };
-const freePort = () => new Promise((resolve, reject) => {
-  const server = net.createServer();
-  server.once("error", reject);
-  server.listen(0, "127.0.0.1", () => { const port = server.address().port; server.close(() => resolve(port)); });
-});
 const port = await freePort();
 const site = path.join(root, `.dev-site-integrated-check-${process.pid}`);
 const pidFile = path.join(root, `.dev-site-integrated-check-${process.pid}.pid`);
@@ -46,14 +40,7 @@ async function fetchOk(url, expected = null) {
   if (expected?.glb && (bytes.readUInt32LE(0) !== 0x46546c67 || bytes.readUInt32LE(4) !== 2)) fail(`${url} is not glTF/v2`);
   return { status: response.status, contentType: response.headers.get("content-type") ?? "", bytes };
 }
-async function waitFor(fn, timeoutMs = 90000) {
-  const end = Date.now() + timeoutMs;
-  let last;
-  while (Date.now() < end) {
-    try { return await fn(); } catch (error) { last = error; await sleep(150); }
-  }
-  throw last ?? new Error("timeout");
-}
+const waitFor = (fn) => waitUntil(fn, 90000);
 try {
   const pre = stopOwned();
   if (pre.status !== 0) fail(`pre-stop failed: ${pre.stderr || pre.stdout}`);

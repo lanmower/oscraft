@@ -1,35 +1,16 @@
 #!/usr/bin/env node
-import { sleep } from "./lib/sleep.mjs";
-import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
-import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { freePort, startGroup, waitUntil } from "./lib/host.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sha256 = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
 const fail = (message) => { console.error(`bota launch check: ${message}`); process.exit(1); };
 
-function freePort() {
-  return new Promise((resolve, reject) => {
-    const server = net.createServer();
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      const port = server.address().port;
-      server.close(() => resolve(port));
-    });
-  });
-}
 
-async function waitFor(fn, timeoutMs = 240000) {
-  const end = Date.now() + timeoutMs;
-  let last;
-  while (Date.now() < end) {
-    try { return await fn(); } catch (error) { last = error; await sleep(150); }
-  }
-  throw last ?? new Error("timeout");
-}
+const waitFor = (fn) => waitUntil(fn, 240000);
 
 async function fetchOk(url, { binary = false } = {}) {
   const response = await fetch(url, { cache: "no-store" });
@@ -42,20 +23,13 @@ const port = await freePort();
 const site = process.env.BOTA_LAUNCH_SITE ?? path.join(root, ".dev-site-bota-check");
 const command = path.join(root, "scripts", "dev", "serve-bota.sh");
 const env = { ...process.env, BOTA_PORT: String(port), BOTA_SITE: site, WASM: process.env.WASM ?? "0" };
-const child = spawn(command, [`--port=${port}`], { cwd: root, env, stdio: ["ignore", "pipe", "pipe"], detached: true });
-let output = "";
-child.stdout.on("data", (chunk) => { output += chunk.toString(); });
-child.stderr.on("data", (chunk) => { output += chunk.toString(); });
-const cleanup = () => { try { process.kill(-child.pid, "SIGTERM"); } catch {} };
-process.on("exit", cleanup);
-process.on("SIGINT", () => { cleanup(); process.exit(130); });
-process.on("SIGTERM", () => { cleanup(); process.exit(143); });
+const group = startGroup({ command, args: [`--port=${port}`], env, cwd: root });
 
 try {
   const base = `http://127.0.0.1:${port}`;
   const playUrl = `${base}/js/client/play.html?package=scenarios/bota`;
   await waitFor(async () => {
-    if (!output.includes("BOTA URL:")) throw new Error("launch wrapper has not printed a URL");
+    if (!group.output.includes("BOTA URL:")) throw new Error("launch wrapper has not printed a URL");
     for (const url of [playUrl, `${base}/js/client/play.html`, `${base}/js/client/play.html?package=scenarios/moba`, `${base}/scenarios/moba-acronyms/manifest.json`]) {
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error(`launch URL HTTP ${res.status}: ${url}`);
@@ -101,10 +75,10 @@ try {
   if (!/PACK_PARAM[^\n]*"scenarios\/moba-acronyms"/.test(loader)) fail("PACK_PARAM default is not scenarios/moba-acronyms");
   for (const label of ["default play", "historical play"]) if (!results.get(label).body.toString("utf8").includes("play.js")) fail(`${label} page did not resolve`);
   console.log(`packs: default=${defaultManifest.name} acronymIds=${defaultIds.length}; bota=${manifest.name} fullnameIds=${botaIds.length}; historical=${historicalManifest.name}`);
-  console.log(`bota launch check ok: port=${port} site=${site} pid=${child.pid} backdropSha256=${sha256(backdrop)} heroMagic=glTF/v2`);
+  console.log(`bota launch check ok: port=${port} site=${site} pid=${group.child.pid} backdropSha256=${sha256(backdrop)} heroMagic=glTF/v2`);
 } catch (error) {
-  console.error(output.trim());
+  console.error(group.output.trim());
   fail(error.message);
 } finally {
-  cleanup();
+  group.cleanup();
 }

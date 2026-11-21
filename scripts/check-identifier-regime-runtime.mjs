@@ -1,31 +1,18 @@
 #!/usr/bin/env node
 import { sleep } from "./lib/sleep.mjs";
-import { spawn } from "node:child_process";
 import fs from "node:fs";
-import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { freePort, startGroup } from "./lib/host.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fail = (message) => { console.error(`identifier-runtime: ${message}`); process.exit(1); };
 const READY_TIMEOUT_MS = 120000;
-const freePort = () => new Promise((resolve, reject) => {
-  const server = net.createServer();
-  server.once("error", reject);
-  server.listen(0, "127.0.0.1", () => { const port = server.address().port; server.close(() => resolve(port)); });
-});
 const port = await freePort();
 const site = process.env.IDENTIFIER_RUNTIME_SITE ?? path.join(root, `.dev-site-identifier-runtime-${process.pid}`);
 const command = path.join(root, "scripts", "dev", "serve-bota.sh");
 const env = { ...process.env, BOTA_PORT: String(port), BOTA_SITE: site, WASM: process.env.WASM ?? "0" };
-const child = spawn(command, [`--port=${port}`], { cwd: root, env, stdio: ["ignore", "pipe", "pipe"], detached: true });
-let output = "";
-child.stdout.on("data", (chunk) => { output += chunk.toString(); });
-child.stderr.on("data", (chunk) => { output += chunk.toString(); });
-const cleanup = () => { try { process.kill(-child.pid, "SIGTERM"); } catch {} };
-process.on("exit", cleanup);
-process.on("SIGINT", () => { cleanup(); process.exit(130); });
-process.on("SIGTERM", () => { cleanup(); process.exit(143); });
+const group = startGroup({ command, args: [`--port=${port}`], env, cwd: root });
 async function fetchJson(url) {
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) throw new Error(`${url} HTTP ${response.status}`);
@@ -35,7 +22,7 @@ async function waitFor(fn) {
   const end = Date.now() + READY_TIMEOUT_MS;
   for (;;) {
     try { return await fn(); } catch (error) {
-      if (child.exitCode !== null) throw new Error(`launch wrapper exited with ${child.exitCode} before the pack was served: ${error.message}`);
+      if (group.child.exitCode !== null) throw new Error(`launch wrapper exited with ${group.child.exitCode} before the pack was served: ${error.message}`);
       if (Date.now() >= end) throw new Error(`pack not served within ${READY_TIMEOUT_MS} ms: ${error.message}`);
       await sleep(150);
     }
@@ -54,7 +41,7 @@ try {
     historicalManifest: `${base}/scenarios/moba/manifest.json`,
   };
   await waitFor(async () => {
-    if (!output.includes("BOTA URL:")) throw new Error("launch wrapper has not printed a URL yet");
+    if (!group.output.includes("BOTA URL:")) throw new Error("launch wrapper has not printed a URL yet");
     const response = await fetch(urls.defaultManifest, { cache: "no-store" });
     if (!response.ok) throw new Error(`default manifest HTTP ${response.status}`);
   });
@@ -79,9 +66,9 @@ try {
   console.log(`identifier-runtime PASS: default=${defaultManifest.name}/${defaultIds.length} acronyms; bota=${botaManifest.name}/${botaIds.length} fullnames; historical=${historicalManifest.name}`);
   console.log(`identifier-runtime PASS: HTTP 200 for default, BOTA and historical play pages; PACK_PARAM=scenarios/moba-acronyms`);
 } catch (error) {
-  console.error(output.trim());
+  console.error(group.output.trim());
   fail(error.message);
 } finally {
-  cleanup();
+  group.cleanup();
   if (!process.env.IDENTIFIER_RUNTIME_SITE) fs.rmSync(site, { recursive: true, force: true });
 }
