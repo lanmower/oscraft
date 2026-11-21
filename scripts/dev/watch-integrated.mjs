@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { sleep } from "../lib/sleep.mjs";
 import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -15,7 +16,6 @@ const runtimeStatusFile = path.join(root, "scenarios", "bota", "runtime-evidence
 const once = process.argv.includes("--once");
 const timeoutMs = Number(process.env.WATCH_INTEGRATED_TIMEOUT_MS ?? (once ? 0 : 10 * 60 * 1000));
 const intervalMs = Number(process.env.WATCH_INTEGRATED_INTERVAL_MS ?? 20000);
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const sha256 = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
 const fail = (message, result) => { if (result?.text?.trim()) console.error(result.text.trim()); console.error(`watch:integrated: ${message}`); process.exit(1); };
 const run = (label, file, args = []) => {

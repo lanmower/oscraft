@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { sleep } from "./lib/sleep.mjs";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
@@ -7,7 +8,6 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fail = (message) => { console.error(`identifier-runtime: ${message}`); process.exit(1); };
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const READY_TIMEOUT_MS = 120000;
 const freePort = () => new Promise((resolve, reject) => {
   const server = net.createServer();

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { sleep } from "./lib/sleep.mjs";
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -25,7 +26,6 @@ const TYPES = new Map([
   [".osd", "text/plain"], [".tsv", "text/plain"], [".txt", "text/plain"], [".ogg", "audio/ogg"],
   [".ktx2", "image/ktx2"], [".webp", "image/webp"],
 ]);
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const sha256 = (buf) => crypto.createHash("sha256").update(buf).digest("hex");
 const compact = process.argv.includes("--from-cross-runtime");
 const log = (...parts) => { if (!compact) console.log(...parts); };

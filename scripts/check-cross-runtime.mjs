@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { sleep } from "./lib/sleep.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -13,7 +14,6 @@ const paths = contractPaths(root);
 const evidenceFile = path.join(root, "scenarios", "bota", "runtime-evidence.json");
 const fail = (message) => { console.error(`check:cross-runtime: ${message}`); process.exit(1); };
 const sha256 = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const freePort = () => new Promise((resolve, reject) => {
   const server = net.createServer();
   server.once("error", reject);

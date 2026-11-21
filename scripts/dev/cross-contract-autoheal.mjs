@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { sleep } from "../lib/sleep.mjs";
 import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -14,7 +15,6 @@ const intervalMs = Number(process.env.CROSS_AUTOHEAL_INTERVAL_MS ?? 10000);
 const checker = path.join(root, "scripts", "check-cross-project-contracts.mjs");
 const refresh = path.join(root, "scripts", "dev", "refresh-cross-contracts.mjs");
 const snapshotFile = paths.snapshot;
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const sha = () => fs.existsSync(snapshotFile) ? crypto.createHash("sha256").update(fs.readFileSync(snapshotFile)).digest("hex") : "absent";
 const runNode = (file, args = []) => spawnSync(process.execPath, [file, ...args], { cwd: root, encoding: "utf8", maxBuffer: 8 * 1024 * 1024 });
 const emit = (label, result) => {

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { sleep } from "../lib/sleep.mjs";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -20,7 +21,6 @@ const required = [
 const watchOnce = process.argv.includes("--watch-once");
 const timeoutMs = Number(process.env.CROSS_CONTRACT_TIMEOUT_MS ?? (watchOnce ? 0 : 10 * 60 * 1000));
 const intervalMs = Number(process.env.CROSS_CONTRACT_INTERVAL_MS ?? 10000);
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const missing = () => required.filter((file) => !fs.existsSync(file));
 const checker = path.join(root, "scripts", "check-cross-project-contracts.mjs");
 const started = Date.now();

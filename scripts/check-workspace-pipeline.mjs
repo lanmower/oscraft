@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { sleep } from "./lib/sleep.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,7 +10,6 @@ const once = process.argv.includes("--once") || !process.argv.includes("--watch"
 const watch = process.argv.includes("--watch");
 const timeoutMs = Number(process.env.WORKSPACE_PIPELINE_TIMEOUT_MS ?? (watch && !once ? 10 * 60 * 1000 : 0));
 const intervalMs = Number(process.env.WORKSPACE_PIPELINE_INTERVAL_MS ?? 20000);
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const p = pipelinePaths();
 const started = Date.now();
 let cycles = 0;

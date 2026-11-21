@@ -2109,3 +2109,21 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Witness: check-all RESULT gates=89 ok=89 failed=0 drift=0 skipped=6 strict=false, gated (HEAVY_JOBS clear, si 852 so 0). Each of the ten check files also runs alone and exits 0. matchmaking-race-check ok (5); room-match-check ok (11); strike-while-walking-check ok (14).
 - Red check: js/client/check-expect.mjs with "if (!cond)" changed to "if (cond)" (one match). room-match-check exited 1 under the mutation; restored from a saved copy, cmp identical, room-match-check rc 0.
 - A first pass left the old definition in six files (the removal matched only where a blank line followed); node reported "Identifier expect has already been declared". Fixed in the same change before any commit; the gate was run after the fix.
+
+## 2026-11-21 Phase A: dead-code removal 3, one shared sleep helper (lanmower)
+
+- Eleven scripts defined the same one-line sleep. It is now scripts/lib/sleep.mjs (export const sleep); each of the eleven imports it after its shebang (./lib/sleep.mjs, or ../lib/sleep.mjs under scripts/dev).
+- Lines: 12 files changed, 12 insertions(+), 11 deletions(-). Each file loses one definition line and gains one import line; the module is one line.
+- Witness: check-all RESULT gates=89 ok=89 failed=0 drift=0 skipped=6 strict=false (gated, HEAVY_JOBS clear, si 48 so 0; check-identifier-regime-runtime, the one gated file, passes). matchmaking-race-check ok (5); room-match-check ok (11); strike-while-walking-check ok (14). node --check passes on all eleven.
+- Red check: a direct node probe (/tmp/sleep-probe.mjs, not a gate) requires sleep(200) to last at least 180 ms. With setTimeout(resolve, ms) changed to setTimeout(resolve, 0) it reports "sleep returned after 1 ms" and exits 1. Restored: cmp identical, the probe prints "sleep ok 201 ms" and exits 0.
+- Not touched: the indented nested sleep definitions in scripts/witness/first-hit-timing.mjs and scripts/witness/strike-while-walking.mjs, and rust/crates/web/site/main.js (a shipped file in another tree).
+
+## Open items after this pass (each with the witness that would close it)
+
+- Orphan checks that no gate runs: js/client/twin-stick-check.mjs, scripts/witness/clear-target-check.mjs, scripts/witness/first-hit-timing-check.mjs, scripts/witness/strike-while-walking-check.mjs. Close: either add each to GATE_CHECKS with DESIGN.md counts in the same commit and its check passing under check-all, or delete it after a grep for its name finds nothing else. This is an owner decision because it changes what the gates claim.
+- Generators with no call site: scenarios/moba/tools/gen-ability-inventory.mjs, scenarios/bota/tools/gen-ability-inventory.mjs, scenarios/moba/tools/check-pillar-coverage.mjs, scenarios/bota/tools/check-pillar-coverage.mjs. Close: run each with --check; then delete it only when grep finds no consumer of its output file, or gate it.
+- Vendored three.js files with no basename reference: js/client/vendor/three/libs/draco/draco_decoder.js, js/client/vendor/three/three.tsl.js, js/client/vendor/three/three.webgpu.js. A copy step may pick them up by directory. Close: the site build (check-site-bundle, check-shipped-assets, layout-site) passes with them removed and the import map does not name them.
+- Race and relay setup not extracted: scripts/witness/matchmaking-race.mjs (startRelay), scripts/witness/strike-live-setup.mjs (server start), scripts/dev/serve.mjs (port). Close: one shared module used by all three, with matchmaking-race-check, room-match-check, strike-while-walking-check and check-all passing and a red check that breaks the shared start.
+- Comments: the no-comments rule has not been checked across the checkout. Close: a count of comment lines in the touched files is zero, and any comment that cannot become a name moved to AGENTS.md after confirming it is still true.
+- Full checkout pass: only the witness, dev, audio, observe and pack directories and the check helpers were surveyed (basename grep over tracked files). Close: the same survey over js/client, scenarios, rust and mods, one commit per area with its line counts.
+- Standing item from earlier: 107 untracked .dev-site-identifier-runtime-* directories. Owner confirms deletion first; not touched.

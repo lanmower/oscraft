@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { sleep } from "./lib/sleep.mjs";
 import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -18,7 +19,6 @@ const watch = process.argv.includes("--watch");
 const once = process.argv.includes("--once") || !watch;
 const timeoutMs = Number(process.env.OSCRAFT_RELEASE_WATCH_TIMEOUT_MS ?? (watch && !once ? 10 * 60 * 1000 : 0));
 const intervalMs = Number(process.env.OSCRAFT_RELEASE_WATCH_INTERVAL_MS ?? 20000);
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const sha256 = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
 const fail = (message) => { console.error(`report:oscraft-release: ${message}`); process.exit(1); };
 const run = (label, argv) => {

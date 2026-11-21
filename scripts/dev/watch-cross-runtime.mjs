@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { sleep } from "../lib/sleep.mjs";
 import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -14,7 +15,6 @@ const statusFile = path.join(root, "scenarios", "bota", "runtime-evidence-status
 const once = process.argv.includes("--once");
 const timeoutMs = Number(process.env.WATCH_CROSS_RUNTIME_TIMEOUT_MS ?? (once ? 0 : 10 * 60 * 1000));
 const intervalMs = Number(process.env.WATCH_CROSS_RUNTIME_INTERVAL_MS ?? 15000);
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const sha256 = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
 const run = (label, file, args = []) => {
   const result = spawnSync(process.execPath, [file, ...args], { cwd: root, encoding: "utf8", maxBuffer: 12 * 1024 * 1024 });

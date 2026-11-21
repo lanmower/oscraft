@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { sleep } from "./lib/sleep.mjs";
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -8,7 +9,6 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sha256 = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const fail = (message) => { console.error(`bota launch check: ${message}`); process.exit(1); };
 
 function freePort() {
