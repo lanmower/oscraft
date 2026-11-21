@@ -1,9 +1,9 @@
+import { expect } from "../../js/client/check-expect.mjs";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const expect = (cond, what) => { if (!cond) throw new Error(what); };
 const runner = new URL("./run-gated.sh", import.meta.url).pathname;
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "gate-run-"));
 const bin = path.join(dir, "bin");

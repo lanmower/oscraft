@@ -1,7 +1,6 @@
+import { expect } from "../../js/client/check-expect.mjs";
 import { runWitness } from "./strike-while-walking.mjs";
 import { setupLiveMatch } from "./strike-live-setup.mjs";
-
-const expect = (cond, what) => { if (!cond) throw new Error(what); };
 
 const fakePage = (phase, calls) => ({
   evaluate: async (fn) => {

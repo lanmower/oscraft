@@ -1,6 +1,6 @@
+import { expect } from "./check-expect.mjs";
 import { LOBBY_LINK_WAIT_MS, lobbyInputRoute, heldCallsAfterSettle, localApplyArgs } from "./lobby_link.js";
 
-const expect = (cond, what) => { if (!cond) throw new Error(what); };
 const solo = { netState: null, hosting: false, peers: 0, settled: false, name: "ui", call: "mode", phase: "lobby" };
 
 const queued = lobbyInputRoute(solo);

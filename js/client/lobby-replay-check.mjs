@@ -1,6 +1,6 @@
+import { expect } from "./check-expect.mjs";
 import { replayHeldCalls, heldCallsAfterSettle } from "./lobby_link.js";
 
-const expect = (cond, what) => { if (!cond) throw new Error(what); };
 const held = [{ name: "ui", args: { call: "mode" } }, { name: "ui", args: { call: "ready" } }, { name: "ui", args: { call: "claim" } }];
 const sent = replayHeldCalls(held, { hasHost: true });
 expect(sent.length === 3, "ROSTER sends every held call");

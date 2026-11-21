@@ -1,7 +1,6 @@
+import { expect } from "./check-expect.mjs";
 import { readFileSync } from "node:fs";
 import { abilityCellsOf, createHudCanvas, withModifiers } from "./hud_canvas.js";
-
-const expect = (cond, what) => { if (!cond) throw new Error(what); };
 
 const ui = JSON.parse(readFileSync(new URL("../../scenarios/moba/moba_ui.json", import.meta.url), "utf8"));
 const castSlot = ui.keys?.cast ?? {};

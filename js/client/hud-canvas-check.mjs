@@ -1,6 +1,5 @@
+import { expect } from "./check-expect.mjs";
 import { abilityCellsOf, cellAt, createHudCanvas, hudCanvasRequested, layoutRow, withModifiers } from "./hud_canvas.js";
-
-const expect = (cond, what) => { if (!cond) throw new Error(what); };
 
 function recordingContext() {
   const calls = [];

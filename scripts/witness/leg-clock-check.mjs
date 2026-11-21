@@ -1,7 +1,7 @@
+import { expect } from "../../js/client/check-expect.mjs";
 import fs from "node:fs";
 import vm from "node:vm";
 
-const expect = (cond, what) => { if (!cond) throw new Error(what); };
 const src = fs.readFileSync(new URL("./leg-clock.js", import.meta.url), "utf8");
 const load = () => {
   const sandbox = {};

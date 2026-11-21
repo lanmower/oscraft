@@ -1,6 +1,5 @@
+import { expect } from "./check-expect.mjs";
 import { chooseRoom, matchmakingTarget, settleMatch, MATCH_ROOM_PREFIX, DEFAULT_ROOM } from "./room_match.js";
-
-const expect = (cond, what) => { if (!cond) throw new Error(what); };
 
 expect(matchmakingTarget("", [], 10, "abc") === "match-abc", "a page with no room starts a match room when none is open");
 expect(matchmakingTarget("", [{ name: "x", players: 3 }], 10, "n") === "x", "a page with no room joins an open match");

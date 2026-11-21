@@ -1,6 +1,6 @@
+import { expect } from "./check-expect.mjs";
 import { worldReadyRoute } from "./lobby_link.js";
 
-const expect = (cond, what) => { if (!cond) throw new Error(what); };
 const ME = "host-key";
 const game = { id: "game-a" };
 const host = { hosting: true, peer: false, built: true, phase: "lobby", confirmedFor: null, game, lobbyHost: ME, me: ME };

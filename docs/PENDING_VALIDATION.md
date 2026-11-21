@@ -2101,3 +2101,11 @@ The first Phase B job (pb1) printed vmstat before its cargo and mapexport steps.
 - Not removed: scripts/witness/lib/heavy-jobs.cjs (41 lines). It is required by scripts/witness/heavy-jobs.cjs and heavy-jobs-check.cjs with require('./lib/heavy-jobs.cjs'). A first attempt staged its deletion; it was restored from HEAD before any commit (the tree is unchanged for it).
 - Witness, after the removal: check-all RESULT gates=89 ok=89 failed=0 drift=0 skipped=6 strict=false; matchmaking-race-check rc 0 (5 verdict cases); room-match-check rc 0 (11 cases); strike-while-walking-check rc 0 (14 cases). Each ran under run-gated.sh with HEAVY_JOBS clear in its own sample.
 - Red check: not applicable, no gate was removed; the grep proof above stands in for it.
+
+## 2026-11-21 Phase A: dead-code removal 2, one shared expect helper (lanmower)
+
+- Ten check files each defined the same one-line expect helper. It is now one module, js/client/check-expect.mjs (export const expect), imported by hud-canvas-check, hud-canvas-keys-check, lobby-link-check, lobby-mirror-check, lobby-replay-check, room-match-check, world-ready-check (./check-expect.mjs) and leg-clock-check, run-gated-check, strike-live-gate-check (../../js/client/check-expect.mjs). net-readout-check and net-recovery-check keep their different (name, got, want) helper.
+- Lines: 11 files changed, 11 insertions(+), 14 deletions(-). The module is 1 line. Each check loses its definition line and gains one import line, so the net change in code lines is about zero; the gain is one definition to change.
+- Witness: check-all RESULT gates=89 ok=89 failed=0 drift=0 skipped=6 strict=false, gated (HEAVY_JOBS clear, si 852 so 0). Each of the ten check files also runs alone and exits 0. matchmaking-race-check ok (5); room-match-check ok (11); strike-while-walking-check ok (14).
+- Red check: js/client/check-expect.mjs with "if (!cond)" changed to "if (cond)" (one match). room-match-check exited 1 under the mutation; restored from a saved copy, cmp identical, room-match-check rc 0.
+- A first pass left the old definition in six files (the removal matched only where a blank line followed); node reported "Identifier expect has already been declared". Fixed in the same change before any commit; the gate was run after the fix.

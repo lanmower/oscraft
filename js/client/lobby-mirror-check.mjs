@@ -1,6 +1,6 @@
+import { expect } from "./check-expect.mjs";
 import { relaysUiEvent, mirrorsHostLobby } from "./lobby_link.js";
 
-const expect = (cond, what) => { if (!cond) throw new Error(what); };
 const guest = { hosting: false, relayed: true, kind: "lobby", started: false };
 
 expect(mirrorsHostLobby(guest) === true, "a guest mirrors the host's relayed pre-start lobby");
