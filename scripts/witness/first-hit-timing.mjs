@@ -1,3 +1,4 @@
+import { sleep } from "../lib/sleep.mjs";
 export const LEGS = [
   { label: "first target, lock on", lock: true, judged: true },
   { label: "second target, lock on", lock: true, judged: true },
@@ -26,7 +27,6 @@ export const CONFIG = {
 };
 
 export async function firstHitLeg(config) {
-  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const me = window.__ciLocalPlayer();
   const roster = () => window.__ciRoster();
   const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);

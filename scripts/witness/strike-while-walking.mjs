@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { sleep } from "../lib/sleep.mjs";
 
 export const LEGS = [
   { label: "lock on", lock: true },
@@ -50,7 +51,6 @@ export const CONFIG = {
 };
 
 export async function strikeWhileWalkingLeg(config) {
-  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const tickNow = () => window.__ciTicks();
   const me = window.__ciLocalPlayer();
   const roster = () => window.__ciRoster();
