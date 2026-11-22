@@ -1,6 +1,7 @@
 import { once } from "node:events";
 import { EphemeralRelay } from "../../js/client/vendor/wireweave/src/ephemeral-relay.js";
 import { WebSocketServer } from "../../js/client/vendor/wireweave/node_modules/ws/wrapper.mjs";
+import { playUrl } from "./play-url.mjs";
 
 const MATCH_ROOM = /^#match-/;
 
@@ -19,7 +20,7 @@ export async function startRelay(port = 0) {
 }
 
 export async function runRace(context, { relayUrl, ns, pages = 3, gapMs = 1000, settleMs = 30000 }) {
-  const url = "http://127.0.0.1:8853/js/client/play.html?ci=1&ice=" + encodeURIComponent("[]") + "&relay=" + encodeURIComponent(relayUrl) + "&ns=" + ns;
+  const url = playUrl({ ice: "[]", relay: relayUrl, ns });
   const opened = [];
   for (let n = 0; n < pages; n += 1) {
     if (n > 0) await new Promise((resolve) => setTimeout(resolve, gapMs));

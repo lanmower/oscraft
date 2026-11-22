@@ -1,3 +1,4 @@
+import { playUrl } from "./play-url.mjs";
 async function clickWhenEnabled(page, text, timeout) {
   await page.waitForFunction((label) => {
     const button = [...document.querySelectorAll("button.flow-action")].find((b) => b.textContent.trim() === label);
@@ -13,9 +14,9 @@ export async function livePhase(page) {
   return page.evaluate(() => document.body.dataset.phase ?? "");
 }
 
-export async function setupLiveMatch(page, ns, { port = 8853, timeout = 180000 } = {}) {
+export async function setupLiveMatch(page, ns, { timeout = 180000 } = {}) {
   const steps = {};
-  await page.goto("http://127.0.0.1:" + port + "/js/client/play.html?ci=1&host=1&ns=" + ns + "#match-" + ns, { waitUntil: "domcontentloaded", timeout: 50000 });
+  await page.goto(playUrl({ host: 1, ns }, "#match-" + ns), { waitUntil: "domcontentloaded", timeout: 50000 });
   await page.waitForFunction(() => document.body.dataset.worldBuilt === "1" && typeof window.oscraft?.lobby === "function", null, { timeout });
   steps.mode = await page.evaluate(() => window.oscraft.lobby("mode", { code: "ap" }));
   steps.claim = await page.evaluate(() => window.oscraft.lobby("claim", { slot: 0 }));
