@@ -3,7 +3,7 @@ import { sleep } from "./lib/sleep.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { freePort, startGroup } from "./lib/host.mjs";
+import { freePort, removeOnExit, startGroup } from "./lib/host.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fail = (message) => { console.error(`identifier-runtime: ${message}`); process.exit(1); };
@@ -13,6 +13,7 @@ const site = process.env.IDENTIFIER_RUNTIME_SITE ?? path.join(root, `.dev-site-i
 const command = path.join(root, "scripts", "dev", "serve-bota.sh");
 const env = { ...process.env, BOTA_PORT: String(port), BOTA_SITE: site, WASM: process.env.WASM ?? "0" };
 const group = startGroup({ command, args: [`--port=${port}`], env, cwd: root });
+if (!process.env.IDENTIFIER_RUNTIME_SITE) removeOnExit(site);
 async function fetchJson(url) {
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) throw new Error(`${url} HTTP ${response.status}`);
@@ -70,5 +71,4 @@ try {
   fail(error.message);
 } finally {
   group.cleanup();
-  if (!process.env.IDENTIFIER_RUNTIME_SITE) fs.rmSync(site, { recursive: true, force: true });
 }

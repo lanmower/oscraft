@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import net from "node:net";
 import { spawn } from "node:child_process";
 import { sleep } from "./sleep.mjs";
@@ -29,3 +30,5 @@ export function startGroup({ command, args, env, cwd }) {
   process.on("SIGTERM", () => { cleanup(); process.exit(143); });
   return group;
 }
+
+export const removeOnExit = (dir) => process.on("exit", () => fs.rmSync(dir, { recursive: true, force: true }));
