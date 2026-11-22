@@ -1,8 +1,3 @@
-# Gate role table for this pack. The gate's checks name a unit, spell or item by its role; each line is
-# `role = name`, where name is the pack's own unit, spell (ability) or item name. A check that needs a role
-# the pack lacks fails with the role's name. Roles are the gate's vocabulary; the names are pack content.
-# hero.<letter> is a hero unit in the order the gate lists them; hero.<letter>.s<n> is its spell n, sorted by name.
-# item.<n> and spell.<n> are numbered in name order. unit.* are the pack's structural units.
 hero.a = axe
 hero.a.s1 = axe_battle_hunger
 hero.a.s2 = axe_berserkers_call

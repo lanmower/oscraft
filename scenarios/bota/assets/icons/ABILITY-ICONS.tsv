@@ -1,5 +1,3 @@
-# Ability id -> icon map. icon is a path under assets/icons, or GAP: no icon ships and the UI renders the ability name as text (behavior of commit 170627de); a GAP is never requested one by one.
-# Icons ship for 501 of 501 live ability ids; one icon per ability, placeholder art by theme.
 ability	osd	icon
 dark_willow_bramble_maze	abilities_dota2_15.osd	abilities/dark_willow_bramble_maze.png
 dark_willow_shadow_realm	abilities_dota2_15.osd	abilities/dark_willow_shadow_realm.png

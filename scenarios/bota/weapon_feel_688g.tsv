@@ -1,4 +1,3 @@
-# 6.88g attack feel from unit.ini: backSw1 (backswing_ms), MissileHoming_1 (missile_homing), Missilearc_1 (missile_arc, hundredths). Blank: unit.ini stores no value (the stock object has it). The lane creep kinds (creep*, sentinel_creep*) take a blank from their role family record (esen, edry, ebal), named in the evidence column.
 id	src	backswing_ms	homing	arc	evidence
 neutral_ghost	ngh1	300			
 spurdo	UIN6		0		
