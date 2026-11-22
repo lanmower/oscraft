@@ -37,8 +37,8 @@ local HEAL_PCT = 50
 local HEAL_ITEM = "flask"
 local BLINK_ITEM = "blink"
 
-local LANE_OF_SEAT = { "top", "mid", "bot_bernard", "mid", "top" }
-local LANE_ROUTE = { top = 1, mid = 2, bot_bernard = 3 }
+local LANE_OF_SEAT = { "top", "mid", "bot", "mid", "top" }
+local LANE_ROUTE = { top = 1, mid = 2, bot = 3 }
 local SHOPPING = { { 2, 200 }, { 6, 350 }, { 0, 150 }, { 1, 150 }, { 7, 300 }, { 10, 600 } }
 
 local function fixed(v) return (v // 1) | 0 end
@@ -95,7 +95,7 @@ local function ready_item(hero, name)
 end
 
 function Bot.new(slot, seat)
-  local bot_bernard = {
+  local bot = {
     slot = slot,
     lane = LANE_OF_SEAT[seat % #LANE_OF_SEAT + 1],
     shopped = 0,
@@ -104,12 +104,12 @@ function Bot.new(slot, seat)
     target = nil,
     retreating = false,
   }
-  Bot.roster[#Bot.roster + 1] = bot_bernard
-  return bot_bernard
+  Bot.roster[#Bot.roster + 1] = bot
+  return bot
 end
 
-function Bot.find_hero(bot_bernard)
-  for _, unit in ipairs(game.units(bot_bernard.slot)) do
+function Bot.find_hero(bot)
+  for _, unit in ipairs(game.units(bot.slot)) do
     if game.is_attributed(unit) then return unit end
   end
   return nil
@@ -175,9 +175,9 @@ local function disengage(hero, target)
   return dist_from(hero, target) > far or hp_pct(hero) + gap < hp_pct(target)
 end
 
-function Bot.alert(bot_bernard, team, target)
+function Bot.alert(bot, team, target)
   for _, other in ipairs(Bot.roster) do
-    if other ~= bot_bernard and other.hero and unit_alive(other.hero) and game.team(other.slot) == team then
+    if other ~= bot and other.hero and unit_alive(other.hero) and game.team(other.slot) == team then
       if dist_from(other.hero, target) <= ATTACK_GROUP_RANGE then other.target = target end
     end
   end
@@ -231,9 +231,9 @@ function Bot.learn_skills(hero)
   for _, ability in ipairs(game.unit_abilities(hero)) do game.cmd_skill_up(hero, ability.slot) end
 end
 
-function Bot.cast_ready(bot_bernard, hero, target, ticks)
-  if ticks - bot_bernard.last_cast < CAST_EVERY then return end
-  bot_bernard.last_cast = ticks
+function Bot.cast_ready(bot, hero, target, ticks)
+  if ticks - bot.last_cast < CAST_EVERY then return end
+  bot.last_cast = ticks
   for _, ability in ipairs(game.unit_abilities(hero)) do
     if game.unit_cooldown(hero, ability.slot) == 0 then
       game.cmd_cast(hero, ability.slot, target, 0, 0)
@@ -259,8 +259,8 @@ local function enemy_base(player)
   return nil
 end
 
-function Bot.shop(bot_bernard, hero, team, player)
-  local item = SHOPPING[bot_bernard.shopped + 1]
+function Bot.shop(bot, hero, team, player)
+  local item = SHOPPING[bot.shopped + 1]
   if not item or game.gold(player) < item[2] then return false end
   local hx, hy = unit_position(hero)
   local sx, sy = base_of(player)
@@ -269,19 +269,19 @@ function Bot.shop(bot_bernard, hero, team, player)
     return true
   end
   game.cmd_buy(hero, item[1])
-  bot_bernard.shopped = bot_bernard.shopped + 1
+  bot.shopped = bot.shopped + 1
   return true
 end
 
-function Bot.retreat(bot_bernard, hero, team)
-  local fx, fy = base_of(bot_bernard.slot)
+function Bot.retreat(bot, hero, team)
+  local fx, fy = base_of(bot.slot)
   if fx == nil then return end
   Bot.stats.retreats = Bot.stats.retreats + 1
   game.cmd_order(hero, fx, fy)
 end
 
-function Bot.walk_lane(bot_bernard, hero, team)
-  local route = LANE_ROUTE[bot_bernard.lane]
+function Bot.walk_lane(bot, hero, team)
+  local route = LANE_ROUTE[bot.lane]
   local n = route and route_len(team, route) or 0
   if n > 0 then
     local hx, hy = unit_position(hero)
@@ -298,43 +298,43 @@ function Bot.walk_lane(bot_bernard, hero, team)
       return
     end
   end
-  local x, y = enemy_base(bot_bernard.slot)
+  local x, y = enemy_base(bot.slot)
   if x == nil then return end
   Bot.stats.walks = Bot.stats.walks + 1
   game.cmd_order(hero, x, y)
 end
 
-function Bot.think(bot_bernard, units, ticks)
-  local hero = Bot.find_hero(bot_bernard)
-  bot_bernard.hero = hero
+function Bot.think(bot, units, ticks)
+  local hero = Bot.find_hero(bot)
+  bot.hero = hero
   if not hero then
-    bot_bernard.retreating = false
-    bot_bernard.target = nil
+    bot.retreating = false
+    bot.target = nil
     return nil
   end
-  local team = game.team(bot_bernard.slot)
+  local team = game.team(bot.slot)
   Bot.learn_skills(hero)
   Bot.heal(hero)
 
   local pct = hp_pct(hero)
   local hp = whole_hp(hero)
-  if bot_bernard.retreating and pct >= RECOVER_FRACTION * 100 then bot_bernard.retreating = false end
-  if not bot_bernard.retreating and pct < RETREAT_PCT and hp < RETREAT_HP + RETREAT_HP_PER_LEVEL * unit_level(hero) then
-    bot_bernard.retreating = true
+  if bot.retreating and pct >= RECOVER_FRACTION * 100 then bot.retreating = false end
+  if not bot.retreating and pct < RETREAT_PCT and hp < RETREAT_HP + RETREAT_HP_PER_LEVEL * unit_level(hero) then
+    bot.retreating = true
   end
-  if bot_bernard.retreating then
-    bot_bernard.target = nil
-    Bot.retreat(bot_bernard, hero, team)
+  if bot.retreating then
+    bot.target = nil
+    Bot.retreat(bot, hero, team)
     return hero
   end
-  if Bot.shop(bot_bernard, hero, team, bot_bernard.slot) then return hero end
+  if Bot.shop(bot, hero, team, bot.slot) then return hero end
 
   local enemies = hostile_list(team, units, hero)
-  local target = bot_bernard.target
+  local target = bot.target
   if target and not (unit_alive(target) and hostile(team, target)) then target = nil end
   if target and disengage(hero, target) then
-    bot_bernard.target = nil
-    Bot.retreat(bot_bernard, hero, team)
+    bot.target = nil
+    Bot.retreat(bot, hero, team)
     return hero
   end
   if target then target = retarget(hero, target, enemies) end
@@ -344,16 +344,16 @@ function Bot.think(bot_bernard, units, ticks)
     if not target and hero_ok then target = help_target(hero, units, team, enemies) end
   end
   if not target then
-    bot_bernard.target = nil
-    Bot.walk_lane(bot_bernard, hero, team)
+    bot.target = nil
+    Bot.walk_lane(bot, hero, team)
     return hero
   end
 
-  if target ~= bot_bernard.target then Bot.alert(bot_bernard, team, target) end
-  bot_bernard.target = target
+  if target ~= bot.target then Bot.alert(bot, team, target) end
+  bot.target = target
   local d = dist_from(hero, target)
   if d >= BLINK_TRIGGER and Bot.blink_to(hero, target) then return hero end
-  if d < CAST_REACH then Bot.cast_ready(bot_bernard, hero, target, ticks) end
+  if d < CAST_REACH then Bot.cast_ready(bot, hero, target, ticks) end
   Bot.stats.attacks = Bot.stats.attacks + 1
   game.cmd_attack(hero, target)
   return hero

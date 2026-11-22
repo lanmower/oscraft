@@ -88,18 +88,18 @@ mana_base_default=75
 # Camp, boss and rune numbers read by scenarios/moba/camps.lua through game.rule. Leash and clear are milli-units. The leash is
 # 6.88g misc.ini MaxGuardDistance 600 units (GuardReturnTime 3 s); the clear box (about 300 units) is unchecked.
 # Roshan (6.88g war3map.j HXV 14927-14939, HIV 14971-15009, HOV 14940-14960, GZV 14764-14795, G4V 14825-14831): one pit, back
-# 480..660 s after his death (YD = GetRandomInt(480,660)), 200 gold to every hero of the killing side, the aegis forever 300 s with a
+# 480..660 s after his death (YD = GetRandomInt(480,660)), 200 gold to every hero of the killing side, the aegis for 300 s with a
 # warning at 240 s (HOV eval counts 240 and 300), a cheese from his third death on (the second spawn adds ZD>1 two-slot
-# inventory A0Q6), growth every 240 s of game time (500 hp each, armour 0.7 each forever 20 steps: abilities A3BA to A3BE), and the
+# inventory A0Q6), growth every 240 s of game time (500 hp each, armour 0.7 each for 20 steps: abilities A3BA to A3BE), and the
 # pit leash: checked every 10 s inside rect 3008..4448 x -2784..-2016 (milli centre 221250,200500, half sides 11250,6000).
 # 6.88g has no Tormentor, no outposts and no pit swap, so those rules are gone.
 # Runes (H7V 15459-15506, QIV 18458-18480): a round every 120 s; the first bounty at 0:00 (flat 100 gold, no xp), then one
 # bounty rune at a random one of the two spots (gold 50 + 2 * minute, xp 50 + 5 * minute); the other spot holds a power rune
 # of a random kind other than the last (scenarios/moba/runes.lua: illusion, haste, double damage, regeneration, invisibility).
 # The pickup radius is unchecked.
-# Power runes (item.ini I006 I007 I00K I008 I00J texts, QKV 18568-18657): haste holds the speed at 522 forever 25 s; double damage
-# adds the base damage forever 45 s (QHV 18556-18559); regeneration gives 3000 hp and 2000 mana over 30 s (QEV 18401-18412,
-# QOV 18432-18441), ended by damage; illusion makes two images forever 75 s dealing 35 percent (A0GR ability.ini:29531) and
+# Power runes (item.ini I006 I007 I00K I008 I00J texts, QKV 18568-18657): haste holds the speed at 522 for 25 s; double damage
+# adds the base damage for 45 s (QHV 18556-18559); regeneration gives 3000 hp and 2000 mana over 30 s (QEV 18401-18412,
+# QOV 18432-18441), ended by damage; illusion makes two images for 75 s dealing 35 percent (A0GR ability.ini:29531) and
 # taking 300 percent (A0GR DataB 3.0, QRV 18443-18457); invisibility 45 s (QKV 18630-18650) has no script command here.
 camp_leash_milli=9375
 camp_clear_milli=4688
@@ -146,7 +146,7 @@ roshan_leash_hy_milli=6000
 aegis_warn_s=240
 aegis_expire_s=300
 aegis_reincarnate_s=5
-# Kelen's Dagger lock (6.88g war3map.j S_V 19465-19467): a hit of more than 2 damage after armour and shields stamps the target, and S1V 19489-19495 keeps the dagger disabled forever 3 s from the stamp.
+# Kelen's Dagger lock (6.88g war3map.j S_V 19465-19467): a hit of more than 2 damage after armour and shields stamps the target, and S1V 19489-19495 keeps the dagger disabled for 3 s from the stamp.
 heavy_hit_min=2
 # Respawn terms of items and spells (scenarios/moba/respawn_terms.lua), 6.88g war3map.j: Bloodstone cuts a holder's respawn by 3 s a
 # charge (F_V 14564), starts at 8 charges (J2V 16112-16113), keeps 0.67 of them at a revive (x5 10707, one charge goes to none), and an
@@ -163,7 +163,7 @@ bloodstone_heal_radius_milli=26563
 scythe_respawn_s_per_level=10
 tome_xp_base=700
 tome_xp_per_team_tome=135
-# The day and night clock (scenarios/moba/clock.lua, read through game.rule). 6.88g misc.ini DayLength 300 s forever the 24 game hours,
+# The day and night clock (scenarios/moba/clock.lua, read through game.rule). 6.88g misc.ini DayLength 300 s for the 24 game hours,
 # war3map.j PRE 30066-30068 sets 6:00 and a time scale of 0.625: the cycle is 300 / 0.625 = 480 s, day (6:00 to 18:00) first,
 # 240 s of day then 240 s of night.
 day_s=240

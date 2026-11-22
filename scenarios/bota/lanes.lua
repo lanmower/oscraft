@@ -9,12 +9,12 @@ local UPGRADE_PERIOD = 450 * TICKS_PER_SECOND
 local SLOT_SPACING = 700
 local MELEE_RAISES = { 849, 1759, 2669 }
 local RANGED_RAISES = { 2669 }
-local LANE_ID = { top = 1, mid = 2, bot_bernard = 3 }
-local LANES = { "top", "mid", "bot_bernard" }
+local LANE_ID = { top = 1, mid = 2, bot = 3 }
+local LANES = { "top", "mid", "bot" }
 local SPAWNER_LANE = {
   lane_spawner_top = "top",
   lane_spawner_mid = "mid",
-  lane_spawner_bot = "bot_bernard",
+  lane_spawner_bot = "bot",
 }
 local RAX_TYPE = { barracks_melee = "melee", barracks_ranged = "ranged", barracks_melee_scourge = "melee", barracks_ranged_scourge = "ranged" }
 
@@ -22,12 +22,12 @@ local SPAWN = {
   [0] = {
     top = { melee = { 66750, 226500 }, ranged = { 66250, 230250 } },
     mid = { melee = { 88750, 246500 }, ranged = { 87500, 251250 } },
-    bot_bernard = { melee = { 107750, 269000 }, ranged = { 99000, 268000 } },
+    bot = { melee = { 107750, 269000 }, ranged = { 99000, 268000 } },
   },
   [1] = {
     top = { melee = { 202500, 77000 }, ranged = { 208250, 76750 } },
     mid = { melee = { 221500, 104750 }, ranged = { 229250, 102000 } },
-    bot_bernard = { melee = { 261250, 112000 }, ranged = { 259500, 106750 } },
+    bot = { melee = { 261250, 112000 }, ranged = { 259500, 106750 } },
   },
 }
 
@@ -61,8 +61,8 @@ end
 local EARLY_LANE_S = 329
 local EARLY_LANE_SPEED_TICKS = 15 * TICKS_PER_SECOND
 local EARLY_LANE_PCT = {
-  [0] = { top = -25, mid = 0, bot_bernard = 25 },
-  [1] = { top = 25, mid = 0, bot_bernard = -25 },
+  [0] = { top = -25, mid = 0, bot = 25 },
+  [1] = { top = 25, mid = 0, bot = -25 },
 }
 local S_SPEED_PCT = 19
 local WAVE_KINDS = {

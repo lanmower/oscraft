@@ -37,9 +37,9 @@ local STREAK = {
   [10] = { "holyshit", " is ", "|c00ff8000", "beyond GODLIKE", ". Someone KILL HIM!!!!!!" },
 }
 local MULTI = {
-  [2] = { "double_kill", " just gothgirl a ", "|c000000ff", "Double Kill", "!" },
-  [3] = { "triple_kill", " just gothgirl a ", "|c0000ff40", "Triple Kill", "!!!" },
-  [4] = { "ultrakill", " just gothgirl a ", "|c0000ffff", "Ultra Kill", "!!!" },
+  [2] = { "double_kill", " just got a ", "|c000000ff", "Double Kill", "!" },
+  [3] = { "triple_kill", " just got a ", "|c0000ff40", "Triple Kill", "!!!" },
+  [4] = { "ultrakill", " just got a ", "|c0000ffff", "Ultra Kill", "!!!" },
   [5] = { "rampage", " is on a ", "|c0000aaff", "Rampage", "!!!" },
 }
 

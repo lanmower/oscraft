@@ -68,18 +68,13 @@ const destModelFor = (a) => path.join(pack, modelPathFor(a));
 
 const identifierTokens = new Map();
 for (const a of active) {
-  identifierTokens.set(a.acro, a.slug);
   identifierTokens.set(a.name, a.slug);
   identifierTokens.set(`bota_${a.slot}_${a.slug}`, a.slug);
 }
 for (const [id, a] of mapping) identifierTokens.set(id, a.slug);
 const orderedTokens = [...identifierTokens].sort((a, b) => b[0].length - a[0].length || a[0].localeCompare(b[0]));
 const tokenPattern = new RegExp(`(?<![A-Za-z0-9_-])(?:${orderedTokens.map(([token]) => token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?![A-Za-z0-9_-])`, "g");
-const LUA_KEYWORDS = new Set(["and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto", "if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while"]);
-const rewriteText = (text, file) => text.replace(tokenPattern, (token, offset) => {
-  if (file.endsWith(".lua") && LUA_KEYWORDS.has(token) && !/["']/.test(text[offset - 1] ?? "")) return token;
-  return identifierTokens.get(token) ?? token;
-});
+const rewriteText = (text) => text.replace(tokenPattern, (token) => identifierTokens.get(token) ?? token);
 
 const textExt = new Set([".lua", ".osd", ".json", ".txt", ".tsv", ".md"]);
 const generatedNames = new Set([
@@ -173,19 +168,12 @@ walkMoba(moba);
 for (const rel of baselineFiles) {
   if (generatedNames.has(rel)) continue;
   const baselineText = fs.readFileSync(path.join(moba, rel), "utf8");
-  let text = rel.endsWith(".lua") && rel !== "draft_data.lua" ? rewriteText(baselineText, rel) : rewriteText(baselineText, rel);
+  let text = rewriteText(baselineText);
   if (rel.endsWith(".lua")) {
-    for (const [stem, file] of Object.entries(JSON.parse(fs.readFileSync(path.join(moba, "manifest.json"), "utf8")).modules ?? {})) {
-      const replacement = rewriteText(stem, rel);
+    for (const stem of Object.keys(JSON.parse(fs.readFileSync(path.join(moba, "manifest.json"), "utf8")).modules ?? {})) {
+      const replacement = rewriteText(stem);
       if (replacement !== stem) text = text.replace(new RegExp(`(?<![A-Za-z0-9_])${replacement}(?![A-Za-z0-9_])`, "g"), stem);
     }
-  }
-  if (rel === "panels.lua") {
-    text = text
-      .replace('B("bot_bernard", s.bot_bernard == true)', 'B("bot", s.bot_bernard == true)')
-      .replace('"bot_bernard:"', '"bot:"')
-      .replace("a.bot_bernard == true", "a.bot == true")
-      .replace("bot_bernard = s.bot_bernard == true,", "bot_bernard = s.bot == true,");
   }
   if (rel === "mines.lua") text = text.replace(/\bFOREVER\b/g, "UNLIMITED_LIFE");
   if (rel === "manifest.json") {

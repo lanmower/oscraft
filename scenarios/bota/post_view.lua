@@ -122,7 +122,7 @@ local function portrait_column(c, e)
   local kids = { portrait(c, e) }
   local commend_node = commend_cell(c, e)
   if commend_node ~= nil then kids[#kids + 1] = commend_node end
-  return w.box(kids, "cole")
+  return w.box(kids, "col")
 end
 
 local function portraits(c)
@@ -131,7 +131,7 @@ local function portraits(c)
   for _, side in ipairs(c.sides) do
     local cells = {}
     for _, e in ipairs(members(c, side)) do cells[#cells + 1] = portrait_column(c, e) end
-    columns[#columns + 1] = w.box({ w.label(c.team_name(side), "team" .. tostring(side)), w.box(cells, "row") }, "cole")
+    columns[#columns + 1] = w.box({ w.label(c.team_name(side), "team" .. tostring(side)), w.box(cells, "row") }, "col")
   end
   return w.box(columns, "row")
 end
@@ -154,7 +154,7 @@ local function team_totals(c)
       .. ", " .. tostring(gold) .. " " .. texts.gold .. ", " .. tostring(xp) .. " " .. texts.xp
     rows[#rows + 1] = w.label(line, "team" .. tostring(side))
   end
-  return w.box(rows, "cole")
+  return w.box(rows, "col")
 end
 
 local function style_cell(c, entry, key, tone)
@@ -197,7 +197,7 @@ local function comparison(c)
   local styles = {}
   for _, key in ipairs(STYLES) do
     styles[#styles + 1] = style_cell(c, a, key, ta)
-    styles[#styles + 1] = w.box({ w.label(texts.style[key], "accent"), w.label(texts.formula[key], "muted") }, "cole")
+    styles[#styles + 1] = w.box({ w.label(texts.style[key], "accent"), w.label(texts.formula[key], "muted") }, "col")
     styles[#styles + 1] = style_cell(c, b, key, tb)
   end
 
@@ -216,7 +216,7 @@ local function comparison(c)
     w.label(texts.averages, "accent"),
     w.label(texts.averagesNote, "muted"),
     w.grid(3, averages),
-  }, "cole")
+  }, "col")
 end
 
 local function overview(c)
@@ -228,7 +228,7 @@ local function overview(c)
     kids[#kids + 1] = comparison(c)
     kids[#kids + 1] = w.button(c.texts.teamView, "post_team_view", "{}")
   end
-  return w.box(kids, "cole")
+  return w.box(kids, "col")
 end
 
 local function mvp(c)
@@ -240,7 +240,7 @@ local function mvp(c)
   end
   if #kids == 0 then return w.label(c.texts.notTracked, "muted") end
   kids[#kids + 1] = w.label(c.texts.mvpFormula, "muted")
-  return w.box(kids, "cole")
+  return w.box(kids, "col")
 end
 
 local function tab_strip(c)
@@ -300,7 +300,7 @@ local function graphs(c)
       }, peak)
     end
   end
-  return w.box(kids, "cole")
+  return w.box(kids, "col")
 end
 
 function post_view.kids(c)

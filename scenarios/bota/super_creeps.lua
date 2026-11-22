@@ -15,7 +15,7 @@ local KINDS = {
 local LANES = {
   { lane = "top", path = "west" },
   { lane = "mid", path = "middle" },
-  { lane = "bot_bernard", path = "east" },
+  { lane = "bot", path = "east" },
 }
 local SIDES = { { owner = SENTINEL, name = "Sentinel" }, { owner = SCOURGE, name = "Scourge" } }
 

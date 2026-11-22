@@ -275,7 +275,7 @@ local function exchange_sides(a, b)
     x.owner, y.owner = y.owner, x.owner
     x.hero, y.hero = y.hero, x.hero
     x.ready, y.ready = y.ready, x.ready
-    x.bot_bernard, y.bot_bernard = y.bot_bernard, x.bot_bernard
+    x.bot, y.bot = y.bot, x.bot
     api.changed()
   else
     game.set_team(a, team_b)

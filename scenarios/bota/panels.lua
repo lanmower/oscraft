@@ -58,7 +58,7 @@ local LAST = {}
 
 local function new_lobby()
   local slots = {}
-  for i = 1, SLOT_COUNT do slots[i] = { owner = nil, hero = nil, ready = false, bot_bernard = false } end
+  for i = 1, SLOT_COUNT do slots[i] = { owner = nil, hero = nil, ready = false, bot = false } end
   return { host = nil, pinned = false, filled = false, started = false, worldReady = false, slots = slots, error = "" }
 end
 local LOBBY = new_lobby()
@@ -87,7 +87,7 @@ local function node(t, fields)
   for _, v in ipairs(fields) do f[#f + 1] = v end
   return obj(f)
 end
-local function box(kids, dir) return node("box", { S("dir", dir or "cole"), R("kids", arr(kids)) }) end
+local function box(kids, dir) return node("box", { S("dir", dir or "col"), R("kids", arr(kids)) }) end
 local function label(text, tone)
   return node("label", with({ S("text", text) }, tone and S("tone", tone) or nil))
 end
@@ -279,7 +279,7 @@ local function mode_rules_box()
       badges[#badges + 1] = node("badge", { S("glyph", look.glyph), S("tone", look.tone), S("tip", words), S("alt", words) })
     end
   end
-  return box({ label(mode_summary(), "accent"), box(badges, "row") }, "cole")
+  return box({ label(mode_summary(), "accent"), box(badges, "row") }, "col")
 end
 
 local function hud_tree()
@@ -359,7 +359,7 @@ local function win_tree()
     commend = require("commend").view(LOCAL),
   })
   for _, node in ipairs(body) do kids[#kids + 1] = node end
-  return box(kids, "cole")
+  return box(kids, "col")
 end
 
 local function team_tree()
@@ -537,7 +537,7 @@ local function shop_filters()
   return box({
     node("input", { S("call", "shop_search"), S("value", SHOP_SEARCH), S("placeholder", TEXT.shop.search) }),
     box(tabs, "row"),
-  }, "cole")
+  }, "col")
 end
 
 local function stock_sentence(i)
@@ -559,11 +559,11 @@ local function build_section(kind, hero)
       rows[#rows + 1] = label(text, "muted")
     end
   end
-  local body = #rows > 0 and box(rows, "cole") or label(TEXT.shop.buildNone, "faint")
+  local body = #rows > 0 and box(rows, "col") or label(TEXT.shop.buildNone, "faint")
   return box({
     box({ label(TEXT.shop.build, "faint"), button(TEXT.shop.quickBuy, "quick_buy", "{}", hero == nil or #list == 0) }, "row"),
     body,
-  }, "cole")
+  }, "col")
 end
 
 local parents_by_item = nil
@@ -688,13 +688,13 @@ local function shop_tree()
     }, "row")
     kids[#kids + 1] = label(TEXT.shop.recipeTree, "faint")
     if #def.components > 0 then
-      kids[#kids + 1] = box(recipe_lines(i, 0, {}), "cole")
+      kids[#kids + 1] = box(recipe_lines(i, 0, {}), "col")
     else
       kids[#kids + 1] = label(TEXT.shop.tip.noTree, "muted")
     end
     kids[#kids + 1] = label(#owners > 0 and TEXT.shop.tip.partOf or TEXT.shop.tip.partOfNone, "faint")
-    if #owners > 0 then kids[#kids + 1] = box(owners, "cole") end
-    return box(kids, "cole")
+    if #owners > 0 then kids[#kids + 1] = box(owners, "col") end
+    return box(kids, "col")
   end
 
   local pinned_cells = {}
@@ -740,13 +740,13 @@ local function shop_tree()
       label(TEXT.shop.stock .. "  " .. tostring(#stock), "faint"),
       grid(SHOP_COLUMNS, stock),
       button(TEXT.menu.close, "shop_deselect", "{}"),
-    }, "cole")
+    }, "col")
   end
   for t = 1, #bands do
     if #bands[t] > 0 then
       local heading = tiers[t] or TEXT.shop.notSold
       sections[#sections + 1] = box({
-        box({ label(heading, "faint"), label(tostring(#bands[t]), "muted") }, "cole"),
+        box({ label(heading, "faint"), label(tostring(#bands[t]), "muted") }, "col"),
         grid(SHOP_COLUMNS, bands[t]),
       }, "row")
     end
@@ -754,7 +754,7 @@ local function shop_tree()
   sections[#sections + 1] = box({
     label(TEXT.shop.pinned, "faint"),
     #pinned_cells > 0 and grid(SHOP_COLUMNS, pinned_cells) or label(TEXT.shop.pinnedNone, "muted"),
-  }, "cole")
+  }, "col")
   if pick_def ~= nil then
     sections[#sections + 1] = pick_detail(pick, pick_def)
   else
@@ -765,7 +765,7 @@ local function shop_tree()
   sections[#sections + 1] = box({
     box({ label(TEXT.stashLabel, "faint"), button(TEXT.shop.grabAll, "grab_all", "{}", stash_count == 0 or hero == nil) }, "row"),
     grid(STASH_SLOTS, stash_cells(hero)),
-  }, "cole")
+  }, "col")
   return panel(TEXT.shop.title .. "  " .. TEXT.goldLabel .. " " .. tostring(gold), sections)
 end
 
@@ -883,7 +883,7 @@ local function skills_tree(hero)
         ready = points > 0 and level >= gate
       end
     end
-    local row = { box({ label(a.name, "strong"), label(row_pips, "accent"), label(gate_text, "muted") }, "cole") }
+    local row = { box({ label(a.name, "strong"), label(row_pips, "accent"), label(gate_text, "muted") }, "col") }
     if ready then row[#row + 1] = button("+", "skill_up", obj({ I("slot", a.slot) }), false, TEXT.skills.up) end
     if is_targeted(a.name) then
       local quick = game.setting(LOCAL, "quickcast_" .. tostring(a.slot)) == 1
@@ -997,7 +997,7 @@ local function respawn_tree(hero)
     button(text, "buyback", "{}", not affordable, TEXT.menu.buybackTip),
   }
   for _, row in ipairs(death_recap(hero)) do kids[#kids + 1] = row end
-  return box(kids, "cole")
+  return box(kids, "col")
 end
 
 local function select_tree()
@@ -1025,7 +1025,7 @@ local function select_tree()
     info[#info + 1] = bar(game.mana(primary), game.max_mana(primary), "mp")
   end
   local portrait = hero and hero_icon(name, 56) or nil
-  local kids = { box({ cell(with({ label(face, "accent") }, portrait), { tone = "face" }), box(info, "cole") }, "row") }
+  local kids = { box({ cell(with({ label(face, "accent") }, portrait), { tone = "face" }), box(info, "col") }, "row") }
   if hero and unit_player(primary) == LOCAL then
     local abilities = {}
     for _, a in ipairs(game.unit_abilities(primary)) do abilities[a.slot] = a end
@@ -1055,7 +1055,7 @@ local function select_tree()
     kids[#kids + 1] = box(pager, "row")
     kids[#kids + 1] = grid(6, tiles)
   end
-  return box(kids, "cole")
+  return box(kids, "col")
 end
 
 local function fill(text, vars)
@@ -1198,13 +1198,13 @@ local function inventory_tree()
   local stash_btn = button(TEXT.menu.stashHere, "stash_item", obj({ I("slot", SELL_ARMED or 0) }),
     SELL_ARMED == nil or not near or SELL_ARMED == NEUTRAL_SLOT, TEXT.menu.stashHint)
   return box({
-    box({ label(TEXT.inventoryLabel, "faint"), grid(3, main) }, "cole"),
+    box({ label(TEXT.inventoryLabel, "faint"), grid(3, main) }, "col"),
     box({
       label(TEXT.backpackLabel, "faint"),
       grid(3, pack),
       box({ label(TEXT.neutralLabel, "faint"), grid(1, neutral), stash_btn }, "row"),
-    }, "cole"),
-    box({ label(TEXT.stashLabel, "faint"), grid(3, stash) }, "cole"),
+    }, "col"),
+    box({ label(TEXT.stashLabel, "faint"), grid(3, stash) }, "col"),
   }, "row")
 end
 
@@ -1323,7 +1323,7 @@ end
 local function owner_text(s)
   if s.owner == nil then return TEXT.lobby.owners.open end
   if s.owner == OWNER then return TEXT.lobby.owners.you end
-  if s.bot_bernard then return TEXT.lobby.owners.computer end
+  if s.bot then return TEXT.lobby.owners.computer end
   return TEXT.lobby.owners.other
 end
 
@@ -1398,7 +1398,7 @@ local function lobby_seats_event()
   if LOBBY.started then return end
   local items = {}
   for _, s in ipairs(LOBBY.slots) do
-    items[#items + 1] = obj({ S("owner", s.owner or ""), S("hero", s.hero or ""), B("ready", s.ready == true), B("bot", s.bot_bernard == true), S("model", s.hero and hero_model(s.hero) or "") })
+    items[#items + 1] = obj({ S("owner", s.owner or ""), S("hero", s.hero or ""), B("ready", s.ready == true), B("bot", s.bot == true), S("model", s.hero and hero_model(s.hero) or "") })
   end
   local mode_items = {}
   local mode_names = TEXT.lobby.modes or {}
@@ -1485,7 +1485,7 @@ local function lobby_act(call, a)
           end
         end
         s.owner = "bot:" .. tostring(i - 1)
-        s.bot_bernard = true
+        s.bot = true
         s.hero = hero
         s.ready = true
       end
@@ -1500,10 +1500,10 @@ local function lobby_act(call, a)
     local seat = L.slots[index]
     if seat.owner ~= nil then L.error = "slot-taken" return end
     seat.owner = seat_owner
-    seat.bot_bernard = a.bot == true
+    seat.bot = a.bot == true
     seat.hero = (a.hero ~= nil and a.hero ~= "") and a.hero or nil
     seat.ready = a.ready == true
-    if L.host == nil and not seat.bot_bernard and seat_owner == owner then L.host = owner end
+    if L.host == nil and not seat.bot and seat_owner == owner then L.host = owner end
     return
   end
   local i = (a.slot or -1) + 1
@@ -1511,19 +1511,19 @@ local function lobby_act(call, a)
   local s = L.slots[i]
   if call == "claim" then
     if L.host ~= nil and L.host ~= owner and not negotiated() then L.error = "negotiate-first" return end
-    if s.owner ~= nil and not s.bot_bernard then L.error = "slot-taken" return end
+    if s.owner ~= nil and not s.bot then L.error = "slot-taken" return end
     if seated(owner) then L.error = "already-seated" return end
     s.owner = owner
-    s.bot_bernard = false
+    s.bot = false
     s.hero, s.ready = nil, false
     if L.host == nil and a.preview ~= true then L.host = owner end
   elseif call == "release" then
     if s.owner ~= owner then L.error = "not-owner" return end
-    s.owner, s.hero, s.ready, s.bot_bernard = nil, nil, false, false
+    s.owner, s.hero, s.ready, s.bot = nil, nil, false, false
     if L.host == owner and not L.pinned then
       L.host = nil
       for _, other in ipairs(L.slots) do
-        if other.owner ~= nil and not other.bot_bernard then
+        if other.owner ~= nil and not other.bot then
           L.host = other.owner
           break
         end
@@ -1533,11 +1533,11 @@ local function lobby_act(call, a)
     if L.host ~= owner then L.error = "not-host" return end
     if s.owner == nil then L.error = "slot-empty" return end
     local removed = s.owner
-    s.owner, s.hero, s.ready, s.bot_bernard = nil, nil, false, false
+    s.owner, s.hero, s.ready, s.bot = nil, nil, false, false
     if L.host == removed and not L.pinned then
       L.host = nil
       for _, other in ipairs(L.slots) do
-        if other.owner ~= nil and not other.bot_bernard then
+        if other.owner ~= nil and not other.bot then
           L.host = other.owner
           break
         end
@@ -1856,7 +1856,7 @@ local function lobby_seat(i)
   elseif LOBBY.host == OWNER then
     kids[#kids + 1] = button(TEXT.lobby.remove, "remove", obj({ I("slot", slot0) }))
   end
-  return box(kids, "cole")
+  return box(kids, "col")
 end
 
 local function hero_tile(name, mine)
@@ -1905,14 +1905,14 @@ local function team_strip(t)
     label(TEXT.lobby.teamNames[t + 1], "accent"),
     bar(filled, TEAM_SIZE, t == 0 and "accent" or "warn"),
     box(seats, "row"),
-  }, "cole")
+  }, "col")
 end
 
 local function hero_card(mine)
   local kids = { label(TEXT.lobby.chooseHero, "accent") }
   if mine == nil then
     kids[#kids + 1] = label(TEXT.lobby.noSeat, "muted")
-    return box(kids, "cole")
+    return box(kids, "col")
   end
   local s = LOBBY.slots[mine]
   if s.hero == nil then
@@ -1939,7 +1939,7 @@ local function hero_card(mine)
   if s.ready then lock_text = TEXT.lobby.unready end
   kids[#kids + 1] = button(lock_text, "ready", obj({ I("slot", mine - 1), B("ready", not s.ready) }), not s.ready and s.hero == nil and not modes.picks_free())
   kids[#kids + 1] = button(TEXT.lobby.random, "pick", obj({ I("slot", mine - 1), S("hero", "") }), s.ready or not any_free(modes.side_of_seat(mine)))
-  return box(kids, "cole")
+  return box(kids, "col")
 end
 
 local function composition()
@@ -2003,7 +2003,7 @@ local function lobby_tree()
     mode_row(host),
     box(actions, "row"),
     box({ team_strip(0), team_strip(1) }, "row"),
-    box({ box(attribute_rows(mine), "cole"), hero_card(mine) }, "row"),
+    box({ box(attribute_rows(mine), "col"), hero_card(mine) }, "row"),
   })
 end
 
@@ -2112,7 +2112,7 @@ local function mirror_host_lobby(state)
         owner = s.owner ~= "" and s.owner or nil,
         hero = s.hero ~= "" and s.hero or nil,
         ready = s.ready == true,
-        bot_bernard = s.bot == true,
+        bot = s.bot == true,
       }
     end
   end

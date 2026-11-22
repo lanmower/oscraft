@@ -814,7 +814,7 @@ local function on_action(name, args)
     skill_up(args.player or LOCAL, args.slot)
   elseif name == "seat_pick" then
     heroes.seat_pick(args.player, args.hero)
-    if args.bot_bernard then bots.seat(args.player) end
+    if args.bot then bots.seat(args.player) end
     if args.player == LOCAL then focus_hero(LOCAL) end
   elseif name == "buyback" then
     heroes.buyback(args.player)

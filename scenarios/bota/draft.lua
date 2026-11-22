@@ -97,7 +97,7 @@ local function seat_at(side, j) return side * HALF + j end
 
 local function present(i)
   local s = slots()[i]
-  return s ~= nil and s.owner ~= nil and not s.bot_bernard
+  return s ~= nil and s.owner ~= nil and not s.bot
 end
 
 local function seated(i)
@@ -233,7 +233,7 @@ end
 local function claim_fill_bots()
   for i = 1, SEATS do
     local s = slots()[i]
-    if s.owner ~= nil and s.bot_bernard and s.hero == nil then
+    if s.owner ~= nil and s.bot and s.hero == nil then
       local free = claim_pool(i)
       if #free > 0 then
         D.claimed[free[1]] = i

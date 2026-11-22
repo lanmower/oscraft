@@ -5,9 +5,9 @@ local bot_of = {}
 
 local function seat(player)
   if bot_of[player] ~= nil then return end
-  local bot_bernard = Bot.new(player, player)
-  bot_of[player] = bot_bernard
-  bots[#bots + 1] = bot_bernard
+  local bot = Bot.new(player, player)
+  bot_of[player] = bot
+  bots[#bots + 1] = bot
 end
 
 return {
@@ -17,10 +17,10 @@ return {
   on_tick = function(state)
     local ticks = game.time()
     local units = nil
-    for index, bot_bernard in ipairs(bots) do
+    for index, bot in ipairs(bots) do
       if (ticks + index) % Bot.DECIDE_EVERY == 0 then
         units = units or game.units(nil)
-        Bot.think(bot_bernard, units, ticks)
+        Bot.think(bot, units, ticks)
       end
     end
     state.bot_walks = Bot.stats.walks

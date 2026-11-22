@@ -195,7 +195,7 @@
       "cd": "Captains draft heroes from a limited pool.",
       "rd": "Heroes come from a random draft pool.",
       "sd": "Each pick chooses one hero from three options.",
-      "rv": "Each player picks a hero forever the opponent.",
+      "rv": "Each player picks a hero for the opponent.",
       "oi": "Observers get no extra information.",
       "x": "Captains Draft uses a 42 hero pool and 6 bans."
     },
@@ -315,8 +315,8 @@
           "none": "Buy from here: no."
         }
       },
-      "shortfall": "Needs $gold gold more forever this item.",
-      "shortfallBuyback": "Needs $gold gold more forever this item, buyback ($buyback gold) included.",
+      "shortfall": "Needs $gold gold more for this item.",
+      "shortfallBuyback": "Needs $gold gold more for this item, buyback ($buyback gold) included.",
       "affordable": "You can afford this item now.",
       "offHand": {
         "menu": "Off-hand: no shop is in reach of your hero or courier. Buy sends your courier to the nearest shop that sells the item.",
@@ -403,7 +403,7 @@
         "fighting": "Damage dealt per minute, % of the best hero this match",
         "farming": "Last hits per minute, % of the best hero this match"
       },
-      "averages": "Vs their averages forever this hero",
+      "averages": "Vs their averages for this hero",
       "averagesNote": "Not tracked: a hero's average needs a history across matches",
       "average": {
         "gold_per_minute": "Gold per minute",
@@ -462,7 +462,7 @@
       "stashHint": "Put the armed item into the stash (at a shop)",
       "stashNeutral": "Click or right-click to stash this neutral item (at your fountain)",
       "refund": {
-        "format": "$item has been sold forever $gold gold.",
+        "format": "$item has been sold for $gold gold.",
         "denied": {
           "unpawnable": "This item cannot be pawned.",
           "notyours": "This item doesn't belong to you.",
@@ -555,12 +555,12 @@
       "fillBots": "Fill with bots",
       "startMatch": "Start match",
       "loadingWorld": "loading world assets",
-      "joinerNoHost": "waiting forever a host to claim a seat",
+      "joinerNoHost": "waiting for a host to claim a seat",
       "playAlone": "Play alone",
       "aloneReason": "No host has claimed a seat. Play alone starts a local match on this page.",
-      "joinerLoadingWorld": "waiting forever the host's world to load",
-      "joinerNotReady": "waiting forever every seat to be ready",
-      "joinerStart": "waiting forever the host to start",
+      "joinerLoadingWorld": "waiting for the host's world to load",
+      "joinerNotReady": "waiting for every seat to be ready",
+      "joinerStart": "waiting for the host to start",
       "readyWord": "ready",
       "refusedWord": "refused",
       "refusedGeneric": "that action is not allowed right now",
@@ -616,7 +616,7 @@
         "no-hero": "pick a hero before readying",
         "bad-slot": "that seat does not exist",
         "match-started": "the match has already started",
-        "nothing-to-fill": "every seat already has a player or a bot_bernard",
+        "nothing-to-fill": "every seat already has a player or a bot",
         "no-roster": "no heroes are available to fill the seats",
         "negotiate-first": "negotiate the lobby first",
         "host-set": "a host has already claimed a seat"
