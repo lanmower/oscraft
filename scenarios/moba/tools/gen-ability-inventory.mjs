@@ -17,7 +17,8 @@ const opt = (name, fallback) => {
 const units = opt("units", path.dirname(path.dirname(fileURLToPath(import.meta.url))));
 const out = opt("out", path.join(os.tmpdir(), "oscraft-abilities", path.basename(units)));
 const dir = opt("src", path.join(os.tmpdir(), "ref-heroes-src"));
-fs.mkdirSync(dir, { recursive: true });
+const check = args.includes("--check");
+if (!check) fs.mkdirSync(dir, { recursive: true });
 
 const heroes = [
   ...new Set(
@@ -34,6 +35,10 @@ const covered = new Set(Object.values(HEROES).flat().filter((a) => a !== "@talen
 async function abilityNames(hero) {
   const file = path.join(dir, `npc_dota_hero_${hero}.txt`);
   if (!fs.existsSync(file)) {
+    if (check) {
+      console.error("reference file missing: " + file + "; pass --src with the reference directory");
+      process.exit(1);
+    }
     const res = await fetch(`${RAW}heroes/npc_dota_hero_${hero}.txt`);
     if (!res.ok) return null;
     fs.writeFileSync(file, await res.text());
@@ -70,9 +75,19 @@ for (const hero of heroes) {
     rows.push([hero, i + 1, name, kind, has ? "yes" : "no"].join("\t"));
   });
 }
-fs.mkdirSync(out, { recursive: true });
-const outPath = path.join(out, "abilities-inventory.tsv");
-fs.writeFileSync(outPath, rows.join("\n") + "\n");
-console.log(`${heroes.length} heroes, ${withRecipe} abilities with a recipe, ${without} without`);
-if (missing.length) console.log(`no reference file for: ${missing.join(" ")}`);
-console.log(`written to ${outPath}`);
+const table = rows.join("\n") + "\n";
+if (check) {
+  const committed = path.join(units, "abilities-inventory.tsv");
+  if (fs.readFileSync(committed, "utf8") !== table) {
+    console.error(committed + " differs from the table generated from " + dir);
+    process.exit(1);
+  }
+  console.log("abilities-inventory.tsv current: " + heroes.length + " heroes, " + (withRecipe + without) + " abilities");
+} else {
+  fs.mkdirSync(out, { recursive: true });
+  const outPath = path.join(out, "abilities-inventory.tsv");
+  fs.writeFileSync(outPath, table);
+  console.log(heroes.length + " heroes, " + withRecipe + " abilities with a recipe, " + without + " without");
+  if (missing.length) console.log("no reference file for: " + missing.join(" "));
+  console.log("written to " + outPath);
+}

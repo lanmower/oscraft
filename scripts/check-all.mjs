@@ -120,6 +120,7 @@ const EXTERNAL = [
   { id: "gen-ability-keys.mjs", reason: "needs the hy3d g688-lni directory" },
   { id: "gen-ability-text-688g.mjs", reason: "needs G688_LNI set to the hy3d 6.88g lni directory holding ability.ini" },
   { id: "gen-neutral-688g.mjs", reason: "needs --src with the 6.88g war3map.j script" },
+  { id: "gen-ability-inventory.mjs", reason: "needs REF_HEROES_SRC set to the directory of npc_dota_hero_*.txt reference files" },
   { id: "gen-heroes.mjs", reason: "needs --src ref-heroes-src; without it --check attempts a SteamDatabase fetch" },
 ];
 
@@ -136,6 +137,10 @@ const G688_UNIT_INI = process.env.G688_UNIT_INI || "";
 const turnRatesDrift = G688_UNIT_INI
   ? [nodeEntry("gen", "gen-turn-rates.mjs", "drift", tools("gen-turn-rates.mjs"), { output: "turn_rates.lua", reason: "a --check failure means the committed rates diverged from the 6.88g unit.ini named by G688_UNIT_INI" })]
   : [];
+const REF_HEROES_SRC = process.env.REF_HEROES_SRC || "";
+const inventoryGate = REF_HEROES_SRC
+  ? [nodeEntry("gen", "gen-ability-inventory.mjs", "gate", ["scenarios/moba/tools/gen-ability-inventory.mjs", "--check", "--src=" + REF_HEROES_SRC])]
+  : [];
 const entries = [
   { kind: "check", id: "git diff --check", state: "gate", exe: "git", argv: ["diff", "--check"] },
   ...GATE_CHECKS.map((id) => id.includes(" ") ? specEntry(id) : nodeEntry("check", id, "gate", [id])),
@@ -143,7 +148,8 @@ const entries = [
   ...DRIFT.map((d) => nodeEntry("gen", d.id, "drift", tools(d.id), { output: d.output, reason: d.reason })),
   ...turnRatesDrift,
   ...abilityTextGate,
-  ...EXTERNAL.filter((e) => !(G688_LNI && e.id === "gen-ability-text-688g.mjs") && !(G688_UNIT_INI && e.id === "gen-turn-rates.mjs")).map((e) => ({ kind: e.id.startsWith("js/") ? "check" : "gen", id: e.id, state: "external", reason: e.reason })),
+  ...inventoryGate,
+  ...EXTERNAL.filter((e) => !(G688_LNI && e.id === "gen-ability-text-688g.mjs") && !(G688_UNIT_INI && e.id === "gen-turn-rates.mjs") && !(REF_HEROES_SRC && e.id === "gen-ability-inventory.mjs")).map((e) => ({ kind: e.id.startsWith("js/") ? "check" : "gen", id: e.id, state: "external", reason: e.reason })),
 ];
 
 if (listOnly) {
