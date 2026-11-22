@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { HEROES } from "./ability-recipes.mjs";
 import { RETIRED_ABILITIES } from "./retired-abilities.mjs";
 
@@ -13,8 +14,8 @@ const opt = (name, fallback) => {
   const hit = args.find((a) => a.startsWith(`--${name}=`));
   return hit ? hit.slice(name.length + 3) : fallback;
 };
-const units = opt("units", "scenarios/bota");
-const out = opt("out", path.join(os.tmpdir(), "oscraft-bota-abilities"));
+const units = opt("units", path.dirname(path.dirname(fileURLToPath(import.meta.url))));
+const out = opt("out", path.join(os.tmpdir(), "oscraft-abilities", path.basename(units)));
 const dir = opt("src", path.join(os.tmpdir(), "ref-heroes-src"));
 fs.mkdirSync(dir, { recursive: true });
 

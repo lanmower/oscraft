@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { HEROES } from "./ability-recipes.mjs";
 import { RETIRED_ABILITIES } from "./retired-abilities.mjs";
 
@@ -13,14 +14,15 @@ const opt = (name, fallback) => {
   const hit = args.find((a) => a.startsWith(`--${name}=`));
   return hit ? hit.slice(name.length + 3) : fallback;
 };
-const out = opt("out", "scenarios/moba");
+const units = opt("units", path.dirname(path.dirname(fileURLToPath(import.meta.url))));
+const out = opt("out", path.join(os.tmpdir(), "oscraft-abilities", path.basename(units)));
 const dir = opt("src", path.join(os.tmpdir(), "ref-heroes-src"));
 fs.mkdirSync(dir, { recursive: true });
 
 const heroes = [
   ...new Set(
     fs
-      .readFileSync(path.join(out, "units_heroes.osd"), "utf8")
+      .readFileSync(path.join(units, "units_heroes.osd"), "utf8")
       .split("\n")
       .map((l) => l.match(/^\s*unit\(\s*"([^"]+)"/)?.[1])
       .filter(Boolean),
@@ -68,6 +70,7 @@ for (const hero of heroes) {
     rows.push([hero, i + 1, name, kind, has ? "yes" : "no"].join("\t"));
   });
 }
+fs.mkdirSync(out, { recursive: true });
 const outPath = path.join(out, "abilities-inventory.tsv");
 fs.writeFileSync(outPath, rows.join("\n") + "\n");
 console.log(`${heroes.length} heroes, ${withRecipe} abilities with a recipe, ${without} without`);
