@@ -2298,3 +2298,15 @@ Open, found in this pass, not fixed:
 - Fix (the commit after this entry): the integrated exit handler sends SIGKILL to the whole group (process.kill(-child.pid)) and to the owned pid, and startGroup's exit handler sends SIGKILL to its group. The exit event cannot wait, so the signal is sent before removeOnExit runs in registration order.
 - Witness (/workspace/tmp/oscraft/leak3/green2.txt): integrated CLEAN 3 of 3 with the group kill. Cross-runtime CLEAN 2 of 2 with the SIGKILL group handler (race.txt). Red for the group change: integrated LEAKED 3 of 3 with the SIGTERM handler (race.txt).
 - Old residue, not created by these runs and not removed: 118 .dev-site-cross-runtime-* and 90 .dev-site-integrated-check-* entries (directories plus .log and .pid files). Deletion needs the dispatcher's go.
+
+## 2026-11-23 Phase A: the leak fix at the process group, measured (lanmower)
+
+- Change: scripts/lib/host.mjs exports killGroupSync(pgid), which sends SIGKILL to the whole process group (kill(-pgid)) and polls ps until no non-zombie member of the group remains (5 s cap), so the site is removed only after the group is gone. startGroup and the integrated cold start call it on exit, before their removeOnExit registrations run.
+- Helper witness: a detached "sh -c 'sleep 60 & sleep 60'" group had 3 members; after killGroupSync, 0 non-zombie members remained.
+- Measured on this tree (/workspace/tmp/oscraft/grp/race.txt, leak test: start the check, SIGTERM once its site appears, count what is left):
+  - integrated, red (the old leader-only SIGTERM handler): LEAKED 3 of 3.
+  - integrated, green (group kill with wait): CLEAN 3 of 3.
+  - cross-runtime, red (the group SIGTERM handler, no wait): CLEAN 3 of 3.
+  - cross-runtime, green (group kill with wait): CLEAN 3 of 3.
+- So the cross-runtime check did not reproduce the race under either handler. Its leak was shown earlier by removing its removeOnExit line (LEAKED, leak3/out2.txt). The group kill with wait is the same code path, so cross is witnessed green here, but its red for this change is the removal-line red, not a group-handler red.
+- Leftover residue unchanged by these runs: 90 .dev-site-integrated-check-* and 118 .dev-site-cross-runtime-* entries.
