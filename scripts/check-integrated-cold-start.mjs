@@ -29,7 +29,10 @@ const cleanup = () => {
     try { process.kill(child.pid, "SIGTERM"); } catch {}
   }
 };
-process.on("exit", cleanup);
+process.on("exit", () => {
+  if (child?.pid) try { process.kill(-child.pid, "SIGKILL"); } catch {}
+  if (ownedPid) try { process.kill(ownedPid, "SIGKILL"); } catch {}
+});
 for (const leftover of [site, pidFile, logFile]) removeOnExit(leftover);
 process.on("SIGINT", () => { cleanup(); process.exit(130); });
 process.on("SIGTERM", () => { cleanup(); process.exit(143); });

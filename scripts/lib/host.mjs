@@ -25,7 +25,7 @@ export function startGroup({ command, args, env, cwd }) {
   const collect = (chunk) => { group.output += chunk.toString(); };
   child.stdout.on("data", collect);
   child.stderr.on("data", collect);
-  process.on("exit", cleanup);
+  process.on("exit", () => { try { process.kill(-child.pid, "SIGKILL"); } catch {} });
   process.on("SIGINT", () => { cleanup(); process.exit(130); });
   process.on("SIGTERM", () => { cleanup(); process.exit(143); });
   return group;
