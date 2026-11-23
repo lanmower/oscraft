@@ -55,4 +55,4 @@ for (let i = 0; i < liveExtraction.length; i += 1) {
   if (live.present && (saved.classes ?? null) !== (live.classes ?? null)) fail(`extraction summary ${live.peer} classes mismatch`);
 }
 console.log(`validate:runtime-evidence PASS: path=${path.relative(root, evidenceFile)} snapshotHash=${evidence.snapshotHash} generatedAt=${evidence.generatedAt}`);
-console.log(`validate:runtime-evidence PASS: default 127 acronyms, BOTA 26 fullnames, historical moba, backdrop/hero hashes, 26/26 skinned hashes, WebGL summary, cross-contract counts`);
+console.log(`validate:runtime-evidence PASS: default 127 acronyms, BOTA 24 fullnames, historical moba, backdrop/hero hashes, 24/24 skinned hashes, WebGL summary, cross-contract counts`);
