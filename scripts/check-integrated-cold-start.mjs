@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { freePort, removeOnExit, waitUntil } from "./lib/host.mjs";
+import { freePort, killGroupSync, removeOnExit, waitUntil } from "./lib/host.mjs";
 import { isolateSnapshot } from "./lib/snapshot-scratch.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -30,8 +30,7 @@ const cleanup = () => {
   }
 };
 process.on("exit", () => {
-  if (child?.pid) try { process.kill(-child.pid, "SIGKILL"); } catch {}
-  if (ownedPid) try { process.kill(ownedPid, "SIGKILL"); } catch {}
+  if (child?.pid) killGroupSync(child.pid);
 });
 for (const leftover of [site, pidFile, logFile]) removeOnExit(leftover);
 process.on("SIGINT", () => { cleanup(); process.exit(130); });
