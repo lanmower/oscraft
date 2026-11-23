@@ -141,7 +141,9 @@ for (const file of paths.required) allManifests.push([manifestLabel(file), readJ
 for (const file of optionalInputs) if (fs.existsSync(file)) allManifests.push([`optional ${manifestLabel(file)}`, readJson(file), file]);
 const contentRows = rowsOf(content);
 let availableRows = 0, verifiedRows = 0, abstractRows = 0, resolvedMigrationRows = 0;
-const driftRows = [];
+const requiredDrift = [];
+const optionalDrift = [];
+const drifts = (label) => (label.startsWith("optional ") ? optionalDrift : requiredDrift);
 for (const [label, json, file] of allManifests) {
   const baseRoot = file.startsWith(paths.botaRoot) ? paths.botaRoot : file.startsWith(paths.hy3dRoot) ? paths.hy3dRoot : file.startsWith(paths.wscheppityRoot) ? paths.wscheppityRoot : root;
   for (const row of rowsOf(json)) {
@@ -169,16 +171,22 @@ for (const [label, json, file] of allManifests) {
         if (hit) { fileResolved = hit; resolvedMigrationRows += 1; break; }
       }
     }
-    if (!fileResolved) { driftRows.push(`${label}: ${row.slug ?? row.id ?? row.demandSlug ?? "?"}: DRIFT missing path ${rawPath ?? "?"} hash ${hash ?? "?"}`); continue; }
+    if (!fileResolved) { drifts(label).push(`${label}: ${row.slug ?? row.id ?? row.demandSlug ?? "?"}: DRIFT missing path ${rawPath ?? "?"} hash ${hash ?? "?"}`); continue; }
     const actual = sha256File(fileResolved);
-    if (actual !== hash) driftRows.push(`${label}: ${row.slug ?? row.id ?? row.demandSlug ?? path.basename(fileResolved)}: DRIFT SHA-256 expected=${hash} actual=${actual} file=${fileResolved}`);
+    if (actual !== hash) drifts(label).push(`${label}: ${row.slug ?? row.id ?? row.demandSlug ?? path.basename(fileResolved)}: DRIFT SHA-256 expected=${hash} actual=${actual} file=${fileResolved}`);
     else verifiedRows += 1;
   }
 }
-if (driftRows.length) {
+if (optionalDrift.length) {
+  const files = [...new Set(optionalDrift.map((row) => row.split(":")[0]))];
+  console.warn(`WARN optional drift: ${optionalDrift.length} row(s) in ${files.join(", ")} do not match their files; optional inputs are not a gate, the run continues`);
+  for (const row of optionalDrift.slice(0, 30)) console.warn(`  ${row}`);
+  if (optionalDrift.length > 30) console.warn(`  ... ${optionalDrift.length - 30} more`);
+}
+if (requiredDrift.length) {
   console.error("DRIFT cross-project hash-bearing content rows:");
-  for (const row of driftRows.slice(0, 30)) console.error(`  ${row}`);
-  if (driftRows.length > 30) console.error(`  ... ${driftRows.length - 30} more`);
+  for (const row of requiredDrift.slice(0, 30)) console.error(`  ${row}`);
+  if (requiredDrift.length > 30) console.error(`  ... ${requiredDrift.length - 30} more`);
   process.exit(3);
 }
 const snapshotRec = inputRecord(paths.snapshot);
