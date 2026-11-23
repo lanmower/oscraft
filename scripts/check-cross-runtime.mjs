@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { contractPaths, comparableSha256 } from "./cross-contract-inputs.mjs";
 import { extractionEvidence } from "./runtime-peer-evidence.mjs";
-import { freePort, startGroup, waitUntil } from "./lib/host.mjs";
+import { freePort, removeOnExit, startGroup, waitUntil } from "./lib/host.mjs";
 import { isolateSnapshot } from "./lib/snapshot-scratch.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -56,6 +56,7 @@ const site = process.env.CROSS_RUNTIME_SITE ?? path.join(root, `.dev-site-cross-
 const command = path.join(root, "scripts", "dev", "serve-bota.sh");
 const env = { ...process.env, BOTA_PORT: String(port), BOTA_SITE: site, WASM: process.env.WASM ?? "0" };
 const group = startGroup({ command, args: [`--port=${port}`], env, cwd: root });
+if (!process.env.CROSS_RUNTIME_SITE) removeOnExit(site);
 async function fetchOk(url) {
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) throw new Error(`${url} HTTP ${response.status}`);
