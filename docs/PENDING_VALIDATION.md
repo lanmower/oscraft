@@ -2320,3 +2320,11 @@ Open, found in this pass, not fixed:
 - Green witness (/workspace/tmp/oscraft/portrait/apply.txt, after the fix): "bota pack generated: 190 files, 24 skinned fullname models, 24 portraits", "bota pack check ok: 190 generated files current", the identifier, backdrop and model-reference scans pass, and "APPLY_DONE 0". The skinned GLB models are unchanged in git; the owner's scenarios/bota/cross-contract-snapshot.json is not staged (sha 4e6156c7...).
 - Browser witness: the ticketed check-bota-browser run (/workspace/tmp/oscraft/portrait/browser.txt, BROWSER_DONE line) is recorded in Phase B.
 - Open: the committed runtime evidence still records the 2026-11-11 run, so it is refreshed after the browser check passes.
+
+## 2026-11-24 Phase B status: the portrait fix, the browser witness, the evidence refresh blocked (lanmower)
+
+- Browser witness (/workspace/tmp/oscraft/portrait/browser.txt, "BROWSER_DONE 0"): "browser":"real CDP page", "other404s":0, "criticalFailedRequests":0, "models":26, "heroes":24, "uSkinned":1, "glError":0. The 404 regression from the probe is gone.
+- Evidence refresh (/workspace/tmp/oscraft/portrait/evidence.txt, "EVIDENCE_DONE 1"): check-cross-runtime stopped at "snapshot is stale: refresh --check exited 3". Cause: scenarios/bota/cross-contract-snapshot.json, the owner's uncommitted file (sha 4e6156c7...), pins identifierDocSha256 to d2ae451c..., the sha of scenarios/bota/IDENTIFIERS.md at 1c13cf6e. The portrait commit regenerates that file, so its sha is now e15da1bf...
+- Diagnostic (scratch only, /workspace/tmp/oscraft/portrait/snap.json and refresh-scratch.txt): with identifierDocSha256 set to the current IDENTIFIERS.md sha, refresh-cross-contracts --check exits 0 with DRIFT/STALE=0, and every cross-contract PASS line prints. The optional hy3d content-demand rows stay WARN. The owner's file was not edited.
+- Owner decision needed: update the snapshot's identifierDocSha256 to the current IDENTIFIERS.md sha, or approve a refresh of that file. Until then the cross-runtime check fails, and scenarios/bota/runtime-evidence.json cannot be refreshed and committed.
+- Phase B: not pushed. The commit 3b122eab stays local, and this ledger commit is local too.
