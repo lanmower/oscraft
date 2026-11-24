@@ -2310,3 +2310,13 @@ Open, found in this pass, not fixed:
   - cross-runtime, green (group kill with wait): CLEAN 3 of 3.
 - So the cross-runtime check did not reproduce the race under either handler. Its leak was shown earlier by removing its removeOnExit line (LEAKED, leak3/out2.txt). The group kill with wait is the same code path, so cross is witnessed green here, but its red for this change is the removal-line red, not a group-handler red.
 - Leftover residue unchanged by these runs: 90 .dev-site-integrated-check-* and 118 .dev-site-cross-runtime-* entries.
+
+## 2026-11-24 Phase A: the BOTA portrait 404, fixed at the builder (lanmower)
+
+- Defect: the browser check failed with "new BOTA 404 regressions" on 24 hero icons (icons/heroes/<model>.png, e.g. neckbeard-skinned.png). Cause: js/client/play.js renderBootHeroes asks for icons/heroes/<model>.png for each boot hero, and the bota model is the fullname <slug>-skinned. The pack builder shipped portraits as icons/heroes/<slug>.jpg (portraitFor), so the requested key was never in the pack.
+- Change: scenarios/bota/tools/build-bota-pack.mjs. portraitFor now names the model key with a .png extension. Each portrait is converted from the gallery JPEG to a 128x128 RGBA PNG (PIL, the size and mode of the moba hero icons) in memory, so the asset byte count and the written file come from the same bytes. --apply removes the stale .jpg portraits and nothing else: the 167 tracked moba-origin -skinned.png icons are kept. The generated pack files (bota_roster.lua, bota_ui.json, character-mapping.tsv, assets.json, CHARACTERS.md, IDENTIFIERS.md) follow the new key.
+- Red check: scenarios/bota/tools/check-bota-pack.mjs asserts that icons/heroes/<model>.png exists for every hero in bota_ui.json.
+- Red witness (/workspace/tmp/oscraft/portrait/red.txt, exit 1, before the fix): "bota pack: the page loads icons/heroes/neckbeard-skinned.png for each hero and the pack does not ship it".
+- Green witness (/workspace/tmp/oscraft/portrait/apply.txt, after the fix): "bota pack generated: 190 files, 24 skinned fullname models, 24 portraits", "bota pack check ok: 190 generated files current", the identifier, backdrop and model-reference scans pass, and "APPLY_DONE 0". The skinned GLB models are unchanged in git; the owner's scenarios/bota/cross-contract-snapshot.json is not staged (sha 4e6156c7...).
+- Browser witness: the ticketed check-bota-browser run (/workspace/tmp/oscraft/portrait/browser.txt, BROWSER_DONE line) is recorded in Phase B.
+- Open: the committed runtime evidence still records the 2026-11-11 run, so it is refreshed after the browser check passes.

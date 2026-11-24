@@ -1,6 +1,6 @@
 {
   "count": 2933,
-  "total_bytes": 61571108,
+  "total_bytes": 59571627,
   "items": [
     {
       "id": "menu-backdrop",
@@ -30434,9 +30434,9 @@
     {
       "id": "neckbeard-portrait",
       "kind": "texture",
-      "path": "icons/heroes/neckbeard.jpg",
+      "path": "icons/heroes/neckbeard-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 113203,
+      "bytes": 24966,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30452,9 +30452,9 @@
     {
       "id": "wojak-portrait",
       "kind": "texture",
-      "path": "icons/heroes/wojak.jpg",
+      "path": "icons/heroes/wojak-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 70659,
+      "bytes": 10900,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30470,9 +30470,9 @@
     {
       "id": "bloomer-portrait",
       "kind": "texture",
-      "path": "icons/heroes/bloomer.jpg",
+      "path": "icons/heroes/bloomer-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 82437,
+      "bytes": 18108,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30488,9 +30488,9 @@
     {
       "id": "tradwife-portrait",
       "kind": "texture",
-      "path": "icons/heroes/tradwife.jpg",
+      "path": "icons/heroes/tradwife-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 124668,
+      "bytes": 16586,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30506,9 +30506,9 @@
     {
       "id": "boomer-portrait",
       "kind": "texture",
-      "path": "icons/heroes/boomer.jpg",
+      "path": "icons/heroes/boomer-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 116578,
+      "bytes": 17630,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30524,9 +30524,9 @@
     {
       "id": "coomer-portrait",
       "kind": "texture",
-      "path": "icons/heroes/coomer.jpg",
+      "path": "icons/heroes/coomer-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 74356,
+      "bytes": 19189,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30542,9 +30542,9 @@
     {
       "id": "gondola-portrait",
       "kind": "texture",
-      "path": "icons/heroes/gondola.jpg",
+      "path": "icons/heroes/gondola-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 54284,
+      "bytes": 12899,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30560,9 +30560,9 @@
     {
       "id": "spurdo-portrait",
       "kind": "texture",
-      "path": "icons/heroes/spurdo.jpg",
+      "path": "icons/heroes/spurdo-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 93888,
+      "bytes": 20462,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30578,9 +30578,9 @@
     {
       "id": "howard-portrait",
       "kind": "texture",
-      "path": "icons/heroes/howard.jpg",
+      "path": "icons/heroes/howard-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 97261,
+      "bytes": 19689,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30596,9 +30596,9 @@
     {
       "id": "sanic-portrait",
       "kind": "texture",
-      "path": "icons/heroes/sanic.jpg",
+      "path": "icons/heroes/sanic-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 100421,
+      "bytes": 19129,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30614,9 +30614,9 @@
     {
       "id": "lankdad-portrait",
       "kind": "texture",
-      "path": "icons/heroes/lankdad.jpg",
+      "path": "icons/heroes/lankdad-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 58588,
+      "bytes": 21469,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30632,9 +30632,9 @@
     {
       "id": "finger_dan-portrait",
       "kind": "texture",
-      "path": "icons/heroes/finger_dan.jpg",
+      "path": "icons/heroes/finger_dan-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 77747,
+      "bytes": 20311,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30650,9 +30650,9 @@
     {
       "id": "willie-portrait",
       "kind": "texture",
-      "path": "icons/heroes/willie.jpg",
+      "path": "icons/heroes/willie-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 165845,
+      "bytes": 16073,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30668,9 +30668,9 @@
     {
       "id": "noscope-portrait",
       "kind": "texture",
-      "path": "icons/heroes/noscope.jpg",
+      "path": "icons/heroes/noscope-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 177037,
+      "bytes": 30692,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30686,9 +30686,9 @@
     {
       "id": "dino-portrait",
       "kind": "texture",
-      "path": "icons/heroes/dino.jpg",
+      "path": "icons/heroes/dino-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 121645,
+      "bytes": 21365,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30704,9 +30704,9 @@
     {
       "id": "ecce-portrait",
       "kind": "texture",
-      "path": "icons/heroes/ecce.jpg",
+      "path": "icons/heroes/ecce-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 78018,
+      "bytes": 20087,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30722,9 +30722,9 @@
     {
       "id": "bot_bernard-portrait",
       "kind": "texture",
-      "path": "icons/heroes/bot_bernard.jpg",
+      "path": "icons/heroes/bot_bernard-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 119644,
+      "bytes": 20097,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30740,9 +30740,9 @@
     {
       "id": "shoop-portrait",
       "kind": "texture",
-      "path": "icons/heroes/shoop.jpg",
+      "path": "icons/heroes/shoop-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 74776,
+      "bytes": 20381,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30758,9 +30758,9 @@
     {
       "id": "npc-portrait",
       "kind": "texture",
-      "path": "icons/heroes/npc.jpg",
+      "path": "icons/heroes/npc-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 64038,
+      "bytes": 22077,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30776,9 +30776,9 @@
     {
       "id": "forever-portrait",
       "kind": "texture",
-      "path": "icons/heroes/forever.jpg",
+      "path": "icons/heroes/forever-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 105241,
+      "bytes": 25775,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30794,9 +30794,9 @@
     {
       "id": "cole-portrait",
       "kind": "texture",
-      "path": "icons/heroes/cole.jpg",
+      "path": "icons/heroes/cole-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 140664,
+      "bytes": 22097,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30812,9 +30812,9 @@
     {
       "id": "grey-portrait",
       "kind": "texture",
-      "path": "icons/heroes/grey.jpg",
+      "path": "icons/heroes/grey-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 130045,
+      "bytes": 26760,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30830,9 +30830,9 @@
     {
       "id": "ghillie-portrait",
       "kind": "texture",
-      "path": "icons/heroes/ghillie.jpg",
+      "path": "icons/heroes/ghillie-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 179755,
+      "bytes": 30107,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },
@@ -30848,9 +30848,9 @@
     {
       "id": "gothgirl-portrait",
       "kind": "texture",
-      "path": "icons/heroes/gothgirl.jpg",
+      "path": "icons/heroes/gothgirl-skinned.png",
       "placed_by": "bota_ui.json",
-      "bytes": 73894,
+      "bytes": 18362,
       "role": "portrait",
       "status": "temporary_gallery_placeholder"
     },

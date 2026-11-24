@@ -14,30 +14,30 @@ The `<ACRO>-skinned.glb` paths hold the 26 verified optimized static GLB meshes 
 
 | Slot | Acronym | Model | Portrait |
 | --- | --- | --- | --- |
-| 001 | neckbeard | nec | neckbeard-skinned | icons/heroes/neckbeard.jpg |
-| 004 | wojak | woj | wojak-skinned | icons/heroes/wojak.jpg |
-| 005 | bloomer | blo | bloomer-skinned | icons/heroes/bloomer.jpg |
-| 006 | tradwife | tra | tradwife-skinned | icons/heroes/tradwife.jpg |
-| 007 | boomer | boo | boomer-skinned | icons/heroes/boomer.jpg |
-| 008 | coomer | coo | coomer-skinned | icons/heroes/coomer.jpg |
-| 009 | gondola | gon | gondola-skinned | icons/heroes/gondola.jpg |
-| 010 | spurdo | spu | spurdo-skinned | icons/heroes/spurdo.jpg |
-| 012 | howard | how | howard-skinned | icons/heroes/howard.jpg |
-| 013 | sanic | san | sanic-skinned | icons/heroes/sanic.jpg |
-| 014 | lankdad | lan | lankdad-skinned | icons/heroes/lankdad.jpg |
-| 015 | finger_dan | fin | finger_dan-skinned | icons/heroes/finger_dan.jpg |
-| 016 | willie | wil | willie-skinned | icons/heroes/willie.jpg |
-| 017 | noscope | nos | noscope-skinned | icons/heroes/noscope.jpg |
-| 018 | dino | din | dino-skinned | icons/heroes/dino.jpg |
-| 019 | ecce | ecc | ecce-skinned | icons/heroes/ecce.jpg |
-| 020 | bot_bernard | bot | bot_bernard-skinned | icons/heroes/bot_bernard.jpg |
-| 021 | shoop | sho | shoop-skinned | icons/heroes/shoop.jpg |
-| 022 | npc | npc | npc-skinned | icons/heroes/npc.jpg |
-| 023 | forever | for | forever-skinned | icons/heroes/forever.jpg |
-| 024 | cole | col | cole-skinned | icons/heroes/cole.jpg |
-| 025 | grey | gre | grey-skinned | icons/heroes/grey.jpg |
-| 026 | ghillie | ghi | ghillie-skinned | icons/heroes/ghillie.jpg |
-| 027 | gothgirl | got | gothgirl-skinned | icons/heroes/gothgirl.jpg |
+| 001 | neckbeard | nec | neckbeard-skinned | icons/heroes/neckbeard-skinned.png |
+| 004 | wojak | woj | wojak-skinned | icons/heroes/wojak-skinned.png |
+| 005 | bloomer | blo | bloomer-skinned | icons/heroes/bloomer-skinned.png |
+| 006 | tradwife | tra | tradwife-skinned | icons/heroes/tradwife-skinned.png |
+| 007 | boomer | boo | boomer-skinned | icons/heroes/boomer-skinned.png |
+| 008 | coomer | coo | coomer-skinned | icons/heroes/coomer-skinned.png |
+| 009 | gondola | gon | gondola-skinned | icons/heroes/gondola-skinned.png |
+| 010 | spurdo | spu | spurdo-skinned | icons/heroes/spurdo-skinned.png |
+| 012 | howard | how | howard-skinned | icons/heroes/howard-skinned.png |
+| 013 | sanic | san | sanic-skinned | icons/heroes/sanic-skinned.png |
+| 014 | lankdad | lan | lankdad-skinned | icons/heroes/lankdad-skinned.png |
+| 015 | finger_dan | fin | finger_dan-skinned | icons/heroes/finger_dan-skinned.png |
+| 016 | willie | wil | willie-skinned | icons/heroes/willie-skinned.png |
+| 017 | noscope | nos | noscope-skinned | icons/heroes/noscope-skinned.png |
+| 018 | dino | din | dino-skinned | icons/heroes/dino-skinned.png |
+| 019 | ecce | ecc | ecce-skinned | icons/heroes/ecce-skinned.png |
+| 020 | bot_bernard | bot | bot_bernard-skinned | icons/heroes/bot_bernard-skinned.png |
+| 021 | shoop | sho | shoop-skinned | icons/heroes/shoop-skinned.png |
+| 022 | npc | npc | npc-skinned | icons/heroes/npc-skinned.png |
+| 023 | forever | for | forever-skinned | icons/heroes/forever-skinned.png |
+| 024 | cole | col | cole-skinned | icons/heroes/cole-skinned.png |
+| 025 | grey | gre | grey-skinned | icons/heroes/grey-skinned.png |
+| 026 | ghillie | ghi | ghillie-skinned | icons/heroes/ghillie-skinned.png |
+| 027 | gothgirl | got | gothgirl-skinned | icons/heroes/gothgirl-skinned.png |
 
 ## Original ID to acronym mapping
 

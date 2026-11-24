@@ -147,6 +147,7 @@ const backdropBytes = fs.existsSync(backdrop) ? fs.readFileSync(backdrop) : Buff
 const backdropSha = crypto.createHash("sha256").update(backdropBytes).digest("hex");
 if (backdropBytes.length !== 3654481 || backdropSha !== "431b1f861938c26edb7ce226e75d1c66a433c701d70a59463e064c402a077549") fail("menu backdrop JPEG bytes or SHA-256 do not match the supplied image");
 if (ui.menuBackdrop !== "textures.menu_backdrop") fail("bota_ui.json does not name the backdrop asset key");
+for (const hero of Object.values(ui.heroes)) if (!fs.existsSync(path.join(pack, "assets", "icons", "heroes", hero.model + ".png"))) fail("the page loads icons/heroes/" + hero.model + ".png for each hero and the pack does not ship it");
 const manifestJson = JSON.parse(read(pack, "manifest.json"));
 if (manifestJson.assets?.textures?.menu_backdrop !== "textures/menu-backdrop.jpg") fail("manifest.json does not expose the backdrop asset key");
 const sourceBackdrop = path.join(moba, "assets", "textures", "menu-backdrop.jpg");

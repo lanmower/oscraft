@@ -2139,7 +2139,7 @@
       "label": "Neckbeard",
       "slot": "001",
       "model": "neckbeard-skinned",
-      "portrait": "icons/heroes/neckbeard.jpg",
+      "portrait": "icons/heroes/neckbeard-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "nec"
     },
@@ -2147,7 +2147,7 @@
       "label": "Wojak",
       "slot": "004",
       "model": "wojak-skinned",
-      "portrait": "icons/heroes/wojak.jpg",
+      "portrait": "icons/heroes/wojak-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "woj"
     },
@@ -2155,7 +2155,7 @@
       "label": "Bloomer",
       "slot": "005",
       "model": "bloomer-skinned",
-      "portrait": "icons/heroes/bloomer.jpg",
+      "portrait": "icons/heroes/bloomer-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "blo"
     },
@@ -2163,7 +2163,7 @@
       "label": "Tradwife",
       "slot": "006",
       "model": "tradwife-skinned",
-      "portrait": "icons/heroes/tradwife.jpg",
+      "portrait": "icons/heroes/tradwife-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "tra"
     },
@@ -2171,7 +2171,7 @@
       "label": "Boomer",
       "slot": "007",
       "model": "boomer-skinned",
-      "portrait": "icons/heroes/boomer.jpg",
+      "portrait": "icons/heroes/boomer-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "boo"
     },
@@ -2179,7 +2179,7 @@
       "label": "Coomer",
       "slot": "008",
       "model": "coomer-skinned",
-      "portrait": "icons/heroes/coomer.jpg",
+      "portrait": "icons/heroes/coomer-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "coo"
     },
@@ -2187,7 +2187,7 @@
       "label": "Gondola",
       "slot": "009",
       "model": "gondola-skinned",
-      "portrait": "icons/heroes/gondola.jpg",
+      "portrait": "icons/heroes/gondola-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "gon"
     },
@@ -2195,7 +2195,7 @@
       "label": "Spurdo",
       "slot": "010",
       "model": "spurdo-skinned",
-      "portrait": "icons/heroes/spurdo.jpg",
+      "portrait": "icons/heroes/spurdo-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "spu"
     },
@@ -2203,7 +2203,7 @@
       "label": "Howard",
       "slot": "012",
       "model": "howard-skinned",
-      "portrait": "icons/heroes/howard.jpg",
+      "portrait": "icons/heroes/howard-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "how"
     },
@@ -2211,7 +2211,7 @@
       "label": "Sanic",
       "slot": "013",
       "model": "sanic-skinned",
-      "portrait": "icons/heroes/sanic.jpg",
+      "portrait": "icons/heroes/sanic-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "san"
     },
@@ -2219,7 +2219,7 @@
       "label": "Lankdad",
       "slot": "014",
       "model": "lankdad-skinned",
-      "portrait": "icons/heroes/lankdad.jpg",
+      "portrait": "icons/heroes/lankdad-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "lan"
     },
@@ -2227,7 +2227,7 @@
       "label": "Finger Dan",
       "slot": "015",
       "model": "finger_dan-skinned",
-      "portrait": "icons/heroes/finger_dan.jpg",
+      "portrait": "icons/heroes/finger_dan-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "fin"
     },
@@ -2235,7 +2235,7 @@
       "label": "Willie",
       "slot": "016",
       "model": "willie-skinned",
-      "portrait": "icons/heroes/willie.jpg",
+      "portrait": "icons/heroes/willie-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "wil"
     },
@@ -2243,7 +2243,7 @@
       "label": "Noscope",
       "slot": "017",
       "model": "noscope-skinned",
-      "portrait": "icons/heroes/noscope.jpg",
+      "portrait": "icons/heroes/noscope-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "nos"
     },
@@ -2251,7 +2251,7 @@
       "label": "Dino",
       "slot": "018",
       "model": "dino-skinned",
-      "portrait": "icons/heroes/dino.jpg",
+      "portrait": "icons/heroes/dino-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "din"
     },
@@ -2259,7 +2259,7 @@
       "label": "Ecce",
       "slot": "019",
       "model": "ecce-skinned",
-      "portrait": "icons/heroes/ecce.jpg",
+      "portrait": "icons/heroes/ecce-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "ecc"
     },
@@ -2267,7 +2267,7 @@
       "label": "Bot Bernard",
       "slot": "020",
       "model": "bot_bernard-skinned",
-      "portrait": "icons/heroes/bot_bernard.jpg",
+      "portrait": "icons/heroes/bot_bernard-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "bot"
     },
@@ -2275,7 +2275,7 @@
       "label": "Shoop",
       "slot": "021",
       "model": "shoop-skinned",
-      "portrait": "icons/heroes/shoop.jpg",
+      "portrait": "icons/heroes/shoop-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "sho"
     },
@@ -2283,7 +2283,7 @@
       "label": "Npc",
       "slot": "022",
       "model": "npc-skinned",
-      "portrait": "icons/heroes/npc.jpg",
+      "portrait": "icons/heroes/npc-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "npc"
     },
@@ -2291,7 +2291,7 @@
       "label": "Forever",
       "slot": "023",
       "model": "forever-skinned",
-      "portrait": "icons/heroes/forever.jpg",
+      "portrait": "icons/heroes/forever-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "for"
     },
@@ -2299,7 +2299,7 @@
       "label": "Cole",
       "slot": "024",
       "model": "cole-skinned",
-      "portrait": "icons/heroes/cole.jpg",
+      "portrait": "icons/heroes/cole-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "col"
     },
@@ -2307,7 +2307,7 @@
       "label": "Grey",
       "slot": "025",
       "model": "grey-skinned",
-      "portrait": "icons/heroes/grey.jpg",
+      "portrait": "icons/heroes/grey-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "gre"
     },
@@ -2315,7 +2315,7 @@
       "label": "Ghillie",
       "slot": "026",
       "model": "ghillie-skinned",
-      "portrait": "icons/heroes/ghillie.jpg",
+      "portrait": "icons/heroes/ghillie-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "ghi"
     },
@@ -2323,7 +2323,7 @@
       "label": "Gothgirl",
       "slot": "027",
       "model": "gothgirl-skinned",
-      "portrait": "icons/heroes/gothgirl.jpg",
+      "portrait": "icons/heroes/gothgirl-skinned.png",
       "placeholder": "gallery_jpg",
       "legacy_acronym": "got"
     }

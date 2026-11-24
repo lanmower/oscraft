@@ -61,7 +61,9 @@ const readyBySlug = new Map(ready.characters.map((row) => [row.slug, row]));
 const uncovered = active.filter((a) => !readyBySlug.has(a.slug));
 if (uncovered.length > 0) throw new Error(`bota-ready.json has no row for ${uncovered.map((a) => a.slug).join(", ")}`);
 const modelFor = (a) => `${a.slug}-skinned`;
-const portraitFor = (a) => `icons/heroes/${a.slug}.jpg`;
+const portraitFor = (a) => `icons/heroes/${modelFor(a)}.png`;
+const PORTRAIT_CONVERTER = 'from PIL import Image; import sys; Image.open(sys.argv[1]).convert("RGBA").resize((128, 128), Image.LANCZOS).save(sys.stdout.buffer, format="PNG")';
+const portraitPng = (a) => execFileSync("python3", ["-I", "-c", PORTRAIT_CONVERTER, path.join(botaRoot, "gallery", `${a.slot}-${a.fileSlug}.jpg`)], { maxBuffer: 16 * 1024 * 1024 });
 const modelPathFor = (a) => `assets/models/${modelFor(a)}.glb`;
 const sourceModelFor = (a) => path.join(hy3dRoot, readyBySlug.get(a.slug).model);
 const destModelFor = (a) => path.join(pack, modelPathFor(a));
@@ -205,7 +207,7 @@ assets.items = assets.items.filter((item) => !(item.role === "character" && /-sk
 for (const a of active) {
   const row = readyBySlug.get(a.slug);
   assets.items.push({ id: modelFor(a), kind: "model", path: `models/${modelFor(a)}.glb`, placed_by: "props.json", bytes: row.bytes, role: "character", status: "optimized_static_mesh" });
-  assets.items.push({ id: `${a.slug}-portrait`, kind: "texture", path: portraitFor(a), placed_by: "bota_ui.json", bytes: fs.statSync(path.join(botaRoot, "gallery", `${a.slot}-${a.fileSlug}.jpg`)).size, role: "portrait", status: "temporary_gallery_placeholder" });
+  assets.items.push({ id: `${a.slug}-portrait`, kind: "texture", path: portraitFor(a), placed_by: "bota_ui.json", bytes: portraitPng(a).length, role: "portrait", status: "temporary_gallery_placeholder" });
 }
 const backdrop = path.join(pack, "assets", "textures", "menu-backdrop.jpg");
 assets.items.push({ id: "menu-backdrop", kind: "texture", path: "textures/menu-backdrop.jpg", placed_by: "bota_ui.json", bytes: fs.statSync(backdrop).size, role: "menu_backdrop", status: "pack_asset" });
@@ -254,19 +256,17 @@ if (check) {
     const srcModel = sourceModelFor(a);
     const sourceCopy = path.join(skinnedDir, `${modelFor(a)}.glb`);
     fs.copyFileSync(srcModel, sourceCopy);
-    const srcPortrait = path.join(botaRoot, "gallery", `${a.slot}-${a.fileSlug}.jpg`);
     const destPortrait = path.join(pack, "assets", portraitFor(a));
     fs.mkdirSync(path.dirname(destPortrait), { recursive: true });
-    fs.copyFileSync(srcPortrait, destPortrait);
+    fs.writeFileSync(destPortrait, portraitPng(a));
   }
   const canonicalModels = new Set([...active.map((a) => `${a.slug}-skinned.glb`), ...supportModels]);
   for (const p of fs.readdirSync(path.join(pack, "assets", "models"))) {
     const staleCharacter = p !== "roshan-skinned.glb" && /-skinned\.glb$/.test(p) && !canonicalModels.has(p) && (/^bota-/.test(p) || /^[A-Za-z]{1,8}-skinned\.glb$/.test(p));
     if (staleCharacter) fs.unlinkSync(path.join(pack, "assets", "models", p));
   }
-  const canonicalPortraits = new Set(active.map((a) => `${a.slug}.jpg`));
   for (const p of fs.readdirSync(path.join(pack, "assets", "icons", "heroes"))) {
-    if (/^(bota-.*|[A-Z]{1,3})\.jpg$/.test(p) && !canonicalPortraits.has(p)) fs.unlinkSync(path.join(pack, "assets", "icons", "heroes", p));
+    if (/\.jpg$/.test(p)) fs.unlinkSync(path.join(pack, "assets", "icons", "heroes", p));
   }
   execFileSync(process.execPath, [path.join(pack, "tools", "skin-bota-models.mjs")], { cwd: root, stdio: "inherit", env: { ...process.env, BOTA_STATIC_SOURCE_DIR: skinnedDir } });
   fs.rmSync(skinnedDir, { recursive: true, force: true });
