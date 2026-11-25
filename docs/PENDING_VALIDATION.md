@@ -2351,3 +2351,14 @@ Open, found in this pass, not fixed:
 - Red that fails on leaking code: mode unremoved (LEAKED site). Green that passes on fixed code: mode current (CLEAN).
 - Limits: the witness exercises startGroup, removeOnExit and serve-bota.sh directly. It does not run scripts/check-cross-runtime.mjs, because that check stops at its snapshot gate while the owner's uncommitted snapshot is stale (isolateSnapshot copies the owner's file). The integrated mode cannot run for the same reason: its cold start runs autoheal and validate-runtime-evidence-status, and it returned NOT_SERVING. Both stay owner-held with the snapshot block.
 - The owner's snapshot was not edited, and the push stays held.
+
+## 2026-11-25 Phase A: the group-handler leak on the path that fails (lanmower)
+
+- Failing path: the integrated check (scripts/check-integrated-cold-start.mjs) stops while the wrapper is in its stage step, before the wrapper writes its pid file. A leader-only exit sends TERM to the wrapper leader alone. Before its trap is installed the leader dies by default, the stage keeps running, and the stage writes the site after the owner removed it.
+- Reproduction: scripts/witness/cross-runtime-group-leak.mjs. Mode check-stage-leader runs the check with its exit line changed back to a leader-only TERM (a copy in scripts/, removed after the window). Mode check-stage runs the current check. Trigger: the site directory exists and the pid file does not.
+- Pre-fix results (/workspace/tmp/oscraft/groupred/stage.txt): check-stage-leader LEAKED file(.dev-site-integrated-check-<pid>) 2 of 2; check-stage CLEAN 1 of 1. Bota owner leader (serve-bota.sh) CLEAN 1 of 1 in this window; in earlier windows it leaked the site 2 of 2 (pre.txt). The bota result is not stable and is reported as mixed.
+- Served-state trigger (check.txt, after the server answers): check CLEAN 2 of 2, check-leader CLEAN 2 of 2. The check's cleanup signals the server by pid once the pid file exists, so the served state does not reproduce the leak.
+- Tested and rejected: the wrapper trap moved before stage, with a group kill on INT and TERM (serve-bota.sh and serve-integrated.sh). Post-fix (stage.txt): check-stage-leader still LEAKED 2 of 2, bota leader LEAKED site 1 of 1, check-stage CLEAN 1 of 1. No effect on the failing path, so the change was reverted.
+- Fix that holds: the owner waits for its whole process group to exit before it removes the site (killGroupSync in scripts/check-integrated-cold-start.mjs, with the group kill in scripts/lib/host.mjs). Witness: check-stage CLEAN before and after.
+- scripts/lib/snapshot-scratch.mjs now honours an explicit CROSS_CONTRACT_SNAPSHOT. The reproduction and nested checks can pin a scratch snapshot this way, and the owner's file is neither read for writing nor changed. Its sha is still 4e6156c7.
+- Open: the owner-held snapshot pin still blocks the push and the evidence refresh.
