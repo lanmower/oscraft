@@ -2362,3 +2362,12 @@ Open, found in this pass, not fixed:
 - Fix that holds: the owner waits for its whole process group to exit before it removes the site (killGroupSync in scripts/check-integrated-cold-start.mjs, with the group kill in scripts/lib/host.mjs). Witness: check-stage CLEAN before and after.
 - scripts/lib/snapshot-scratch.mjs now honours an explicit CROSS_CONTRACT_SNAPSHOT. The reproduction and nested checks can pin a scratch snapshot this way, and the owner's file is neither read for writing nor changed. Its sha is still 4e6156c7.
 - Open: the owner-held snapshot pin still blocks the push and the evidence refresh.
+
+## 2026-11-25 Phase B window with the scratch snapshot pin (lanmower)
+
+- The window ran with CROSS_CONTRACT_SNAPSHOT pointing at a scratch copy of the owner's snapshot with identifierDocSha256 set to the current IDENTIFIERS.md sha. The owner's file was not edited. The scratch copy is /workspace/tmp/oscraft/groupred/snap.json. Output: /workspace/tmp/oscraft/phb/.
+- check-all: 94 of 95 gates ok, 1 failed (sleep-check: the group-leak witness defined its own sleep). Fixed by importing scripts/lib/sleep.mjs; sleep-check ok (201 ms, 97 scripts). A full check-all re-run belongs to the Phase B window at push time.
+- cross-runtime: PASS with the scratch pin (cross.txt, "cross-runtime PASS: snapshot not stale ... hash-bearing rows=809"). Exit 0.
+- validate-runtime-evidence: exit 0 (validate.txt).
+- validate-runtime-evidence-status: exit 1. The committed status records the 2026-11-11 snapshot hash (652f8bbf...), and the live hash here is the scratch hash (c4ed408f...). That mismatch is the owner-held refresh; the committed evidence was left untouched.
+- Evidence files restored by the window (git checkout). The owner's snapshot is still sha 4e6156c7.

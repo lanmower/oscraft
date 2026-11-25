@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { freePort, killGroupSync, removeOnExit, startGroup } from "../lib/host.mjs";
+import { sleep } from "../lib/sleep.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const self = fileURLToPath(import.meta.url);
@@ -60,7 +61,6 @@ async function serving(port) {
   try { return (await fetch(`http://127.0.0.1:${port}/js/client/play.html`)).ok; } catch { return false; }
 }
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function report(mode, leaks) {
   const verdict = leaks.length ? `LEAKED ${leaks.join(" ")}` : "CLEAN";
