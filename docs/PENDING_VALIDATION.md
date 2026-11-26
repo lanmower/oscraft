@@ -2404,3 +2404,9 @@ Open, found in this pass, not fixed:
 - Change: scripts/mod-host/splice-anchors.json names the BEGIN and END markers, the two generators that must write them, the three generated packs (moba, moba-acronyms, bota) and the unmanaged pack (duel-routes). scripts/check-attr-rules-anchors.mjs fails on a missing, duplicated or misplaced anchor in each generated pack, a stray anchor in the unmanaged pack, a generator that stops writing an anchor, and an attr_rules.txt that is not listed in the config. The generator appends a second block when END is missing, so this is the check that stops a corrupt pack.
 - Witness: node scripts/check-attr-rules-anchors.mjs prints 'attr_rules anchors ok: 3 generated packs with one BEGIN and one END each, 1 unmanaged pack with none, 2 generators write the anchors'.
 - Red: node scripts/witness/attr-rules-anchor-red.mjs prints 'attr_rules anchor red tests ok (6 cases)'. Cases: missing END (moba: 0 END anchors), duplicate BEGIN (moba: 2 BEGIN anchors), END before BEGIN (moba-acronyms), stray anchor in duel-routes, and a generator that stops writing END (named).
+
+## 2026-11-26 S4 item 4: the link contract and check-all (lanmower)
+
+- Change: docs/BEVY_MOD_HOST.md states the port, the schedule the Bevy server and clients run it on (16 Hz sim, host-authoritative orders, client sim copy with the per-tick hash), what is not on the port yet (feed_death, emit_unit: S2 adds them with the call), and the Phase B witness. scripts/check-all.mjs registers the four S4 checks.
+- Phase A only: no build ran. The compile and cargo test of the mod-host crate, and the live link into the Bevy server, are Phase B items (S2 is the bevy peer's stage).
+- Push: held by the owner's snapshot decision. The owner-held items are unchanged.
