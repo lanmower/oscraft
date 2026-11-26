@@ -2451,3 +2451,9 @@ Open, found in this pass, not fixed:
 - Fix: osdt-data is optional behind the replay feature `build`, and the bin requires it (required-features). The dev-dependency stays for the tests. duel::record and duel::verify take the image bytes, so the library needs no compiler. The test compiles the pack itself.
 - Witness (Phase B, window on this commit): cargo tree -p web -e normal shows no starlark or osdt-data (the one line it still shows is anyhow, which is not from this crate); the bin builds with --features build and regenerates the committed files unchanged; cargo test -p replay passes; cargo check -p web passes; the wasm32 check runs if the target is installed.
 - Push: the fix is pushed only after that window is green.
+
+## 2026-11-26 Phase B: the replay fix window on 33c121a7 is green (lanmower)
+
+- Window: label oscraft-duel, GATE_TREE 33c121a7 (granted). /workspace/tmp/oscraft/modhost/fix-window.txt: WEB_HEAVY_DEPS 0 (cargo tree -p web -e normal shows no starlark or osdt-data), BUILD_RC 0 (cargo build -p replay --bin duel_routes_replay --features build), GEN_RC 0 (ticks=1280 state_hash=c28b3d9f8405f808), TEST_RC 0 (cargo test -p replay), WEB_CHECK_RC 0 (cargo check -p web), WEB_WASM_RC 0 (cargo check -p web --target wasm32-unknown-unknown), DUEL_DONE.
+- The regenerated scenarios/duel-routes/replays files equal the committed ones (git status shows no change there).
+- This clears the browser-build regression that 4f676646 and c29fcd81 introduced; the fix commit is pushed after this entry.
