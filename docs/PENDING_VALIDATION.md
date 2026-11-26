@@ -2418,3 +2418,9 @@ Open, found in this pass, not fixed:
 - Fix: helper parameters are `&mut dyn ModRuntime` and `&dyn ModRuntime`, and tuple returns are `(impl ModRuntime, ...)`. ModHost stays imported for ModHost::new in every file. Seventeen files changed, and no ModHost remains outside the import and ModHost::new.
 - Red check: none new; the compile failure was the check. The next window reruns the crate build and tests on the fix commit.
 - Next: window oscraft-modhost on the fix commit (queued after this entry).
+
+## 2026-11-26 Window oscraft-modhost: a stray probe and the rerun (lanmower)
+
+- A probe meant to test the gate's cache ran `gate-ticket.cjs run oscraft-modhost -- true` with GATE_TREE=cae61fa0. The gate granted it and recorded code 0 for that label on that tree, so a later window with the same label and tree prints CACHED. That row is not a witness; it ran `true`.
+- The real rerun is queued on cae61fa0 with GATE_FORCE=1 (the witness changed: the first window on b3e4a28e was never run). It runs `cargo build -p mod-host --tests` and `cargo test -p mod-host` (script /workspace/tmp/oscraft/modhost/run2.sh). Result: /workspace/tmp/oscraft/modhost/window2.txt, with build2.txt, test2.txt and summary2.txt.
+- Lesson for the rules: check the cache with `gate-ticket.cjs history` or the history file, never by running a stand-in command under the real label.
