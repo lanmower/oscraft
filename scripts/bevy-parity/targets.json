@@ -1,0 +1,70 @@
+{
+  "stages": {
+    "S1": "Sim inside Bevy FixedUpdate",
+    "S2": "Headless server and two clients",
+    "S3": "Bevy client renderer and HUD",
+    "S4": "Lua mods on the Bevy host",
+    "S5": "RTS real-time optimization",
+    "S6": "Cutover"
+  },
+  "categories": {
+    "MAP": {"target": "Sim map, terrain and fog in Bevy FixedUpdate (rust/crates/sim)", "stage": "S1"},
+    "UNIT": {"target": "Sim unit catalog, transport and air rules (rust/crates/sim)", "stage": "S1"},
+    "ABIL": {"target": "Sim ability casting, effects and refusals (rust/crates/sim)", "stage": "S1"},
+    "BEH": {"target": "Sim behaviours, buffs and upgrades (rust/crates/sim)", "stage": "S1"},
+    "ORD": {"target": "Sim orders, movement and flow fields (rust/crates/sim)", "stage": "S1"},
+    "PROD": {"target": "Sim production, economy and capacity (rust/crates/sim)", "stage": "S1"},
+    "CMB": {"target": "Sim combat, projectiles and healing (rust/crates/sim)", "stage": "S1"},
+    "SHLD": {"target": "Sim shields, armour and regeneration (rust/crates/sim)", "stage": "S1"},
+    "PLR": {"target": "Sim players and alliances (rust/crates/sim)", "stage": "S1"},
+    "EVT": {"target": "Sim regions, trigger zones and event queue (rust/crates/sim)", "stage": "S1"},
+    "TIME": {"target": "Sim tick clock, cooldowns and timers in Bevy FixedUpdate", "stage": "S1"},
+    "LUA": {"target": "piccolo mod host linked into the Bevy server and client (oscraft mod-host)", "stage": "S4"},
+    "DET": {"target": "Sim fixed-point math and FNV-1a state hash, compared with native hashes", "stage": "S1"},
+    "GROUND": {"target": "Sim ground items and item owners (rust/crates/sim)", "stage": "S1"},
+    "ITEM": {"target": "Sim item effects and charges (rust/crates/sim)", "stage": "S1"},
+    "ITEMUSE": {"target": "Sim item use orders validated by the host (rust/crates/sim)", "stage": "S1"},
+    "TREE": {"target": "Sim destructible trees and temporary blockers (rust/crates/sim)", "stage": "S1"},
+    "GROUP": {"target": "Sim spawn groups and facing (rust/crates/sim)", "stage": "S1"},
+    "FACE": {"target": "Sim unit heading and turn rate (rust/crates/sim)", "stage": "S1"},
+    "HOLD": {"target": "Sim hold-fire flag (rust/crates/sim)", "stage": "S1"},
+    "QUERY": {"target": "Pack queries exposed through the mod host", "stage": "S4"},
+    "PERS": {"target": "Sim map data image and save and load (rust/crates/sim, rust/crates/data)", "stage": "S1"},
+    "PRES": {"target": "Bevy 3D client camera, HUD and UI (the headless server has no presentation)", "stage": "S3"}
+  },
+  "overrides": {
+    "CAP-MAP-10": {"target": "Terrain editor tool: no Bevy stage in the spec", "stage": "owner-gap"},
+    "CAP-ABIL-6": {"target": "Ability editor tool: no Bevy stage in the spec", "stage": "owner-gap"},
+    "CAP-EVT-4": {"target": "Trigger and event editor tool: no Bevy stage in the spec", "stage": "owner-gap"},
+    "CAP-PRES-2": {"target": "Sound playback in the Bevy client: no stage in the spec", "stage": "owner-gap"},
+    "CAP-PRES-4": {"target": "Chat messages: no Bevy stage in the spec", "stage": "owner-gap"},
+    "CAP-EVT-3": {"target": "Event delivery to scripts through the mod host", "stage": "S4"},
+    "CAP-TIME-3": {"target": "Named delayed actions scheduled by mods through the mod host (timers stay in the sim)", "stage": "S4"},
+    "CAP-PERS-5": {"target": "Versioned mod packages checked by the mod host before loading", "stage": "S4"},
+    "CAP-DET-4": {"target": "Sim records every accepted order with its tick in the replay writer", "stage": "S1"},
+    "CAP-DET-5": {"target": "Sim replay playback at speed, paused or seeked; controls in the Bevy client", "stage": "S1"},
+    "CAP-DET-6": {"target": "Per-tick state-hash comparison over Lightyear replaces lockstep input exchange (D4)", "stage": "S2"},
+    "CAP-PRES-1": {"target": "Bevy 3D camera control in the client", "stage": "S3"},
+    "CAP-PRES-3": {"target": "Bevy UI panels and dialogs in the client", "stage": "S3"},
+    "CAP-PRES-5": {"target": "Camera distance and rotation lock in the Bevy client", "stage": "S3"}
+  },
+  "games": [
+    {"scenario": "duel-routes", "target": "Headless Bevy sim replays duel-routes to the native hashes (S1 witness)", "stage": "S1"},
+    {"scenario": "moba", "target": "5v5 MOBA plays end to end on the Bevy server and client", "stage": "S6"},
+    {"scenario": "bota", "target": "bota plays end to end on the Bevy server and client", "stage": "S6"}
+  ],
+  "decisions": [
+    {"id": "D1", "decision": "Oscraft's Rust sim crate runs inside Bevy FixedUpdate as the one authority; Avian physics is not used for RTS units and stays for the planet and character scenes.", "reason": "The sim already owns fixed-point math and the state hash (CAP-DET-1, CAP-DET-2); physics would add a second source of truth for unit positions and break the hash."},
+    {"id": "D2", "decision": "RTS mode ticks at 16 Hz (oscraft SIM_TICKS_PER_SECOND); Bevy's 64 Hz stays for scenes that are not RTS.", "reason": "16 Hz is the rate oscraft's orders, deltas and hashes are tuned to; 64 Hz would quadruple per-client bytes. The 60 and 64 Hz discrepancy between AGENTS.md and src/protocol.rs is settled by this choice and resolved in S2."},
+    {"id": "D3", "decision": "A headless Bevy server is the authority and replaces the browser host and its WebRTC data channels.", "reason": "Host-authoritative orders need one place that decides which units obey (docs/HOST.md); a browser tab that hosts ends the match when it closes."},
+    {"id": "D4", "decision": "Desync detection by per-tick state-hash comparison replaces lockstep input exchange (CAP-DET-6).", "reason": "Lockstep stalls every client on the slowest peer and cannot admit spectators or late joiners (docs/HOST.md, MAX_PLAYERS 10 with spectators); CAP-DET-6 has no gate today, and the hash comparison keeps the desync check that the lockstep claim was for."},
+    {"id": "D5", "decision": "Native clients use Lightyear over UDP; browser clients use WebTransport with WebSocket as the fallback.", "reason": "Lightyear is already the Bevy networking layer (Cargo.toml:14); WebTransport is the browser path nearest to UDP, and WebSocket covers browsers without it."},
+    {"id": "D6", "decision": "Nostr stays optional room discovery (kind 30078, announced every 15 s, expired at 45 s); game data does not travel over it.", "reason": "Discovery needs a public directory; relays are a poor data path for 16 Hz state and would expose match traffic to them."},
+    {"id": "D7", "decision": "Bevy 3D renders the client and HUD, and the browser build enables webgl2 next to webgpu.", "reason": "oscraft's browser path is WebGL2 today; a WebGPU-only build would drop browsers that do not have WebGPU."},
+    {"id": "D8", "decision": "The piccolo mod host is linked into the Bevy server and client with every script API unchanged.", "reason": "Every game function is kept (owner rule 2026-11-25), and piccolo is pure Rust, so it runs natively and in wasm without a second VM."},
+    {"id": "D9", "decision": "oscraft-replay 3 files stay readable and must replay to the same hashes in Bevy.", "reason": "The recorded replays are the regression oracle that the cutover in S6 is judged against."},
+    {"id": "D10", "decision": "Fog-filtered sends, delta snapshots and command batching are S5 transport work; the sim does not change to support them.", "reason": "A sim change would move the hash baseline that S1 and S2 are measured against."},
+    {"id": "D11", "decision": "The editor rows (CAP-MAP-10, CAP-ABIL-6, CAP-EVT-4) and the sound and chat rows (CAP-PRES-2, CAP-PRES-4) are owner-decided gaps, not planned stages.", "reason": "The spec names no stage for editors, audio or chat; giving them a stage would be a scope decision the owner has not made."},
+    {"id": "D12", "decision": "The second CAP-LUA-1 row (deterministic random numbers and string helpers) is renamed CAP-LUA-8.", "reason": "The parity ledger needs unique ids; the first CAP-LUA-1 is the row GAMEPLAY_PARITY cites (GP-MOD-6)."}
+  ]
+}

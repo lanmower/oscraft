@@ -2377,3 +2377,12 @@ Open, found in this pass, not fixed:
 - Change: docs/CAPABILITIES.md line 182, the second CAP-LUA-1 (deterministic random numbers and string helpers), is renamed CAP-LUA-8. The first CAP-LUA-1 (load a mod file) stays, because docs/GAMEPLAY_PARITY.md GP-MOD-6 cites it.
 - Witness: the count of rows starting with '| CAP-' is 117, and the number of duplicated ids is 0 (both shown by grep in the commit session).
 - Red: the duplicate-id case in scripts/witness/bevy-parity-red.mjs (item 2) fails on a duplicate, so this rename is what makes the ledger pass.
+
+## 2026-11-26 S0 item 2: the Bevy parity ledger (lanmower)
+
+- Change: scripts/bevy-parity/targets.json holds the stages, the category and override targets, the three games (duel-routes, moba, bota) and decisions D1 to D12 with reasons. scripts/lib/bevy-parity.mjs parses the ledger, plans each row, renders the doc, and checks that each game directory exists. scripts/check-bevy-parity.mjs is the check, and --write regenerates docs/OSCRAFT_ON_BEVY_PARITY.md. The doc lists every row of docs/CAPABILITIES.md with its oscraft status, Bevy target, stage and Bevy status, plus the games and the decisions with their reasons.
+- Witness: node scripts/check-bevy-parity.mjs prints 'bevy parity ok: 117 capability rows each with a Bevy target, 5 owner-held gaps, 3 games' and exits 0.
+- Red: scripts/witness/bevy-parity-red.mjs runs seven cases, and each must fail: a removed row (fails, names CAP-MAP-1), a row with no target (names CAP-NEW-1), a duplicate id (names CAP-MAP-1), an unknown stage (names CAP-MAP-1 and S9), a game with no scenario directory (names no-such-game), and a doc row emptied (drift, names CAP-MAP-1). Output: 'bevy parity red tests ok (7 cases)'. The first draft of the checker named no id in the removed-row case, because the stage counts at the top of the doc shifted first. The checker now compares row ids first, and the red case passes because of that change.
+- Owner-held gaps (D11): CAP-MAP-10, CAP-ABIL-6, CAP-EVT-4 (editors), CAP-PRES-2 (sound), CAP-PRES-4 (chat). The doc marks them owner-held.
+- Registered in scripts/check-all.mjs GATE_CHECKS: scripts/check-bevy-parity.mjs and scripts/witness/bevy-parity-red.mjs.
+- Phase A only: no build ran. The full check-all run belongs to the Phase B window.

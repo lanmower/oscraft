@@ -16,6 +16,8 @@ const GATE_CHECKS = [
   "scripts/check-ability-effect-mapping.mjs",
   "scripts/check-doc-claims.mjs",
   "scripts/check-design-record.mjs",
+  "scripts/check-bevy-parity.mjs",
+  "scripts/witness/bevy-parity-red.mjs",
   "js/client/lobby-link-check.mjs",
   "js/client/room-match-check.mjs",
   "scripts/witness/matchmaking-race-check.mjs",
