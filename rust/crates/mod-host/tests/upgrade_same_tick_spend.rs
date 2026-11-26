@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use mod_host::{build_image, ModHost};
+use mod_host::{build_image, ModHost, ModRuntime};
 use serde_json::json;
 use sim::fixed::{self, HALF};
 
@@ -8,7 +8,7 @@ const UPGRADES: &str = include_str!("../../../../mods/upgrades.lua");
 const FORGED_ARMOR_COST: i32 = 100;
 const WAR_BANNER_COST: i32 = 150;
 
-fn host() -> ModHost {
+fn host() -> impl ModRuntime {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba");
     let image = build_image(&dir).expect("build the moba image");
     let mut host = ModHost::new(&image).expect("load the moba image");

@@ -2386,3 +2386,9 @@ Open, found in this pass, not fixed:
 - Owner-held gaps (D11): CAP-MAP-10, CAP-ABIL-6, CAP-EVT-4 (editors), CAP-PRES-2 (sound), CAP-PRES-4 (chat). The doc marks them owner-held.
 - Registered in scripts/check-all.mjs GATE_CHECKS: scripts/check-bevy-parity.mjs and scripts/witness/bevy-parity-red.mjs.
 - Phase A only: no build ran. The full check-all run belongs to the Phase B window.
+
+## 2026-11-26 S4 item 1: the mod-host port (lanmower)
+
+- Change: rust/crates/mod-host/src/runtime.rs declares the trait ModRuntime with 30 host calls (setup, tick, input and frames, output, diagnostics, sim access) and implements it for ModHost by delegation to the inherent methods. rust/crates/mod-host/src/lib.rs exports it under the piccolo feature. 19 test files in rust/crates/mod-host/tests now open their host as impl ModRuntime and import the trait; their nine host calls are all on the port.
+- Witness (Phase B): cargo test -p mod-host passes through the port. Phase A did not compile this; the change was checked by the port check below.
+- Red: scripts/check-mod-host-port.mjs and its red cases (item 2).

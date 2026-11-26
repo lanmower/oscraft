@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use mod_host::{build_image, ModHost};
+use mod_host::{build_image, ModHost, ModRuntime};
 use sim::fixed::{self, HALF};
 
 const ORDER_STOP: u8 = 1;
@@ -47,7 +47,7 @@ fn visit(files: &[(String, String)], module: &str, out: &mut Vec<(String, String
     }
 }
 
-fn pack_host() -> ModHost {
+fn pack_host() -> impl ModRuntime {
     let dir = pack_dir();
     let manifest: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(dir.join("manifest.json")).expect("the pack manifest"))
         .expect("a valid pack manifest");

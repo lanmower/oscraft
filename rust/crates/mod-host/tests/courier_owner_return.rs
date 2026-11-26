@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use mod_host::{build_image, ModHost};
+use mod_host::{build_image, ModHost, ModRuntime};
 use serde_json::json;
 use sim::fixed::{self, HALF};
 
@@ -51,7 +51,7 @@ fn visit(files: &[(String, String)], module: &str, out: &mut Vec<(String, String
     }
 }
 
-fn probe_host() -> ModHost {
+fn probe_host() -> impl ModRuntime {
     let dir = pack_dir();
     let rules = std::fs::read_to_string(dir.join("attr_rules.txt")).expect("the pack rules file");
     let mut files = Vec::new();

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use mod_host::{build_image, ModHost};
+use mod_host::{build_image, ModHost, ModRuntime};
 
 const SPACINGS: [u32; 4] = [3, 7, 13, 97];
 
@@ -52,7 +52,7 @@ end
 "#
 }
 
-fn host() -> ModHost {
+fn host() -> impl ModRuntime {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../scenarios/moba");
     let image = build_image(&dir).expect("build the moba image");
     ModHost::new(&image).expect("load the moba image")

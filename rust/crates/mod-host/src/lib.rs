@@ -31,3 +31,7 @@ pub fn build_image(src_dir: &std::path::Path) -> Result<Vec<u8>, String> {
 mod piccolo_host;
 #[cfg(feature = "piccolo")]
 pub use piccolo_host::*;
+#[cfg(feature = "piccolo")]
+mod runtime;
+#[cfg(feature = "piccolo")]
+pub use runtime::ModRuntime;

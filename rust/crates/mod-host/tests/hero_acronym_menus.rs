@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use mod_host::{build_image, ModHost};
+use mod_host::{build_image, ModHost, ModRuntime};
 use serde_json::{json, Value};
 
 fn pack_dir(pack: &str) -> PathBuf {
@@ -19,7 +19,7 @@ fn visit(modules: &serde_json::Map<String, Value>, dir: &Path, module: &str, out
     }
 }
 
-fn pack_host(pack: &str) -> ModHost {
+fn pack_host(pack: &str) -> impl ModRuntime {
     let dir = pack_dir(pack);
     let manifest: Value = serde_json::from_str(&std::fs::read_to_string(dir.join("manifest.json")).expect("the pack manifest"))
         .expect("a valid pack manifest");
