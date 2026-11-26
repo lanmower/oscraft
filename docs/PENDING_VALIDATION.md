@@ -2392,3 +2392,9 @@ Open, found in this pass, not fixed:
 - Change: rust/crates/mod-host/src/runtime.rs declares the trait ModRuntime with 30 host calls (setup, tick, input and frames, output, diagnostics, sim access) and implements it for ModHost by delegation to the inherent methods. rust/crates/mod-host/src/lib.rs exports it under the piccolo feature. 19 test files in rust/crates/mod-host/tests now open their host as impl ModRuntime and import the trait; their nine host calls are all on the port.
 - Witness (Phase B): cargo test -p mod-host passes through the port. Phase A did not compile this; the change was checked by the port check below.
 - Red: scripts/check-mod-host-port.mjs and its red cases (item 2).
+
+## 2026-11-26 S4 item 2: the port check and its red cases (lanmower)
+
+- Change: scripts/check-mod-host-port.mjs checks that every ModRuntime method is implemented for ModHost, that each test file calls only declared port methods and imports ModRuntime, and that every HOST_GLOBALS and EVENTS name is still registered in piccolo_host.rs (as a quoted literal, or as an env. function for the prelude functions schedule and cancel). scripts/witness/mod-host-port-red.mjs runs five cases on scratch copies.
+- Witness: node scripts/check-mod-host-port.mjs prints 'mod-host port ok: 30 ModRuntime methods implemented for ModHost, 19 test files on the port, 20 globals and 9 events registered'.
+- Red: node scripts/witness/mod-host-port-red.mjs prints 'mod-host port red tests ok (5 cases)'. The cases: a trait method with no impl (named), a test calling feed_death (named), a script hook removed from the host (named), a test file without the import (named). The first run of the check failed the real tree on schedule and cancel, which are registered as env functions in the prelude, not literals; the check now accepts that form.
