@@ -38,6 +38,6 @@ What S1 (sim inside Bevy) and S2 (headless server) call. Every entry below is re
 
 ## What is not ready
 
-- No duel-routes replay exists in the repo yet: `find` returns no `*.replay` file, and the pack image is built on demand. The recording and its expected per-tick hashes are produced by a gated run of the mod-host crate, which is the next S1 item. Until it lands, S1 has the entry points above and no expected hashes to compare.
+- The duel-routes replay generator is rust/crates/replay/src/duel.rs (`duel::record` and `duel::verify`, bin `duel_routes_replay <pack-dir> <out-dir>`). It records scenarios/duel-routes for 1280 ticks (both armies ordered to the far start at tick 0) with a state hash after every tick, replays the text with Replayer and compares each tick, and writes `duel-routes.replay` and `duel-routes.hashes` (one `tick hash` line per tick, 0 to 1280). It is Phase A code; its committed outputs come from the gated Phase B window, which is pending.
 - `parity_hash` (rust/crates/mod-host/src/bin/parity_hash.rs) prints only the final hash after N ticks; it does not write per-tick hashes.
 - The sim's `tick` uses the host's advance order: the mod host runs its hooks before the sim tick (rust/crates/mod-host/src/piccolo_host.rs, `advance`). A replay that includes mod-driven changes must be recorded with the same hook order, or its hashes will not match.

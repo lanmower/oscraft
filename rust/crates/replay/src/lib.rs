@@ -6,6 +6,8 @@ use std::time::Duration;
 
 use sim::{carry_from, AbilitySpec, Effect, ItemSpec, ORDER_HOLD, Refusal, Sim, StateError, UnitSpec, UpgradeSpec, ItemVerdict, ALL_REFUSALS, NO_TAKE, VERDICT_TAKES};
 
+pub mod duel;
+
 const TICKS_PER_SECOND: u32 = 16;
 
 pub const SNAP_EVERY: u32 = 64;

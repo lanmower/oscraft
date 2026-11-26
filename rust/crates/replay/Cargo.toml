@@ -6,7 +6,5 @@ publish = false
 description = "Recording and playback of a sim's order log: the replay format the browser build plays and the gate checks"
 
 [dependencies]
-sim = { path = "../sim" }
-
-[dev-dependencies]
 osdt-data = { path = "../data" }
+sim = { path = "../sim" }
