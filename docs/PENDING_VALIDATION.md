@@ -2438,3 +2438,9 @@ Open, found in this pass, not fixed:
 - Red: a_wrong_expected_hash_is_refused flips one per-tick hash and requires verify to fail.
 - Phase A only: no build or test ran. The window queues after this commit on its tree.
 - Push: held until that window is green (the owner releases green windows).
+
+## 2026-11-26 Phase B: the duel-routes replay is generated and verified (lanmower)
+
+- Window: label oscraft-duel, GATE_TREE 4f676646 (granted). /workspace/tmp/oscraft/modhost/duel-window.txt: BUILD_RC 0 (cargo build -p replay --bin duel_routes_replay), GEN_RC 0 (`ticks=1280 state_hash=c28b3d9f8405f808`), TEST_RC 0 (cargo test -p replay: duel_routes_replay 3 passed in 116.74 s; format_three 2 passed; the 5 format_three_tests unit tests passed). The window wrote scenarios/duel-routes/replays/duel-routes.replay (624 bytes, header oscraft-replay 3) and duel-routes.hashes (1281 lines, tick 0 to 1280), which the committed-file test then compared equal to the generator.
+- Committed these two files in the commit after 9d8c176e, with the handoff update. The owner's snapshot file was not staged.
+- Witnesses: the recorded duel replays with every per-tick hash; the committed files equal the generator output; a flipped per-tick hash is refused.
