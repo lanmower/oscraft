@@ -2371,3 +2371,9 @@ Open, found in this pass, not fixed:
 - validate-runtime-evidence: exit 0 (validate.txt).
 - validate-runtime-evidence-status: exit 1. The committed status records the 2026-11-11 snapshot hash (652f8bbf...), and the live hash here is the scratch hash (c4ed408f...). That mismatch is the owner-held refresh; the committed evidence was left untouched.
 - Evidence files restored by the window (git checkout). The owner's snapshot is still sha 4e6156c7.
+
+## 2026-11-26 S0 item 1: unique capability ids (lanmower)
+
+- Change: docs/CAPABILITIES.md line 182, the second CAP-LUA-1 (deterministic random numbers and string helpers), is renamed CAP-LUA-8. The first CAP-LUA-1 (load a mod file) stays, because docs/GAMEPLAY_PARITY.md GP-MOD-6 cites it.
+- Witness: the count of rows starting with '| CAP-' is 117, and the number of duplicated ids is 0 (both shown by grep in the commit session).
+- Red: the duplicate-id case in scripts/witness/bevy-parity-red.mjs (item 2) fails on a duplicate, so this rename is what makes the ledger pass.
