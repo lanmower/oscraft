@@ -65,7 +65,7 @@ fn pack_host() -> impl ModRuntime {
     host
 }
 
-fn spawn_hero(host: &mut ModHost, player: u8) -> usize {
+fn spawn_hero(host: &mut dyn ModRuntime, player: u8) -> usize {
     let mut sim = host.sim_mut();
     let kind = sim.catalog().unit_index(HERO_KIND).expect("the hero kind is in the moba catalog");
     let x = fixed::from_int(ORIGIN_X) + HALF;
@@ -73,7 +73,7 @@ fn spawn_hero(host: &mut ModHost, player: u8) -> usize {
     sim.spawn_attributed(player, kind as u32, x, y).expect("the hero fits on the map")
 }
 
-fn one_hand(host: &mut ModHost, player: u8, on: bool) {
+fn one_hand(host: &mut dyn ModRuntime, player: u8, on: bool) {
     host.dispatch_action("ui", &json!({ "call": "one_hand", "args": { "on": on }, "player": player }))
         .expect("the panels accept the one-hand toggle");
 }

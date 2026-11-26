@@ -77,7 +77,7 @@ fn probe_host() -> impl ModRuntime {
     host
 }
 
-fn spawn(host: &mut ModHost, kind_name: &str, player: u8, cell_x: i32, cell_y: i32) -> usize {
+fn spawn(host: &mut dyn ModRuntime, kind_name: &str, player: u8, cell_x: i32, cell_y: i32) -> usize {
     let mut sim = host.sim_mut();
     let kind = sim
         .catalog()
@@ -89,13 +89,13 @@ fn spawn(host: &mut ModHost, kind_name: &str, player: u8, cell_x: i32, cell_y: i
         .expect("the unit fits on the map")
 }
 
-fn advance(host: &mut ModHost, ticks: u32) {
+fn advance(host: &mut dyn ModRuntime, ticks: u32) {
     for _ in 0..ticks {
         host.advance().expect("advance the match");
     }
 }
 
-fn kind_of(host: &ModHost, unit: usize) -> Option<String> {
+fn kind_of(host: &dyn ModRuntime, unit: usize) -> Option<String> {
     host.sim().kind_name(unit).map(str::to_owned)
 }
 
@@ -147,12 +147,12 @@ const CRIT_CHANCE: usize = 6;
 const CRIT_MULT: usize = 7;
 const CRIT_MULT_PCT: i32 = 170;
 
-fn crit_of(host: &ModHost, unit: usize) -> (i32, i32) {
+fn crit_of(host: &dyn ModRuntime, unit: usize) -> (i32, i32) {
     let sim = host.sim();
     (sim.stat(unit, CRIT_CHANCE), sim.stat(unit, CRIT_MULT))
 }
 
-fn shift_at_rank(rank: u32) -> (ModHost, usize) {
+fn shift_at_rank(rank: u32) -> (impl ModRuntime, usize) {
     let mut host = probe_host();
     let hero = spawn(&mut host, HERO_KIND, HERO_PLAYER, 92, 240);
     {

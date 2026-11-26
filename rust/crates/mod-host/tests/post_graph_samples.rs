@@ -63,7 +63,7 @@ fn pack_host() -> impl ModRuntime {
     host
 }
 
-fn spawn_hero(host: &mut ModHost, kind_name: &str, player: u8, cell_x: i32, cell_y: i32) -> usize {
+fn spawn_hero(host: &mut dyn ModRuntime, kind_name: &str, player: u8, cell_x: i32, cell_y: i32) -> usize {
     let mut sim = host.sim_mut();
     let kind = sim.catalog().unit_index(kind_name).expect("the hero kind is in the moba catalog");
     let x = fixed::from_int(cell_x) + HALF;

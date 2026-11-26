@@ -2410,3 +2410,11 @@ Open, found in this pass, not fixed:
 - Change: docs/BEVY_MOD_HOST.md states the port, the schedule the Bevy server and clients run it on (16 Hz sim, host-authoritative orders, client sim copy with the per-tick hash), what is not on the port yet (feed_death, emit_unit: S2 adds them with the call), and the Phase B witness. scripts/check-all.mjs registers the four S4 checks.
 - Phase A only: no build ran. The compile and cargo test of the mod-host crate, and the live link into the Bevy server, are Phase B items (S2 is the bevy peer's stage).
 - Push: held by the owner's snapshot decision. The owner-held items are unchanged.
+
+## 2026-11-26 Window oscraft-modhost on ea7f78ed: failed, then fixed (lanmower)
+
+- Window: label oscraft-modhost, GATE_TREE ea7f78ed. Result file /workspace/tmp/oscraft/modhost/window.txt: BUILD_RC 101 (cargo build -p mod-host --tests), TEST_RC 101 (cargo test -p mod-host, failed at the same compile).
+- Failure: 15 errors, all E0308 mismatched types. The mod-host tests passed `&mut ModHost` values (from the helpers that now return impl ModRuntime) into helper parameters typed `&mut ModHost`, `&ModHost`, and tuple returns `(ModHost, ...)`. Seventeen test files: upgrade_same_tick_spend.rs, strike_on_move_keeps_walking_through_the_swing.rs and others.
+- Fix: helper parameters are `&mut dyn ModRuntime` and `&dyn ModRuntime`, and tuple returns are `(impl ModRuntime, ...)`. ModHost stays imported for ModHost::new in every file. Seventeen files changed, and no ModHost remains outside the import and ModHost::new.
+- Red check: none new; the compile failure was the check. The next window reruns the crate build and tests on the fix commit.
+- Next: window oscraft-modhost on the fix commit (queued after this entry).

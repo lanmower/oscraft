@@ -76,7 +76,7 @@ fn pack_host() -> impl ModRuntime {
     host
 }
 
-fn spawn_kind(host: &mut ModHost, kind_name: &str, player: u8, cell: (i32, i32)) -> usize {
+fn spawn_kind(host: &mut dyn ModRuntime, kind_name: &str, player: u8, cell: (i32, i32)) -> usize {
     let mut sim = host.sim_mut();
     let kind = sim.catalog().unit_index(kind_name).expect("the kind is in the moba catalog");
     let x = fixed::from_int(cell.0) + HALF;
@@ -84,7 +84,7 @@ fn spawn_kind(host: &mut ModHost, kind_name: &str, player: u8, cell: (i32, i32))
     sim.spawn_for(player, kind as u32, x, y).expect("the unit fits on the map")
 }
 
-fn treant(host: &mut ModHost, cell: (i32, i32)) -> usize {
+fn treant(host: &mut dyn ModRuntime, cell: (i32, i32)) -> usize {
     let mut sim = host.sim_mut();
     let kind = sim.catalog().unit_index(TREANT).expect("the treant kind is in the moba catalog");
     let x = fixed::from_int(cell.0) + HALF;
@@ -92,7 +92,7 @@ fn treant(host: &mut ModHost, cell: (i32, i32)) -> usize {
     sim.spawn_attributed(CASTER_PLAYER, kind as u32, x, y).expect("the treant fits on the map")
 }
 
-fn learn_living_armor(host: &mut ModHost, caster: usize) {
+fn learn_living_armor(host: &mut dyn ModRuntime, caster: usize) {
     let mut sim = host.sim_mut();
     assert!(sim.give_ability(caster, 0, LIVING_ARMOR), "Living Armor is granted");
     assert!(sim.rank_up(caster, 0).is_ok(), "Living Armor takes its first rank");
@@ -100,13 +100,13 @@ fn learn_living_armor(host: &mut ModHost, caster: usize) {
     assert!(sim.set_mana_within(caster, max), "the treant has the mana to cast");
 }
 
-fn settle(host: &mut ModHost) {
+fn settle(host: &mut dyn ModRuntime) {
     for _ in 0..SETTLE_TICKS {
         host.advance().expect("advance the match");
     }
 }
 
-fn cast_living_armor_at(host: &mut ModHost, caster: usize, point: usize) {
+fn cast_living_armor_at(host: &mut dyn ModRuntime, caster: usize, point: usize) {
     let (x, y) = host.sim().position_fixed(point);
     let direct = host.cast_allowed(caster, 0, -1, x, y, false);
     if direct {
@@ -115,7 +115,7 @@ fn cast_living_armor_at(host: &mut ModHost, caster: usize, point: usize) {
     settle(host);
 }
 
-fn regen(host: &ModHost, unit: usize) -> i32 {
+fn regen(host: &dyn ModRuntime, unit: usize) -> i32 {
     host.sim().stat(unit, HEALTH_REGEN)
 }
 
@@ -159,7 +159,7 @@ fn living_armor_cast_on_the_ground_skips_an_allied_structure_outside_the_xz_list
 }
 
 
-fn kill(host: &mut ModHost, unit: usize) {
+fn kill(host: &mut dyn ModRuntime, unit: usize) {
     host.sim_mut().damage_target(-1, FOE_PLAYER, fixed::from_int(KILL_DAMAGE), unit as i32);
     host.advance().expect("advance the match");
     assert!(!host.sim().alive(unit), "the tower dies from the damage");

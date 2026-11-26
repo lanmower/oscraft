@@ -67,13 +67,13 @@ fn pack_host() -> impl ModRuntime {
     host
 }
 
-fn spawn_hero(host: &mut ModHost, x: i32, y: i32) -> usize {
+fn spawn_hero(host: &mut dyn ModRuntime, x: i32, y: i32) -> usize {
     let mut sim = host.sim_mut();
     let kind = sim.catalog().unit_index("pudge").expect("the hero kind is in the moba catalog");
     sim.spawn_attributed(OWNER, kind as u32, x, y).expect("the hero fits on the map")
 }
 
-fn place_target(host: &mut ModHost, x: i32, y: i32) -> usize {
+fn place_target(host: &mut dyn ModRuntime, x: i32, y: i32) -> usize {
     let mut sim = host.sim_mut();
     let kind = sim.catalog().unit_index("objective").expect("the target kind is in the moba catalog");
     sim.spawn_for(ENEMY, kind as u32, x, y).expect("the target fits on the map")

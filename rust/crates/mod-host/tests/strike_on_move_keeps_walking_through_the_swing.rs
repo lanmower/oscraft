@@ -69,13 +69,13 @@ fn pack_host() -> impl ModRuntime {
     host
 }
 
-fn spawn(host: &mut ModHost, kind_name: &str, player: u8, x: i32, y: i32) -> usize {
+fn spawn(host: &mut dyn ModRuntime, kind_name: &str, player: u8, x: i32, y: i32) -> usize {
     let mut sim = host.sim_mut();
     let kind = sim.catalog().unit_index(kind_name).expect("the kind is in the moba catalog");
     sim.spawn_attributed(player, kind as u32, x, y).expect("the unit fits on the map")
 }
 
-fn one_hand_on(host: &mut ModHost) {
+fn one_hand_on(host: &mut dyn ModRuntime) {
     host.dispatch_action("ui", &json!({ "call": "one_hand", "args": { "on": true }, "player": OWNER }))
         .expect("the panels accept the one-hand toggle");
 }

@@ -62,7 +62,7 @@ fn pack_host() -> impl ModRuntime {
     host
 }
 
-fn spawn(host: &mut ModHost, kind_name: &str, player: u8, attributed: bool, x: i32, y: i32) -> usize {
+fn spawn(host: &mut dyn ModRuntime, kind_name: &str, player: u8, attributed: bool, x: i32, y: i32) -> usize {
     let mut sim = host.sim_mut();
     let kind = sim.catalog().unit_index(kind_name).expect("the kind is in the moba catalog");
     if attributed {

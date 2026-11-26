@@ -71,7 +71,7 @@ fn probe_host() -> impl ModRuntime {
     host
 }
 
-fn spawn_hero(host: &mut ModHost, kind_name: &str, player: u8, cell_x: i32, cell_y: i32) -> usize {
+fn spawn_hero(host: &mut dyn ModRuntime, kind_name: &str, player: u8, cell_x: i32, cell_y: i32) -> usize {
     let mut sim = host.sim_mut();
     let kind = sim.catalog().unit_index(kind_name).expect("the hero kind is in the moba catalog");
     let x = fixed::from_int(cell_x) + HALF;
@@ -79,13 +79,13 @@ fn spawn_hero(host: &mut ModHost, kind_name: &str, player: u8, cell_x: i32, cell
     sim.spawn_attributed(player, kind as u32, x, y).expect("the hero fits on the map")
 }
 
-fn advance(host: &mut ModHost, ticks: u32) {
+fn advance(host: &mut dyn ModRuntime, ticks: u32) {
     for _ in 0..ticks {
         host.advance().expect("advance the match");
     }
 }
 
-fn wound_slightly(host: &mut ModHost, hero: usize) {
+fn wound_slightly(host: &mut dyn ModRuntime, hero: usize) {
     let (max_hp, max_mana) = {
         let sim = host.sim();
         (sim.hp_max(hero), sim.unit_max_mana(hero))

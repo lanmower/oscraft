@@ -64,12 +64,12 @@ fn ui_file() -> serde_json::Value {
         .expect("a valid moba ui file")
 }
 
-fn setup_panels(host: &mut ModHost) {
+fn setup_panels(host: &mut dyn ModRuntime) {
     host.dispatch_action("setup", &json!({ "ui": ui_file(), "player": 0, "pubkey": "owner" }))
         .expect("the panels accept the setup");
 }
 
-fn spawn_hero(host: &mut ModHost, kind_name: &str, player: u8, cell_x: i32, cell_y: i32) -> usize {
+fn spawn_hero(host: &mut dyn ModRuntime, kind_name: &str, player: u8, cell_x: i32, cell_y: i32) -> usize {
     let mut sim = host.sim_mut();
     let kind = sim.catalog().unit_index(kind_name).expect("the hero kind is in the moba catalog");
     let x = fixed::from_int(cell_x) + HALF;
@@ -77,13 +77,13 @@ fn spawn_hero(host: &mut ModHost, kind_name: &str, player: u8, cell_x: i32, cell
     sim.spawn_attributed(player, kind as u32, x, y).expect("the hero fits on the map")
 }
 
-fn advance(host: &mut ModHost, ticks: u32) {
+fn advance(host: &mut dyn ModRuntime, ticks: u32) {
     for _ in 0..ticks {
         host.advance().expect("advance the match");
     }
 }
 
-fn start_quiet_window(host: &mut ModHost) {
+fn start_quiet_window(host: &mut dyn ModRuntime) {
     let mut last = host.sim().resource_a(0);
     for _ in 0..256 {
         advance(host, 1);

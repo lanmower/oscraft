@@ -68,7 +68,7 @@ fn pack_host() -> impl ModRuntime {
     host
 }
 
-fn hero(host: &mut ModHost, kind_name: &str, player: u8, cell_x: i32, cell_y: i32) -> usize {
+fn hero(host: &mut dyn ModRuntime, kind_name: &str, player: u8, cell_x: i32, cell_y: i32) -> usize {
     let mut sim = host.sim_mut();
     let kind = sim.catalog().unit_index(kind_name).expect("the hero kind is in the moba catalog");
     let x = fixed::from_int(cell_x) + HALF;
@@ -76,7 +76,7 @@ fn hero(host: &mut ModHost, kind_name: &str, player: u8, cell_x: i32, cell_y: i3
     sim.spawn_attributed(player, kind as u32, x, y).expect("the hero fits on the map")
 }
 
-fn distance_cells(host: &ModHost, a: usize, b: usize) -> f64 {
+fn distance_cells(host: &dyn ModRuntime, a: usize, b: usize) -> f64 {
     let sim = host.sim();
     let (ax, ay) = sim.position_fixed(a);
     let (bx, by) = sim.position_fixed(b);
@@ -85,7 +85,7 @@ fn distance_cells(host: &ModHost, a: usize, b: usize) -> f64 {
     (dx * dx + dy * dy).sqrt()
 }
 
-fn engage(order: impl FnOnce(&mut ModHost, usize)) {
+fn engage(order: impl FnOnce(&mut dyn ModRuntime, usize)) {
     let mut host = pack_host();
     let (ax, ay) = (92, 240);
     let attacker = hero(&mut host, ATTACKER, 0, ax, ay);
@@ -166,7 +166,7 @@ fn an_attack_moving_hero_chases_past_an_enemy_and_resumes_its_destination() {
     assert!(left <= 1.0, "the hero resumed its attack-move and reached its destination ({left} cells away)");
 }
 
-fn distance_to_point(host: &ModHost, unit: usize, x: i32, y: i32) -> f64 {
+fn distance_to_point(host: &dyn ModRuntime, unit: usize, x: i32, y: i32) -> f64 {
     let (ux, uy) = host.sim().position_fixed(unit);
     let dx = f64::from(ux - x) / f64::from(fixed::ONE);
     let dy = f64::from(uy - y) / f64::from(fixed::ONE);

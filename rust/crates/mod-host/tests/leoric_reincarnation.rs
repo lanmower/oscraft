@@ -93,7 +93,7 @@ fn probe_host() -> impl ModRuntime {
     host
 }
 
-fn spawn(host: &mut ModHost, kind_name: &str, player: u8, cell_x: i32, cell_y: i32) -> usize {
+fn spawn(host: &mut dyn ModRuntime, kind_name: &str, player: u8, cell_x: i32, cell_y: i32) -> usize {
     let mut sim = host.sim_mut();
     let kind = sim
         .catalog()
@@ -105,7 +105,7 @@ fn spawn(host: &mut ModHost, kind_name: &str, player: u8, cell_x: i32, cell_y: i
         .expect("the unit fits on the map")
 }
 
-fn advance(host: &mut ModHost, ticks: u32) {
+fn advance(host: &mut dyn ModRuntime, ticks: u32) {
     for _ in 0..ticks {
         host.advance().expect("advance the match");
     }

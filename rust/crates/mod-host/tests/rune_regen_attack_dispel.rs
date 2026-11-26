@@ -74,7 +74,7 @@ fn probe_host() -> impl ModRuntime {
     host
 }
 
-fn spawn(host: &mut ModHost, kind_name: &str, player: u8, cell_x: i32, cell_y: i32) -> usize {
+fn spawn(host: &mut dyn ModRuntime, kind_name: &str, player: u8, cell_x: i32, cell_y: i32) -> usize {
     let mut sim = host.sim_mut();
     let kind = sim
         .catalog()
@@ -86,13 +86,13 @@ fn spawn(host: &mut ModHost, kind_name: &str, player: u8, cell_x: i32, cell_y: i
         .expect("the unit fits on the map")
 }
 
-fn advance(host: &mut ModHost, ticks: u32) {
+fn advance(host: &mut dyn ModRuntime, ticks: u32) {
     for _ in 0..ticks {
         host.advance().expect("advance the match");
     }
 }
 
-fn hurt_hero_and_grant_rune(host: &mut ModHost, hero: usize) -> i32 {
+fn hurt_hero_and_grant_rune(host: &mut dyn ModRuntime, hero: usize) -> i32 {
     let (max_hp, max_mana) = {
         let sim = host.sim();
         (sim.hp_max(hero), sim.unit_max_mana(hero))
@@ -109,7 +109,7 @@ fn hurt_hero_and_grant_rune(host: &mut ModHost, hero: usize) -> i32 {
     base
 }
 
-fn regen_active(host: &ModHost, hero: usize, base: i32) -> bool {
+fn regen_active(host: &dyn ModRuntime, hero: usize, base: i32) -> bool {
     host.sim().stat(hero, S_HEALTH_REGEN) > base
 }
 

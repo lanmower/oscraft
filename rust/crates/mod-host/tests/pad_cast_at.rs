@@ -75,7 +75,7 @@ fn pack_host() -> impl ModRuntime {
     host
 }
 
-fn spawn(host: &mut ModHost, kind_name: &str, player: u8, cell: (i32, i32)) -> usize {
+fn spawn(host: &mut dyn ModRuntime, kind_name: &str, player: u8, cell: (i32, i32)) -> usize {
     let mut sim = host.sim_mut();
     let kind = sim.catalog().unit_index(kind_name).expect("the kind is in the moba catalog");
     let x = fixed::from_int(cell.0) + HALF;
@@ -83,40 +83,40 @@ fn spawn(host: &mut ModHost, kind_name: &str, player: u8, cell: (i32, i32)) -> u
     sim.spawn_attributed(player, kind as u32, x, y).expect("the unit fits on the map")
 }
 
-fn fill_mana(host: &mut ModHost, hero: usize) {
+fn fill_mana(host: &mut dyn ModRuntime, hero: usize) {
     let mut sim = host.sim_mut();
     let max = sim.unit_max_mana(hero);
     assert!(sim.set_mana_within(hero, max), "the hero has the mana to cast");
 }
 
-fn advance(host: &mut ModHost, ticks: u32) {
+fn advance(host: &mut dyn ModRuntime, ticks: u32) {
     for _ in 0..ticks {
         host.advance().expect("advance the match");
     }
 }
 
-fn ui(host: &mut ModHost, call: &str, args: serde_json::Value) {
+fn ui(host: &mut dyn ModRuntime, call: &str, args: serde_json::Value) {
     host.dispatch_action("ui", &json!({ "call": call, "args": args, "player": OWNER }))
         .expect("the ui call is accepted");
 }
 
-fn select(host: &mut ModHost, hero: usize) {
+fn select(host: &mut dyn ModRuntime, hero: usize) {
     host.dispatch_action("select", &json!({ "ids": [hero], "player": OWNER })).expect("the selection is accepted");
 }
 
-fn one_hand(host: &mut ModHost, on: bool) {
+fn one_hand(host: &mut dyn ModRuntime, on: bool) {
     ui(host, "one_hand", json!({ "on": on }));
 }
 
-fn cast_at(host: &mut ModHost, slot: usize, aim: (f64, f64)) {
+fn cast_at(host: &mut dyn ModRuntime, slot: usize, aim: (f64, f64)) {
     ui(host, "cast_at", json!({ "slot": slot, "x": aim.0, "z": aim.1 }));
 }
 
-fn learn(host: &mut ModHost, hero: usize, slot: usize) {
+fn learn(host: &mut dyn ModRuntime, hero: usize, slot: usize) {
     host.sim_mut().rank_up(hero, slot).expect("the ability takes its first rank");
 }
 
-fn field(one_hand_on: bool) -> (ModHost, usize, usize) {
+fn field(one_hand_on: bool) -> (impl ModRuntime, usize, usize) {
     let mut host = pack_host();
     let hero = spawn(&mut host, HERO_KIND, OWNER, HERO_CELL);
     fill_mana(&mut host, hero);
@@ -127,13 +127,13 @@ fn field(one_hand_on: bool) -> (ModHost, usize, usize) {
     (host, hero, slot)
 }
 
-fn spawn_foe(host: &mut ModHost) -> usize {
+fn spawn_foe(host: &mut dyn ModRuntime) -> usize {
     let foe = spawn(host, FOE_KIND, FOE_PLAYER, FOE_CELL);
     advance(host, 1);
     foe
 }
 
-fn refusals(host: &mut ModHost) -> Vec<String> {
+fn refusals(host: &mut dyn ModRuntime) -> Vec<String> {
     host.take_ui().into_iter().filter(|line| line.contains("\"kind\":\"refusal\"")).collect()
 }
 

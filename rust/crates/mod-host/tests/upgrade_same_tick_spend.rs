@@ -16,7 +16,7 @@ fn host() -> impl ModRuntime {
     host
 }
 
-fn barracks(host: &mut ModHost, player: u8, cell_x: i32, cell_y: i32) -> usize {
+fn barracks(host: &mut dyn ModRuntime, player: u8, cell_x: i32, cell_y: i32) -> usize {
     let mut sim = host.sim_mut();
     let kind = sim.catalog().unit_index("barracks").expect("the upgrades mod defines barracks");
     let x = fixed::from_int(cell_x) + HALF;
@@ -24,12 +24,12 @@ fn barracks(host: &mut ModHost, player: u8, cell_x: i32, cell_y: i32) -> usize {
     sim.spawn_for(player, kind as u32, x, y).expect("the barracks fits on the map")
 }
 
-fn set_gold(host: &mut ModHost, player: u8, target: i32) {
+fn set_gold(host: &mut dyn ModRuntime, player: u8, target: i32) {
     let delta = target - host.sim().resource_a(player);
     host.sim_mut().add_resources(player, delta, 0);
 }
 
-fn request(host: &mut ModHost, player: u8, unit: usize, group: &str) {
+fn request(host: &mut dyn ModRuntime, player: u8, unit: usize, group: &str) {
     host.dispatch_action("upgrade", &json!({ "player": player, "unit": unit, "group": group }))
         .expect("dispatch the upgrade action");
 }

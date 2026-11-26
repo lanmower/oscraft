@@ -68,7 +68,7 @@ fn probe_host() -> impl ModRuntime {
     host
 }
 
-fn spawn_unit(host: &mut ModHost, kind_name: &str, player: u8, cell_x: i32, cell_y: i32) -> usize {
+fn spawn_unit(host: &mut dyn ModRuntime, kind_name: &str, player: u8, cell_x: i32, cell_y: i32) -> usize {
     let mut sim = host.sim_mut();
     let kind = sim.catalog().unit_index(kind_name).expect("the unit kind is in the moba catalog");
     let x = fixed::from_int(cell_x) + HALF;
@@ -76,7 +76,7 @@ fn spawn_unit(host: &mut ModHost, kind_name: &str, player: u8, cell_x: i32, cell
     sim.spawn_attributed(player, kind as u32, x, y).expect("the unit fits on the map")
 }
 
-fn give(host: &mut ModHost, unit: usize, item_name: &str, owner: usize) {
+fn give(host: &mut dyn ModRuntime, unit: usize, item_name: &str, owner: usize) {
     let mut sim = host.sim_mut();
     let item = sim.catalog().item_index(item_name).expect("the item is in the moba catalog");
     assert!(sim.grant_item(unit, item, 1), "the unit takes the item");
@@ -87,24 +87,24 @@ fn give(host: &mut ModHost, unit: usize, item_name: &str, owner: usize) {
     sim.set_item_owner(unit, slot, owner).expect("the item takes an owner");
 }
 
-fn holds(host: &ModHost, unit: usize, item_name: &str) -> bool {
+fn holds(host: &dyn ModRuntime, unit: usize, item_name: &str) -> bool {
     let sim = host.sim();
     let kind = sim.catalog().item_index(item_name).expect("the item is in the moba catalog") as u32 + 1;
     (0..sim.inventory_slots()).any(|s| sim.inventory_slot(unit, s).0 == kind)
 }
 
-fn ground_of(host: &ModHost, item_name: &str) -> Vec<(i32, i32)> {
+fn ground_of(host: &dyn ModRuntime, item_name: &str) -> Vec<(i32, i32)> {
     let sim = host.sim();
     let kind = sim.catalog().item_index(item_name).expect("the item is in the moba catalog") as u32 + 1;
     sim.ground_items().iter().filter(|g| g.kind == kind).map(|g| (g.x, g.y)).collect()
 }
 
-fn dispatch(host: &mut ModHost, action: &str, unit: usize, who: u8) {
+fn dispatch(host: &mut dyn ModRuntime, action: &str, unit: usize, who: u8) {
     host.dispatch_action(action, &json!({ "unit": unit, "who": who }))
         .expect("the probe takes the courier command");
 }
 
-fn advance(host: &mut ModHost, ticks: u32) {
+fn advance(host: &mut dyn ModRuntime, ticks: u32) {
     for _ in 0..ticks {
         host.advance().expect("advance the match");
     }
@@ -167,7 +167,7 @@ fn a_loan_copy_of_a_rune_stays_on_the_courier_when_it_is_dropped() {
     assert!(holds(&host, courier, "bottle_illusion_loan"), "the courier still holds the loan copy");
 }
 
-fn owners_basic_courier(host: &ModHost, player: u8) -> usize {
+fn owners_basic_courier(host: &dyn ModRuntime, player: u8) -> usize {
     let sim = host.sim();
     (0..sim.count())
         .find(|&u| sim.alive(u) && sim.player(u) == player && sim.kind_name(u) == Some("courier"))
