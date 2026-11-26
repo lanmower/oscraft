@@ -2466,3 +2466,9 @@ Open, found in this pass, not fixed:
 - The regenerated runtime-evidence.json is saved in /workspace/tmp/oscraft/evidence-final/ and the tracked file was restored (git checkout), so the tree holds no evidence change.
 - Step 3 (commit the evidence) stays blocked: the regenerated evidence records snapshotHash c4ed408f… (the scratch pin), not the owner's snapshot hash, and the committed status (652f8bbf…) would need a refresh. That is the owner's pin decision.
 - Not pushed: this entry is a local record only.
+
+## 2026-11-26 Evidence status: the cause of the failed status check (lanmower)
+
+- Cause: scenarios/bota/runtime-evidence-status.json is written only by scripts/dev/watch-cross-runtime.mjs (npm run watch:cross-runtime -- --once). That script runs check-cross-runtime and validate-runtime-evidence, then writes the status with the live snapshot hash. The evidence window (oscraft-evidence, first run) ran the check and the validators but not the writer, so the status kept the 2026-11-11 record (snapshotHash 652f8bbf…). validate-runtime-evidence-status failed on that stale hash, as designed. The defect was the queue step, not the check.
+- Fix: rerun the writer under the same scratch pin (CROSS_CONTRACT_SNAPSHOT=/workspace/tmp/oscraft/groupred/snap.json). The window is /workspace/tmp/oscraft/evidence-watch.sh, result /workspace/tmp/oscraft/evidence-watch.txt (WATCH_RC, EVIDENCE_RC, STATUS_RC, WATCH_DONE). The owner's snapshot is not read for writing.
+- The committed status and evidence stay unchanged until the owner decides the pin (step 3).
