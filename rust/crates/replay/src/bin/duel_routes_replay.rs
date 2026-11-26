@@ -12,8 +12,9 @@ fn run() -> Result<String, String> {
     let usage = "usage: duel_routes_replay <pack-dir> <out-dir>";
     let pack = PathBuf::from(args.next().ok_or(usage)?);
     let out = PathBuf::from(args.next().ok_or(usage)?);
-    let recorded = duel::record(&pack)?;
-    duel::verify(&pack, &recorded.replay, &recorded.hashes)?;
+    let image = osdt_data::generate(&pack).map_err(|e| format!("compile {}: {e:?}", pack.display()))?;
+    let recorded = duel::record(&image)?;
+    duel::verify(&image, &recorded.replay, &recorded.hashes)?;
     std::fs::create_dir_all(&out).map_err(|e| format!("create {}: {e}", out.display()))?;
     write(&out.join("duel-routes.replay"), recorded.replay.as_bytes())?;
     write(&out.join("duel-routes.hashes"), recorded.hash_table().as_bytes())?;

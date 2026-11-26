@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use sim::{fixed, Sim};
 
 use crate::{Command, Recording, Replayer, CHECK_EVERY};
@@ -21,13 +19,12 @@ impl Duel {
     }
 }
 
-fn load(pack: &Path) -> Result<Sim, String> {
-    let image = osdt_data::generate(pack).map_err(|e| format!("compile {}: {e:?}", pack.display()))?;
-    sim::load(&image, MAX_UNITS).map_err(|e| format!("load {}: {e:?}", pack.display()))
+fn load(image: &[u8]) -> Result<Sim, String> {
+    sim::load(image, MAX_UNITS).map_err(|e| format!("load: {e:?}"))
 }
 
-pub fn record(pack: &Path) -> Result<Duel, String> {
-    let mut sim = load(pack)?;
+pub fn record(image: &[u8]) -> Result<Duel, String> {
+    let mut sim = load(image)?;
     let mut rec = Recording::new(IMAGE, MAX_UNITS, &sim);
     for (player, x, y) in MOVES {
         rec.apply(&mut sim, Command::OrderAll { player, x: fixed::from_milli(x), y: fixed::from_milli(y) });
@@ -40,8 +37,8 @@ pub fn record(pack: &Path) -> Result<Duel, String> {
     Ok(Duel { replay: rec.render(&sim), hashes })
 }
 
-pub fn verify(pack: &Path, replay: &str, hashes: &[(u32, u64)]) -> Result<(), String> {
-    let mut sim = load(pack)?;
+pub fn verify(image: &[u8], replay: &str, hashes: &[(u32, u64)]) -> Result<(), String> {
+    let mut sim = load(image)?;
     let rec = Recording::parse(replay).map_err(|e| format!("parse: {e:?}"))?;
     let mut player = Replayer::new(rec, &sim).map_err(|e| format!("start: {e:?}"))?;
     for &(tick, expected) in hashes.iter().skip(1) {

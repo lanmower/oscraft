@@ -5,6 +5,17 @@ edition = "2021"
 publish = false
 description = "Recording and playback of a sim's order log: the replay format the browser build plays and the gate checks"
 
+[features]
+build = ["dep:osdt-data"]
+
+[[bin]]
+name = "duel_routes_replay"
+path = "src/bin/duel_routes_replay.rs"
+required-features = ["build"]
+
 [dependencies]
-osdt-data = { path = "../data" }
+osdt-data = { path = "../data", optional = true }
 sim = { path = "../sim" }
+
+[dev-dependencies]
+osdt-data = { path = "../data" }

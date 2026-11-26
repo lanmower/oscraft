@@ -2444,3 +2444,10 @@ Open, found in this pass, not fixed:
 - Window: label oscraft-duel, GATE_TREE 4f676646 (granted). /workspace/tmp/oscraft/modhost/duel-window.txt: BUILD_RC 0 (cargo build -p replay --bin duel_routes_replay), GEN_RC 0 (`ticks=1280 state_hash=c28b3d9f8405f808`), TEST_RC 0 (cargo test -p replay: duel_routes_replay 3 passed in 116.74 s; format_three 2 passed; the 5 format_three_tests unit tests passed). The window wrote scenarios/duel-routes/replays/duel-routes.replay (624 bytes, header oscraft-replay 3) and duel-routes.hashes (1281 lines, tick 0 to 1280), which the committed-file test then compared equal to the generator.
 - Committed these two files in the commit after 9d8c176e, with the handoff update. The owner's snapshot file was not staged.
 - Witnesses: the recorded duel replays with every per-tick hash; the committed files equal the generator output; a flipped per-tick hash is refused.
+
+## 2026-11-26 Duel-routes replay: the browser build regression, fixed (lanmower)
+
+- Regression: 4f676646 made osdt-data a normal dependency of the replay crate to compile the pack. web depends on replay, so the browser wasm pulled in osdt-data and starlark. c29fcd81 pushed it. The duel window (oscraft-duel on 4f676646) built the replay crate and the bin only and did not check web, so it did not catch it.
+- Fix: osdt-data is optional behind the replay feature `build`, and the bin requires it (required-features). The dev-dependency stays for the tests. duel::record and duel::verify take the image bytes, so the library needs no compiler. The test compiles the pack itself.
+- Witness (Phase B, window on this commit): cargo tree -p web -e normal shows no starlark or osdt-data (the one line it still shows is anyhow, which is not from this crate); the bin builds with --features build and regenerates the committed files unchanged; cargo test -p replay passes; cargo check -p web passes; the wasm32 check runs if the target is installed.
+- Push: the fix is pushed only after that window is green.
