@@ -2457,3 +2457,12 @@ Open, found in this pass, not fixed:
 - Window: label oscraft-duel, GATE_TREE 33c121a7 (granted). /workspace/tmp/oscraft/modhost/fix-window.txt: WEB_HEAVY_DEPS 0 (cargo tree -p web -e normal shows no starlark or osdt-data), BUILD_RC 0 (cargo build -p replay --bin duel_routes_replay --features build), GEN_RC 0 (ticks=1280 state_hash=c28b3d9f8405f808), TEST_RC 0 (cargo test -p replay), WEB_CHECK_RC 0 (cargo check -p web), WEB_WASM_RC 0 (cargo check -p web --target wasm32-unknown-unknown), DUEL_DONE.
 - The regenerated scenarios/duel-routes/replays files equal the committed ones (git status shows no change there).
 - This clears the browser-build regression that 4f676646 and c29fcd81 introduced; the fix commit is pushed after this entry.
+
+## 2026-11-26 Evidence window oscraft-evidence: browser and cross-runtime pass, status stale (lanmower)
+
+- Window: label oscraft-evidence, granted, scratch snapshot pin CROSS_CONTRACT_SNAPSHOT=/workspace/tmp/oscraft/groupred/snap.json (identifierDocSha256 e15da1bf…, equal to the live IDENTIFIERS.md sha). The owner's snapshot file was not read for writing or changed.
+- Per check (the witness): BROWSER_RC 0 (check-bota-browser --all: real CDP page, 26 models, 24 heroes, other404s 0; /workspace/tmp/oscraft/evidence-browser.txt); CROSS_RC 0 (cross-runtime PASS: snapshot not stale, hash-bearing rows 809, browser real CDP page, no CDP unavailable; evidence-cross.txt); VALIDATE_RC 0 (validate-runtime-evidence PASS, snapshotHash c4ed408f…; evidence-validate.txt); STATUS_RC 1 (validate-runtime-evidence-status: snapshotHash is stale, status 652f8bbf…, evidence and live c4ed408f…; evidence-status.txt).
+- Correction: the window's final line `EVIDENCE_DONE 0` is not a valid aggregate. The script summed variables it never set, so the sum was 0 despite STATUS_RC 1. The per-check RCs above are the witness; the evidence queue's pass rule (EVIDENCE_DONE 0 with status ok) is not met.
+- The regenerated runtime-evidence.json is saved in /workspace/tmp/oscraft/evidence-final/ and the tracked file was restored (git checkout), so the tree holds no evidence change.
+- Step 3 (commit the evidence) stays blocked: the regenerated evidence records snapshotHash c4ed408f… (the scratch pin), not the owner's snapshot hash, and the committed status (652f8bbf…) would need a refresh. That is the owner's pin decision.
+- Not pushed: this entry is a local record only.
