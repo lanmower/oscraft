@@ -49,7 +49,7 @@ export function contractPaths(root) {
       path.join(root, "scenarios", "moba-acronyms", "identifier-map.tsv"),
       path.join(root, "js", "client", "pack_load.js"),
     ],
-    snapshot: process.env.CROSS_CONTRACT_SNAPSHOT || path.join(root, "scenarios", "bota", "cross-contract-snapshot.json"),
+    snapshot: process.env.CROSS_CONTRACT_SNAPSHOT || path.join(root, "scenarios", "bota", "cross-contract-snapshot.pinned.json"),
   };
 }
 

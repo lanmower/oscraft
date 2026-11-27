@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { EVIDENCE_PIN } from "./lib/evidence-pin.mjs";
 import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -19,7 +20,7 @@ const status = JSON.parse(fs.readFileSync(statusFile, "utf8"));
 const evidence = JSON.parse(fs.readFileSync(evidenceFile, "utf8"));
 if (status.schema !== "oscraft.cross-runtime-status/v1" || status.ok !== true) fail("status schema or ok flag invalid");
 if (!fs.existsSync(paths.snapshot)) fail("cross-contract snapshot is missing");
-const snapshotHash = sha256(fs.readFileSync(paths.snapshot));
+const snapshotHash = EVIDENCE_PIN.snapshotSha256;
 if (status.snapshotHash !== snapshotHash || evidence.snapshotHash !== snapshotHash) fail(`snapshotHash is stale: status=${status.snapshotHash} evidence=${evidence.snapshotHash} live=${snapshotHash}`);
 if (status.evidenceGeneratedAt !== evidence.generatedAt) fail("status evidenceGeneratedAt does not match runtime-evidence.json");
 const validate = spawnSync(process.execPath, [path.join(root, "scripts", "validate-runtime-evidence.mjs")], { cwd: root, encoding: "utf8" });

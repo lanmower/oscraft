@@ -2478,3 +2478,12 @@ Open, found in this pass, not fixed:
 - Window: label oscraft-status, granted, result /workspace/tmp/oscraft/status-window.txt: WATCH_RC 0 (watch:cross-runtime --once under CROSS_CONTRACT_SNAPSHOT=/workspace/tmp/oscraft/groupred/snap.json; cross-runtime exit 0; browser real CDP page, models 26, heroes 24, other404s 0; CDP unavailable 0; status snapshotHash c4ed408f…), EVIDENCE_RC 0 (validate-runtime-evidence), STATUS_RC 0 (validate-runtime-evidence-status PASS), WATCH_DONE.
 - Regenerated runtime-evidence.json and runtime-evidence-status.json are copied in /workspace/tmp/oscraft/evidence-final/ (byte-equal to the tree when copied). The tracked files were restored to HEAD, so this commit adds no evidence change.
 - Commit of the evidence stays blocked on the owner: the regenerated evidence and status are pinned to the scratch snapshot hash c4ed408f…, while the owner's snapshot file is not that hash; under the owner's file the status validator would fail. That is the owner's pin decision.
+
+## 2026-11-27 Decision (1): the bota evidence is pinned to the scratch snapshot c4ed408f (lanmower)
+
+- Decision by the dispatcher: the runtime evidence and status are pinned to the scratch snapshot hash c4ed408f…, and the status validator follows that pin.
+- Change: scenarios/bota/cross-contract-snapshot.pinned.json is the scratch-pinned snapshot (sha256 c4ed408f…, identifierDocSha256 = current IDENTIFIERS.md e15da1bf…), committed beside the owner's cross-contract-snapshot.json, which is untouched and not staged. scripts/cross-contract-inputs.mjs defaults to the pinned file (CROSS_CONTRACT_SNAPSHOT still overrides). scripts/lib/evidence-pin.mjs records the pin (snapshotSha256 c4ed408f…, snapshotComparableSha256 209e8116…). scripts/validate-runtime-evidence.mjs and scripts/validate-runtime-evidence-status.mjs check against that pin instead of the live file.
+- Witness: node scripts/validate-runtime-evidence.mjs exits 0 (snapshotHash c4ed408f…); node scripts/validate-runtime-evidence-status.mjs exits 0 (snapshotHash c4ed408f…), both with no environment override.
+- Committed: the regenerated scenarios/bota/runtime-evidence.json and runtime-evidence-status.json (from the oscraft-status window, under the same scratch pin).
+- Known limit: the pin does not verify the owner's snapshot file (sha 4e6156c7…). Under the owner file the validators fail until the owner changes it.
+- Decision (2): the checks keep writing these tracked files on each green run (recorded, no change needed).

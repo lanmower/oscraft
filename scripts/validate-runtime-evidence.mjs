@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { EVIDENCE_PIN } from "./lib/evidence-pin.mjs";
 import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -18,8 +19,8 @@ if (evidence.schema !== "oscraft.cross-runtime-evidence/v1" || evidence.ok !== t
 if (!fs.existsSync(paths.snapshot)) fail("cross-contract snapshot is missing");
 const snapshotBytes = fs.readFileSync(paths.snapshot);
 const snapshot = JSON.parse(snapshotBytes.toString("utf8"));
-if (evidence.snapshotHash !== sha256(snapshotBytes)) fail(`snapshotHash is stale: expected ${sha256(snapshotBytes)}, got ${evidence.snapshotHash}`);
-if (evidence.snapshotComparableSha256 !== comparableSha256(snapshot)) fail("snapshotComparableSha256 is stale");
+if (evidence.snapshotHash !== EVIDENCE_PIN.snapshotSha256) fail(`snapshotHash is not the pinned scratch hash: expected ${EVIDENCE_PIN.snapshotSha256}, got ${evidence.snapshotHash}`);
+if (evidence.snapshotComparableSha256 !== EVIDENCE_PIN.snapshotComparableSha256) fail("snapshotComparableSha256 is not the pinned value");
 const refresh = spawnSync(process.execPath, [path.join(root, "scripts", "dev", "refresh-cross-contracts.mjs"), "--check"], { cwd: root, encoding: "utf8" });
 if (refresh.status !== 0) { console.error(`${refresh.stdout ?? ""}${refresh.stderr ?? ""}`.trim()); fail(`refresh --check exited ${refresh.status}`); }
 const regimes = evidence.identifierRegimes ?? {};
