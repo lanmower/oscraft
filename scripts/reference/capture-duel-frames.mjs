@@ -7,6 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { contentType } from "../dev/mime.mjs";
+import { sleep } from "../lib/sleep.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const [siteArg, outArg] = process.argv.slice(2);
@@ -19,7 +20,6 @@ const out = path.resolve(outArg);
 const replayText = fs.readFileSync(path.join(root, "scenarios", "duel-routes", "replays", "duel-routes.replay"), "utf8");
 const ticks = fs.readFileSync(path.join(root, "scenarios", "duel-routes", "replays", "duel-routes.hashes"), "utf8")
   .split("\n").filter(Boolean).map((line) => Number(line.split(" ")[0])).filter((tick) => tick % 64 === 0);
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const sha256 = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
 const WORLD_WAIT_MS = Number(process.env.CAPTURE_WORLD_WAIT_MS ?? 240000);
 
@@ -62,6 +62,10 @@ async function connect(port, events) {
   const pending = new Map();
   ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
+    if (msg.method === "Page.frameNavigated" || msg.method === "Inspector.targetCrashed" || msg.method === "Page.javascriptDialogOpening") {
+      events.push(`${msg.method} ${JSON.stringify(msg.params ?? {}).slice(0, 200)}`);
+      return;
+    }
     if (msg.method === "Runtime.exceptionThrown") {
       const d = msg.params.exceptionDetails;
       events.push(`exception ${d.exception?.description ?? d.text}`);
@@ -122,15 +126,22 @@ try {
   cdp = await connect(port, events);
   await cdp.send("Page.enable");
   await cdp.send("Runtime.enable");
+  await cdp.send("Inspector.enable");
   await cdp.send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false });
   const { port: sitePort } = server.address();
   await cdp.send("Page.navigate", { url: `http://127.0.0.1:${sitePort}/js/client/play.html?ci=1&capture=1&pack=scenarios/duel-routes&nomods=1` });
   await waitFor("the duel world", () => cdp.evaluate("typeof window.__ciWorldReady === 'function' && window.__ciWorldReady() === true").catch(() => false), WORLD_WAIT_MS);
   const loaded = await cdp.evaluate(`window.__ciCaptureLoad(${JSON.stringify(replayText)})`);
+  const runId = await cdp.evaluate("(window.__ciRunId = Math.random().toString(36).slice(2))");
   fs.mkdirSync(out, { recursive: true });
   await cdp.evaluate("window.__ciCaptureReady()");
   const sums = [];
   for (const tick of ticks) {
+    const alive = await cdp.evaluate(`window.__ciRunId === ${JSON.stringify(runId)}`).catch(() => false);
+    if (!alive) {
+      const navs = events.filter((e) => e.startsWith("Page.frameNavigated")).length;
+      throw new Error(`the page reloaded before tick ${tick}: its capture hooks and run id are gone (frameNavigated events seen: ${navs})`);
+    }
     const dataUrl = await cdp.evaluate(`window.__ciCaptureFrame(${tick})`);
     const bytes = Buffer.from(String(dataUrl).replace(/^data:image\/png;base64,/, ""), "base64");
     const name = `tick-${String(tick).padStart(4, "0")}.png`;

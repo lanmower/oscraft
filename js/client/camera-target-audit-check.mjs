@@ -28,6 +28,7 @@ const CLASSIFIED = [
   { file: "play.js", label: "debug: oscraft.centreOn", re: /return renderer3d \? renderer3d\.setCamera\(\{ target: \[x, groundAt/ },
   { file: "debug_api.js", label: "debug: oscraft.setCamera patch", re: /^\s*r\.setCamera\(patch\);$/ },
   { file: "debug_api.js", label: "debug: oscraft centre on unit", re: /^\s*r\.setCamera\(\{ target: \[u\.x, 0, u\.z\] \}\);$/ },
+  { file: "play.js", label: "debug: capture camera (?capture=1 hook)", re: /renderer3d\.setCamera\(\{ target: focus, distance: captureCamera\.distance/ },
 ];
 
 const SKIPPED = [

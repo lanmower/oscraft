@@ -34,7 +34,7 @@ export function audit(sources) {
       if (callText.includes("from.target")) { sanctioned += 1; return; }
       if (callText.includes("orbitOrigin")) { sanctioned += 1; return; }
       if (guarded(lines, i)) { sanctioned += 1; return; }
-      if (name === "debug_api.js" || /__ciFocus|oscraft\.setCamera|setCamera: \(opts/.test(line) || /setCamera\(opts\)/.test(line)) { open.push(where); return; }
+      if (name === "debug_api.js" || /__ciFocus|oscraft\.setCamera|setCamera: \(opts/.test(line) || /setCamera\(opts\)/.test(line) || /captureCamera\.distance/.test(line)) { open.push(where); return; }
       unclassified.push(where);
     });
   }

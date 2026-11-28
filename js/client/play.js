@@ -3622,6 +3622,7 @@ async function main() {
 
   let worldBuilt = false;
   function installCapture() {
+    const captureCamera = { distance: 10, pitch: 0.7 };
     window.__fxOff = true;
     window.__ciWorldReady = () => worldBuilt;
     window.__ciCaptureState = () => ({
@@ -3660,6 +3661,9 @@ async function main() {
       tickStampMs = null;
       lastDrawMs = null;
       globalThis.__ciClockMs = 0;
+      const fight = simUnits();
+      const focus = fight.length ? [fight.reduce((s, u) => s + u.x, 0) / fight.length, 0, fight.reduce((s, u) => s + u.z, 0) / fight.length] : orbitOrigin;
+      renderer3d.setCamera({ target: focus, distance: captureCamera.distance, pitch: captureCamera.pitch });
       if (fogview) fogview.draw();
       drawWorld3d();
       return canvas.toDataURL("image/png");

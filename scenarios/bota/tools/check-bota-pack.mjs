@@ -71,7 +71,7 @@ if (!read(pack, "IDENTIFIERS.md").includes("full character slugs") || !read(moba
 const readyBySlug = new Map(ready.characters.map((row) => [row.slug, row]));
 const rosterAuthority = read(path.resolve(root, "..", "bota"), "ROSTER.md");
 const sourceNames = [...rosterAuthority.matchAll(/^\| (0\d\d) \| ([^|]+) \|/gm)].map((m) => ({ slot: m[1], name: m[2].trim() }));
-const allowedDocumentation = new Set(["CHARACTERS.md", "character-mapping.tsv", "IDENTIFIERS.md", "cross-contract-snapshot.json"]);
+const allowedDocumentation = new Set(["CHARACTERS.md", "character-mapping.tsv", "IDENTIFIERS.md", "cross-contract-snapshot.json", "cross-contract-snapshot.pinned.json"]);
 const textExt = new Set([".lua", ".osd", ".json", ".txt", ".tsv", ".md"]);
 const scanned = [];
 const walk = (dir, rel = "") => {

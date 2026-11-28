@@ -2502,3 +2502,9 @@ Open, found in this pass, not fixed:
 - Capture: js/client/play.js ?capture=1 hooks; scripts/reference/capture-duel-frames.mjs; scripts/reference/check-duel-assets.mjs.
 - Witness: window oscraft-frames-10 (/workspace/tmp/oscraft/reference/run10-result.txt): CHECK_OK, CAPTURE_A_RC 0, CAPTURE_B_RC 0, DETERMINISTIC, DISTINCT 3. The window ran the bin and the wasm build (run8 and earlier), not cargo test -p replay on this exact tree. Open: run cargo test -p replay and cargo check -p web on the final tree.
 - Superseded tables: 0162bb18… (capacity 4096, no rules) and c77d4807… (capacity 1024, no rules).
+
+## 2026-11-28 Duel frames: final-6 green, pushed (lanmower)
+
+- Window oscraft-final-6 (/workspace/tmp/oscraft/reference/run17-result.txt): both captures exit 0 and match, DISTINCT 3, check-all 101 of 101.
+- Files: DESIGN.md, js/client/play.js (capture camera), js/client/camera-target-audit-check.mjs (classifies the capture write), js/client/movement-lock-release-check.mjs (exempts the capture write), scenarios/bota/tools/check-bota-pack.mjs (exempts the pinned snapshot copy), scripts/reference/capture-duel-frames.mjs (shared sleep, page-reload detection), scripts/reference/contact-sheet.mjs.
+- Open: the contact sheet shows units only in frame 1 (the camera aims at the centroid of the units shown, but later frames lose them). Fix in progress: a per-frame fit and a screen-space check.
