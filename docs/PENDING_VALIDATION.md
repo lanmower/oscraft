@@ -2487,3 +2487,10 @@ Open, found in this pass, not fixed:
 - Committed: the regenerated scenarios/bota/runtime-evidence.json and runtime-evidence-status.json (from the oscraft-status window, under the same scratch pin).
 - Known limit: the pin does not verify the owner's snapshot file (sha 4e6156c7…). Under the owner file the validators fail until the owner changes it.
 - Decision (2): the checks keep writing these tracked files on each green run (recorded, no change needed).
+
+## 2026-11-28 Duel-routes reference: the capacity fix, the manifest fix, the capture hook (lanmower)
+
+- Replay cause: the generator used capacity 4096; the web Game uses MAX_UNITS 1024 (rust/crates/web/src/lib.rs:9). The state hash includes the capacity, so the page's replay_load reported an init mismatch. Fix: rust/crates/replay/src/duel.rs MAX_UNITS 1024. Regenerated scenarios/duel-routes/replays/duel-routes.replay and duel-routes.hashes: hashes sha c77d4807…, replay sha 168b3ba0…, final state_hash 1afd361c92031ee4 at tick 1280. The 4096 table (0162bb18…) is superseded.
+- Manifest cause: scenarios/duel-routes/manifest.json named the lane splat textures laneEarth and laneDisp; the splat table (js/client/tiles.js SPLAT_TEXTURES) needs path_earth and path_earth_disp. Renamed; the textures are unchanged.
+- Capture: js/client/play.js ?capture=1 stops the wall-clock loop and exposes __ciCaptureLoad, __ciCaptureState and __ciCaptureFrame; js/client/render3d.js splat time reads globalThis.__ciClockMs when set; scripts/reference/capture-duel-frames.mjs drives it and prints the real page error.
+- Witness: window oscraft-frames-4 (/workspace/tmp/oscraft/reference/run4-result.txt): GEN_RC 0, CAPTURE_A_RC 0, CAPTURE_B_RC 0, DETERMINISTIC. Open: the frames are one background colour and identical across ticks (units not drawn); the frames are not a valid scene reference yet (see /workspace/tmp/oscraft/reference/README.md).

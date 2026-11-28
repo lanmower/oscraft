@@ -24,8 +24,8 @@
       "grassDisp": "textures/grass_disp.jpg",
       "dirt": "textures/grass_b_256.jpg",
       "dirtDisp": "textures/grass_b_256_disp.jpg",
-      "laneEarth": "textures/lane_earth_256.jpg",
-      "laneDisp": "textures/lane_disp.jpg",
+      "path_earth": "textures/lane_earth_256.jpg",
+      "path_earth_disp": "textures/lane_disp.jpg",
       "rock": "textures/rock024_color.jpg",
       "rockDisp": "textures/rock024_disp.jpg"
     },

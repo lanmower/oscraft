@@ -106,6 +106,7 @@ const U16_MAX = 0xffff;
 
 const params = new URLSearchParams(location.search);
 const noMods = params.get("nomods") === "1";
+const captureMode = params.get("capture") === "1";
 const relayUrls = params.get("relay") ? params.get("relay").split(",") : null;
 const namespace = params.get("ns") || "oscraft";
 const debugOn = params.has("debug");
@@ -3620,7 +3621,28 @@ async function main() {
   joinRoom();
 
   let worldBuilt = false;
+  function installCapture() {
+    window.__fxOff = true;
+    window.__ciWorldReady = () => worldBuilt;
+    window.__ciCaptureState = () => ({ ticks: localGame ? localGame.ticks() : null, worldBuilt, renderer: !!renderer3d, canvas: !!canvas });
+    window.__ciCaptureLoad = (text) => {
+      localGame.replay_load(text);
+      return localGame.ticks();
+    };
+    window.__ciCaptureFrame = (tick) => {
+      if (!worldBuilt || !renderer3d) throw new Error("capture before the world is built");
+      localGame.replay_seek(tick);
+      if (localGame.ticks() !== tick) throw new Error(`capture reached tick ${localGame.ticks()} for ${tick}`);
+      tickStampMs = null;
+      lastDrawMs = null;
+      globalThis.__ciClockMs = 0;
+      drawWorld3d();
+      return canvas.toDataURL("image/png");
+    };
+  }
+  if (captureMode) installCapture();
   function frameStep(now) {
+    if (captureMode) return;
     frameTimer.tick();
     const dtS = lastFrameMs ? Math.min(0.1, (now - lastFrameMs) / 1000) : 0;
     lastFrameMs = now;

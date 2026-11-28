@@ -3,7 +3,7 @@ use sim::{fixed, Sim};
 use crate::{Command, Recording, Replayer, CHECK_EVERY};
 
 pub const IMAGE: &str = "duel-routes.osdt";
-pub const MAX_UNITS: usize = 4096;
+pub const MAX_UNITS: usize = 1024;
 pub const TICKS: u32 = 1280;
 const _: () = assert!(TICKS % CHECK_EVERY == 0);
 const MOVES: [(u8, i32, i32); 2] = [(0, 36000, 12000), (1, 4000, 12000)];

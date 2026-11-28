@@ -838,7 +838,7 @@ export function createRenderer(gl) {
       gl.activeTexture(gl.TEXTURE0);
     }
     gl.uniform3fv(splatUni.waterTint, splat.waterTint);
-    gl.uniform1f(splatUni.time, performance.now() / 1000);
+    gl.uniform1f(splatUni.time, (globalThis.__ciClockMs ?? performance.now()) / 1000);
     gl.uniform3f(splatUni.eye, eye[0], eye[1], eye[2]);
     splat.layers.forEach((layer, k) => {
       gl.activeTexture(gl.TEXTURE1 + k);
