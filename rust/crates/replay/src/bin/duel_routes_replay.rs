@@ -9,12 +9,14 @@ fn write(path: &Path, bytes: &[u8]) -> Result<(), String> {
 
 fn run() -> Result<String, String> {
     let mut args = std::env::args().skip(1);
-    let usage = "usage: duel_routes_replay <pack-dir> <out-dir>";
+    let usage = "usage: duel_routes_replay <pack-dir> <out-dir> <rules-file>";
     let pack = PathBuf::from(args.next().ok_or(usage)?);
     let out = PathBuf::from(args.next().ok_or(usage)?);
+    let rules_path = PathBuf::from(args.next().ok_or(usage)?);
+    let rules = std::fs::read_to_string(&rules_path).map_err(|e| format!("read {}: {e}", rules_path.display()))?;
     let image = osdt_data::generate(&pack).map_err(|e| format!("compile {}: {e:?}", pack.display()))?;
-    let recorded = duel::record(&image)?;
-    duel::verify(&image, &recorded.replay, &recorded.hashes)?;
+    let recorded = duel::record(&image, &rules)?;
+    duel::verify(&image, &rules, &recorded.replay, &recorded.hashes)?;
     std::fs::create_dir_all(&out).map_err(|e| format!("create {}: {e}", out.display()))?;
     write(&out.join("duel-routes.replay"), recorded.replay.as_bytes())?;
     write(&out.join("duel-routes.hashes"), recorded.hash_table().as_bytes())?;

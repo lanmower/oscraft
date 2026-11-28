@@ -3624,10 +3624,34 @@ async function main() {
   function installCapture() {
     window.__fxOff = true;
     window.__ciWorldReady = () => worldBuilt;
-    window.__ciCaptureState = () => ({ ticks: localGame ? localGame.ticks() : null, worldBuilt, renderer: !!renderer3d, canvas: !!canvas });
+    window.__ciCaptureState = () => ({
+      ticks: localGame ? localGame.ticks() : null,
+      worldBuilt,
+      renderer: !!renderer3d,
+      live: gate.live,
+      simUnits: simUnits().length,
+      shownUnits: currentUnits().length,
+      fogFilter: !!fogview,
+      unitDraws: typeof drawCounts === "object" ? drawCounts.unit : null,
+      terrainDraws: typeof drawCounts === "object" ? drawCounts.terrain : null,
+      orbitOrigin,
+      modelStatus: [...new Set(simUnits().map((u) => u.type))].map((t) => [t, unitMeshes[t] === undefined ? "pending" : unitMeshes[t] === null ? "failed" : "loaded"]),
+      modelQueue: unitModelQueue.length,
+      modelRunning: unitModelRunning,
+      samplePositions: simUnits().slice(0, 3).map((u) => [u.id, u.type, u.x, u.z, u.player]),
+    });
     window.__ciCaptureLoad = (text) => {
       localGame.replay_load(text);
       return localGame.ticks();
+    };
+    window.__ciCaptureReady = async () => {
+      for (const u of currentUnits()) if (unitMeshes[u.type] === undefined) queueUnitModel(u.type, true);
+      const until = performance.now() + 120000;
+      while (unitModelRunning > 0 || unitModelQueue.length > 0) {
+        if (performance.now() > until) throw new Error("capture: unit models did not load");
+        await delay(100);
+      }
+      return true;
     };
     window.__ciCaptureFrame = (tick) => {
       if (!worldBuilt || !renderer3d) throw new Error("capture before the world is built");
@@ -3636,6 +3660,7 @@ async function main() {
       tickStampMs = null;
       lastDrawMs = null;
       globalThis.__ciClockMs = 0;
+      if (fogview) fogview.draw();
       drawWorld3d();
       return canvas.toDataURL("image/png");
     };

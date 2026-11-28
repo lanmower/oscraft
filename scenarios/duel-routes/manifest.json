@@ -4,10 +4,24 @@
   "version": "1.0.0",
   "map": "map.osd",
   "data": [
-    "0_names.osd", "abilities.osd", "behaviours.osd", "economy.osd", "map.osd", "tuning.osd", "units.osd", "units_extra.osd"
+    "0_names.osd",
+    "abilities.osd",
+    "behaviours.osd",
+    "economy.osd",
+    "map.osd",
+    "tuning.osd",
+    "units.osd",
+    "units_extra.osd"
   ],
   "image": "duel-routes.osdt",
-  "mods": ["clock.lua", "harvest.lua", "economy_start.lua", "production.lua", "transport.lua", "unit_rules.lua"],
+  "mods": [
+    "clock.lua",
+    "harvest.lua",
+    "economy_start.lua",
+    "production.lua",
+    "transport.lua",
+    "unit_rules.lua"
+  ],
   "rules": "attr_rules.txt",
   "tables": [],
   "fixtures": [],
@@ -31,6 +45,9 @@
     },
     "catalogue": "assets.json",
     "props": "props.json",
-    "propSizes": "prop_sizes.json"
+    "propSizes": "prop_sizes.json",
+    "models": "models",
+    "anim": "anim/library.json",
+    "animMaps": "anim/maps"
   }
 }

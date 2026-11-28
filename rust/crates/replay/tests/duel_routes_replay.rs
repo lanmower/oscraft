@@ -15,16 +15,20 @@ fn image() -> Vec<u8> {
     osdt_data::generate(&pack()).expect("compile the duel-routes pack")
 }
 
+fn rules() -> String {
+    std::fs::read_to_string(pack().join("attr_rules.txt")).expect("read the duel-routes rules")
+}
+
 fn recorded() -> (Vec<u8>, duel::Duel) {
     let image = image();
-    let duel = duel::record(&image).expect("record the duel-routes duel");
+    let duel = duel::record(&image, &rules()).expect("record the duel-routes duel");
     (image, duel)
 }
 
 #[test]
 fn the_recorded_duel_replays_with_every_tick_hash() {
     let (image, duel) = recorded();
-    duel::verify(&image, &duel.replay, &duel.hashes).expect("the replay reproduces every per-tick hash");
+    duel::verify(&image, &rules(), &duel.replay, &duel.hashes).expect("the replay reproduces every per-tick hash");
 }
 
 #[test]
@@ -40,5 +44,5 @@ fn a_wrong_expected_hash_is_refused() {
     let mut hashes = duel.hashes.clone();
     let middle = hashes.len() / 2;
     hashes[middle].1 ^= 1;
-    assert!(duel::verify(&image, &duel.replay, &hashes).is_err(), "a changed per-tick hash fails the replay");
+    assert!(duel::verify(&image, &rules(), &duel.replay, &hashes).is_err(), "a changed per-tick hash fails the replay");
 }

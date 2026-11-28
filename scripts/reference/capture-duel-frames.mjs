@@ -128,16 +128,19 @@ try {
   await waitFor("the duel world", () => cdp.evaluate("typeof window.__ciWorldReady === 'function' && window.__ciWorldReady() === true").catch(() => false), WORLD_WAIT_MS);
   const loaded = await cdp.evaluate(`window.__ciCaptureLoad(${JSON.stringify(replayText)})`);
   fs.mkdirSync(out, { recursive: true });
+  await cdp.evaluate("window.__ciCaptureReady()");
   const sums = [];
   for (const tick of ticks) {
     const dataUrl = await cdp.evaluate(`window.__ciCaptureFrame(${tick})`);
     const bytes = Buffer.from(String(dataUrl).replace(/^data:image\/png;base64,/, ""), "base64");
     const name = `tick-${String(tick).padStart(4, "0")}.png`;
     fs.writeFileSync(path.join(out, name), bytes);
+    fs.appendFileSync(path.join(out, "state.jsonl"), JSON.stringify({ tick, state: await cdp.evaluate("window.__ciCaptureState()") }) + "\n");
     sums.push(`${sha256(bytes)}  ${name}`);
   }
   fs.writeFileSync(path.join(out, "SHA256SUMS"), sums.join("\n") + "\n");
   fs.writeFileSync(path.join(out, "ticks.txt"), ticks.join("\n") + "\n");
+  fs.writeFileSync(path.join(out, "events.txt"), events.join("\n") + "\n");
   console.log(`CAPTURE_OK frames=${ticks.length} replayLoadedAtTick=${loaded} out=${out}`);
   exitCode = 0;
 } catch (err) {

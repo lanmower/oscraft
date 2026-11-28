@@ -19,12 +19,16 @@ impl Duel {
     }
 }
 
-fn load(image: &[u8]) -> Result<Sim, String> {
-    sim::load(image, MAX_UNITS).map_err(|e| format!("load: {e:?}"))
+fn load(image: &[u8], rules: &str) -> Result<Sim, String> {
+    let mut sim = sim::load(image, MAX_UNITS).map_err(|e| format!("load: {e:?}"))?;
+    if !sim.set_attr_rules_text(rules) {
+        return Err("the pack's rules text is refused".to_owned());
+    }
+    Ok(sim)
 }
 
-pub fn record(image: &[u8]) -> Result<Duel, String> {
-    let mut sim = load(image)?;
+pub fn record(image: &[u8], rules: &str) -> Result<Duel, String> {
+    let mut sim = load(image, rules)?;
     let mut rec = Recording::new(IMAGE, MAX_UNITS, &sim);
     for (player, x, y) in MOVES {
         rec.apply(&mut sim, Command::OrderAll { player, x: fixed::from_milli(x), y: fixed::from_milli(y) });
@@ -37,8 +41,8 @@ pub fn record(image: &[u8]) -> Result<Duel, String> {
     Ok(Duel { replay: rec.render(&sim), hashes })
 }
 
-pub fn verify(image: &[u8], replay: &str, hashes: &[(u32, u64)]) -> Result<(), String> {
-    let mut sim = load(image)?;
+pub fn verify(image: &[u8], rules: &str, replay: &str, hashes: &[(u32, u64)]) -> Result<(), String> {
+    let mut sim = load(image, rules)?;
     let rec = Recording::parse(replay).map_err(|e| format!("parse: {e:?}"))?;
     let mut player = Replayer::new(rec, &sim).map_err(|e| format!("start: {e:?}"))?;
     for &(tick, expected) in hashes.iter().skip(1) {

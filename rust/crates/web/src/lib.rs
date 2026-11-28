@@ -8,12 +8,21 @@ const LIVE_IMAGE: &str = "map";
 
 const MAX_UNITS: usize = 1024;
 
+fn fresh_sim(image: &[u8], rules: &str) -> Result<sim::Sim, JsValue> {
+    let mut fresh = sim::load(image, MAX_UNITS).map_err(|e| JsValue::from_str(&format!("sim::load: {e:?}")))?;
+    if !rules.is_empty() && !fresh.set_attr_rules_text(rules) {
+        return Err(JsValue::from_str("the pack rules text is refused"));
+    }
+    Ok(fresh)
+}
+
 #[wasm_bindgen]
 pub struct Game {
     host: ModHost,
     image: Vec<u8>,
     replay: Option<Replayer>,
     rec: Recording,
+    rules: String,
 }
 
 #[wasm_bindgen]
@@ -22,12 +31,12 @@ impl Game {
     pub fn new(image: &[u8]) -> Result<Game, JsValue> {
         let host = ModHost::new(image).map_err(|e| JsValue::from_str(&format!("sim::load: {e:?}")))?;
         let rec = Recording::new(LIVE_IMAGE, MAX_UNITS, &host.sim());
-        Ok(Game { host, image: image.to_vec(), replay: None, rec })
+        Ok(Game { host, image: image.to_vec(), replay: None, rec, rules: String::new() })
     }
 
     pub fn replay_load(&mut self, text: &str) -> Result<u32, JsValue> {
         let rec = Recording::parse(text).map_err(replay_error)?;
-        let fresh = sim::load(&self.image, MAX_UNITS).map_err(|e| JsValue::from_str(&format!("sim::load: {e:?}")))?;
+        let fresh = fresh_sim(&self.image, &self.rules)?;
         let player = Replayer::new(rec, &fresh).map_err(replay_error)?;
         let end = player.end();
         self.rec.mark_incomplete(fresh.ticks());
@@ -51,7 +60,7 @@ impl Game {
         let player = self.replay.as_mut().ok_or_else(|| JsValue::from_str("no replay loaded"))?;
         let tick = tick.min(player.end());
         if tick < self.host.sim().ticks() {
-            let fresh = sim::load(&self.image, MAX_UNITS).map_err(|e| JsValue::from_str(&format!("sim::load: {e:?}")))?;
+            let fresh = fresh_sim(&self.image, &self.rules)?;
             player.reset(&fresh).map_err(replay_error)?;
             self.rec.mark_incomplete(fresh.ticks());
             self.host.set_sim(fresh);
@@ -94,6 +103,7 @@ impl Game {
 
     pub fn set_attr_rules(&mut self, text: &str) -> String {
         if self.host.sim_mut().set_attr_rules_text(text) {
+            self.rules = text.to_owned();
             String::new()
         } else {
             "the pack's rules text is refused".to_owned()
